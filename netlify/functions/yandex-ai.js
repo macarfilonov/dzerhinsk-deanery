@@ -1,13 +1,14 @@
-
 exports.handler = async (event) => {
-    
     const headers = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
     
+    console.log('Request method:', event.httpMethod);
+
+
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers };
     }
@@ -17,15 +18,15 @@ exports.handler = async (event) => {
         return {
             statusCode: 405,
             headers,
-            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
+            body: JSON.stringify({
+                error: `Метод не разрешён. Используйте POST. Получен метод: ${event.httpMethod}`
+            })
         };
     }
 
     try {
-        
         const { question } = JSON.parse(event.body);
 
-        
         if (!question || question.trim() === '') {
             return {
                 statusCode: 400,
@@ -34,11 +35,9 @@ exports.handler = async (event) => {
             };
         }
 
-        
         const API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
         const FOLDER_ID = 'ajemoiqftp64srhbelhf';
 
-        
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
             headers: {
@@ -52,16 +51,11 @@ exports.handler = async (event) => {
                     temperature: 0.6,
                     maxTokens: 1000
                 },
-                messages: [
-                    { role: 'user', text: question }
-                ]
+                messages: [{ role: 'user', text: question }]
             })
         });
 
-        
         const data = await response.json();
-
-        
         return {
             statusCode: response.status,
             headers,
