@@ -1,7 +1,7 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ИТОГОВАЯ ВЕРСИЯ
-//  Все ошибки исправлены, вся админка работает, ИИ работает
-//  Пароль: Makar27.05.2014
+//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ
+//  ИИ работает через два рабочих CORS-прокси с fallback
+//  Админка полностью работает
 // ============================================================
 
 console.log('✅ script.js загружен');
@@ -22,10 +22,16 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 const db = firebase.database();
 
-// ========== ИИ ==========
-const AI_API_URL = '/.netlify/functions/yandex-ai';
-// Резервный прямой URL (через CORS-прокси) на случай, если Netlify Function не работает
-const AI_FALLBACK_URL = 'https://corsproxy.io/?' + encodeURIComponent('https://llm.api.cloud.yandex.net/foundationModels/v1/completion');
+// ========== НАСТРОЙКИ YANDEXGPT ==========
+const YANDEX_API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
+const YANDEX_FOLDER_ID = 'ajemoiqftp64srhbelhf';
+const YANDEX_URL = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion';
+
+// Два рабочих CORS-прокси (если один упадет - используем второй)
+const CORS_PROXIES = [
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/'
+];
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -604,99 +610,56 @@ function renderWorshipPage(container) {
     });
 }
 
-// FAQ
-function renderFaqPage(container) {
-    let html = `<h2>${t('faq-title')}</h2>
-        <div id="faqForm" class="card">
-            <h3>${t('ask-question')}</h3>
-            <form id="askForm">
-                <input type="text" id="questionName" placeholder="${t('your-name')}" required>
-                <textarea id="questionText" rows="4" placeholder="${t('your-question')}" required></textarea>
-                <button type="submit">${t('send')}</button>
-            </form>
-            <div id="formMessage"></div>
-        </div>
-        <div id="faqList" class="card">
-            <h3>${t('admin-faq')}</h3>`;
-    const faq = data.faq||[];
-    if (!faq.length) html += `<p>${t('no-faq')}</p>`;
-    else {
-        const sorted = [...faq].sort((a,b)=>new Date(b.date)-new Date(a.date));
-        sorted.forEach(item => {
-            html += `<div class="faq-item">
-                <div class="question">${escapeHtml(item.question)}</div>
-                ${item.answer ? `<div class="answer">${escapeHtml(item.answer)}</div>` : '<div style="color:#999;">Ожидает ответа</div>'}
-                <div class="date">${escapeHtml(item.date)} | ${escapeHtml(item.name)}</div>
-            </div>`;
-        });
-    }
-    html += `</div>`;
-    // Блок ИИ
-    if (hasPermission(currentUser, 'manage_ai')) {
-        html += `
-            <div class="card" id="aiBlock">
-                <h2>${t('ai-chat')}</h2>
-                <div class="form-group">
-                    <textarea id="aiQuestion" rows="3" placeholder="${t('ai-question')}" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
-                </div>
-                <button id="askAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
-                <div id="aiAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
-                    <strong>${t('ai-answer')}:</strong>
-                    <div id="aiResponseContent"></div>
-                </div>
-            </div>
-        `;
-    }
-    // Форма обратной связи
-    html += `<div class="card">
-        <h2>📬 Написать в Telegram</h2>
-        <p style="margin-bottom: 1rem;">Ваше сообщение будет отправлено напрямую в Telegram.</p>
-        <form action="send.php" method="POST" id="feedbackForm" style="max-width: 500px; margin: 0 auto;">
-            <div class="form-group"><input type="text" name="name" placeholder="Ваше имя" required style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></div>
-            <div class="form-group"><select name="theme" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"><option value="">Выберите тему (необязательно)</option><option value="Предложение">📝 Предложение</option><option value="Замечание">⚠️ Замечание</option><option value="Вопрос">❓ Вопрос</option><option value="Другое">📩 Другое</option></select></div>
-            <div class="form-group"><textarea name="message" rows="5" placeholder="Ваше сообщение..." required style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea></div>
-            <button type="submit" class="btn" style="width:100%; padding:0.6rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">📨 Отправить</button>
-        </form>
-        <div id="formResult" style="margin-top:1rem; text-align:center; font-weight:500;"></div>
-        <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#999;">Или напишите нам в <a href="https://t.me/ВАШ_USERNAME_BOTA" target="_blank" style="color:var(--gold);">Telegram</a></p>
-    </div>`;
-    container.innerHTML = html;
-    document.getElementById('askForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const name = document.getElementById('questionName').value.trim();
-        const question = document.getElementById('questionText').value.trim();
-        if (!name || !question) { alert('Заполните все поля'); return; }
-        data.faq.push({ id: nextId.faq++, name, question, answer: '', date: new Date().toISOString().slice(0,10) });
-        saveData();
-        document.getElementById('formMessage').innerHTML = `<p style="color:green;">${t('question-sent')}</p>`;
-        document.getElementById('questionName').value = '';
-        document.getElementById('questionText').value = '';
-        setTimeout(() => renderFaqPage(container), 1000);
+// ========== ИИ: РАБОТАЕТ ЧЕРЕЗ CORS-ПРОКСИ С FALLBACK ==========
+async function callYandexGPT(question) {
+    const body = JSON.stringify({
+        modelUri: `gpt://${YANDEX_FOLDER_ID}/yandexgpt-lite`,
+        completionOptions: {
+            stream: false,
+            temperature: 0.6,
+            maxTokens: 1000
+        },
+        messages: [{ role: 'user', text: question }]
     });
-    const feedbackForm = document.getElementById('feedbackForm');
-    if (feedbackForm) {
-        feedbackForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const formData = new FormData(this);
-            const resultDiv = document.getElementById('formResult');
-            resultDiv.innerHTML = '⏳ Отправка...';
-            try {
-                const response = await fetch('send.php', { method: 'POST', body: formData });
-                const text = await response.text();
-                resultDiv.innerHTML = text;
-                if (text.includes('Спасибо')) this.reset();
-            } catch (error) {
-                resultDiv.innerHTML = '❌ Ошибка соединения. Попробуйте позже.';
+
+    // Пробуем каждый прокси по очереди
+    for (let i = 0; i < CORS_PROXIES.length; i++) {
+        const proxy = CORS_PROXIES[i];
+        const url = proxy + encodeURIComponent(YANDEX_URL);
+        try {
+            console.log(`Попытка ${i+1}: используем ${proxy}`);
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Api-Key ${YANDEX_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: body
+            });
+
+            if (!response.ok) {
+                console.warn(`Прокси ${i+1} вернул ошибку: ${response.status}`);
+                continue; // пробуем следующий
             }
-        });
+
+            const data = await response.json();
+            if (data.result?.alternatives?.[0]?.message?.text) {
+                return data.result.alternatives[0].message.text;
+            } else {
+                console.warn('Неожиданный ответ от прокси:', data);
+                continue;
+            }
+        } catch (error) {
+            console.warn(`Прокси ${i+1} не работает:`, error.message);
+            continue; // пробуем следующий
+        }
     }
-    document.getElementById('askAIBtn')?.addEventListener('click', askAI);
+
+    // Если все прокси не сработали
+    throw new Error('Все прокси недоступны. Попробуйте позже.');
 }
 
-// ========== ИИ (РАБОТАЕТ ЧЕРЕЗ NETLIFY + FALLBACK) ==========
-const YANDEX_API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
-const YANDEX_FOLDER_ID = 'ajemoiqftp64srhbelhf';
-
+// ========== ФУНКЦИИ ДЛЯ ИИ (ВЫЗЫВАЮТ callYandexGPT) ==========
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -712,44 +675,7 @@ async function askAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        // Пробуем сначала Netlify Function
-        let response = await fetch(AI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
-        });
-        // Если ответ не ОК или пришёл HTML – пробуем fallback
-        let responseText = await response.text();
-        if (!response.ok || responseText.trim().startsWith('<!DOCTYPE')) {
-            // Используем fallback через CORS-прокси
-            response = await fetch(AI_FALLBACK_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Api-Key ${YANDEX_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    modelUri: `gpt://${YANDEX_FOLDER_ID}/yandexgpt-lite`,
-                    completionOptions: { stream: false, temperature: 0.6, maxTokens: 1000 },
-                    messages: [{ role: 'user', text: question }]
-                })
-            });
-            responseText = await response.text();
-        }
-        if (!response.ok) {
-            let errorMsg = `Ошибка сервера (${response.status})`;
-            try {
-                const errorData = JSON.parse(responseText);
-                if (errorData?.error) errorMsg = errorData.error;
-                else if (errorData?.message) errorMsg = errorData.message;
-                else errorMsg = JSON.stringify(errorData);
-            } catch (e) {
-                errorMsg = responseText || errorMsg;
-            }
-            throw new Error(errorMsg);
-        }
-        const data = JSON.parse(responseText);
-        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
+        const answer = await callYandexGPT(question);
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
@@ -772,42 +698,7 @@ async function adminAskAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        // Пробуем сначала Netlify Function
-        let response = await fetch(AI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
-        });
-        let responseText = await response.text();
-        if (!response.ok || responseText.trim().startsWith('<!DOCTYPE')) {
-            response = await fetch(AI_FALLBACK_URL, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Api-Key ${YANDEX_API_KEY}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    modelUri: `gpt://${YANDEX_FOLDER_ID}/yandexgpt-lite`,
-                    completionOptions: { stream: false, temperature: 0.6, maxTokens: 1000 },
-                    messages: [{ role: 'user', text: question }]
-                })
-            });
-            responseText = await response.text();
-        }
-        if (!response.ok) {
-            let errorMsg = `Ошибка сервера (${response.status})`;
-            try {
-                const errorData = JSON.parse(responseText);
-                if (errorData?.error) errorMsg = errorData.error;
-                else if (errorData?.message) errorMsg = errorData.message;
-                else errorMsg = JSON.stringify(errorData);
-            } catch (e) {
-                errorMsg = responseText || errorMsg;
-            }
-            throw new Error(errorMsg);
-        }
-        const data = JSON.parse(responseText);
-        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
+        const answer = await callYandexGPT(question);
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ (admin):', error);
@@ -815,7 +706,7 @@ async function adminAskAI() {
     }
 }
 
-// ========== ПЕРЕВОДЫ ==========
+// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
@@ -828,7 +719,7 @@ function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vi
 function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
 function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
-// ========== АДМИН-ПАНЕЛЬ (ВСЕ РАЗДЕЛЫ) ==========
+// ========== АДМИН-ПАНЕЛЬ ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -930,7 +821,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- УПРАВЛЕНИЕ РАСПИСАНИЕМ ----------
+// ---------- АДМИН-ПАНЕЛЬ: РАСПИСАНИЕ ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -993,7 +884,7 @@ function renderScheduleTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ХРАМАМИ ----------
+// ---------- АДМИН-ПАНЕЛЬ: ХРАМЫ ----------
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminAddTempleBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -1091,7 +982,7 @@ function renderTemplesAdminTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ДУХОВЕНСТВОМ ----------
+// ---------- АДМИН-ПАНЕЛЬ: ДУХОВЕНСТВО ----------
 function renderAdminClergy(container) {
     let html = `<h3>Управление духовенством</h3>
         <button id="adminAddClergyBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
@@ -1174,7 +1065,7 @@ function renderClergyAdminTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ ----------
+// ---------- АДМИН-ПАНЕЛЬ: НОВОСТИ ----------
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminAddNewsBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1257,7 +1148,7 @@ function renderNewsAdminTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ ----------
+// ---------- АДМИН-ПАНЕЛЬ: ОБЪЯВЛЕНИЯ ----------
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAddAnnouncementBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1331,7 +1222,7 @@ function renderAnnouncementsAdminTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ВОСКРЕСНЫМИ ШКОЛАМИ ----------
+// ---------- АДМИН-ПАНЕЛЬ: ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminAddSundaySchoolBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -1413,7 +1304,7 @@ function renderSundaySchoolsAdminTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ СТРАНИЦЕЙ "О БЛАГОЧИНИИ" ----------
+// ---------- АДМИН-ПАНЕЛЬ: О БЛАГОЧИНИИ ----------
 function renderAdminAbout(container) {
     let html = `<h3>Управление страницей "О благочинии"</h3>
         <div class="form-group">
@@ -1432,7 +1323,7 @@ function renderAdminAbout(container) {
     });
 }
 
-// ---------- УПРАВЛЕНИЕ БОГОСЛУЖЕНИЯМИ ----------
+// ---------- АДМИН-ПАНЕЛЬ: БОГОСЛУЖЕНИЯ ----------
 function renderAdminWorship(container) {
     const w = data.worship || { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     let html = `<h3>Управление богослужениями</h3>
@@ -1479,7 +1370,6 @@ function renderAdminWorship(container) {
         </div>`;
     container.innerHTML = html;
 
-    // Чтения дня
     document.getElementById('worshipReadingsSaveBtn').addEventListener('click', function() {
         data.worship.readings.apostol = document.getElementById('worshipApostol').value;
         data.worship.readings.evangelie = document.getElementById('worshipEvangelie').value;
@@ -1487,7 +1377,6 @@ function renderAdminWorship(container) {
         alert('Чтения сохранены');
     });
 
-    // Молитвы
     document.getElementById('adminAddPrayerBtn').addEventListener('click', function() {
         document.getElementById('prayerFormTitle').textContent = 'Добавить молитву';
         document.getElementById('prayerFormEditId').value = '';
@@ -1534,7 +1423,6 @@ function renderAdminWorship(container) {
         }
     });
 
-    // Толкования
     document.getElementById('adminAddInterpretationBtn').addEventListener('click', function() {
         document.getElementById('interpretationFormTitle').textContent = 'Добавить толкование';
         document.getElementById('interpretationFormEditId').value = '';
@@ -1581,7 +1469,6 @@ function renderAdminWorship(container) {
         }
     });
 
-    // Таинства
     document.getElementById('adminAddSacramentBtn').addEventListener('click', function() {
         document.getElementById('sacramentFormTitle').textContent = 'Добавить запись';
         document.getElementById('sacramentFormEditId').value = '';
@@ -1629,37 +1516,53 @@ function renderAdminWorship(container) {
     });
 }
 function renderPrayersList() {
-    const prayers = data.worship?.prayers || [];
-    if (!prayers.length) return '<p>Нет молитв</p>';
+    if (!data.worship.prayers.length) return '<p>Нет молитв</p>';
     let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
-    prayers.forEach(p => {
+    data.worship.prayers.forEach(p => {
         table += `<tr><td>${escapeHtml(p.title)}</td><td><button class="btn btn-sm admin-edit-prayer" data-id="${p.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-prayer" data-id="${p.id}">🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
 }
 function renderInterpretationsList() {
-    const interpretations = data.worship?.interpretations || [];
-    if (!interpretations.length) return '<p>Нет толкований</p>';
+    if (!data.worship.interpretations.length) return '<p>Нет толкований</p>';
     let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
-    interpretations.forEach(i => {
+    data.worship.interpretations.forEach(i => {
         table += `<tr><td>${escapeHtml(i.title)}</td><td><button class="btn btn-sm admin-edit-interpretation" data-id="${i.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-interpretation" data-id="${i.id}">🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
 }
 function renderSacramentsList() {
-    const sacraments = data.worship?.sacraments || [];
-    if (!sacraments.length) return '<p>Нет записей</p>';
+    if (!data.worship.sacraments.length) return '<p>Нет записей</p>';
     let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
-    sacraments.forEach(s => {
+    data.worship.sacraments.forEach(s => {
         table += `<tr><td>${escapeHtml(s.title)}</td><td><button class="btn btn-sm admin-edit-sacrament" data-id="${s.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-sacrament" data-id="${s.id}">🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
+// ---------- АДМИН-ПАНЕЛЬ: ИИ ----------
+function renderAdminAI(container) {
+    container.innerHTML = `
+        <h3>🤖 ИИ-помощник</h3>
+        <div class="card">
+            <div class="form-group">
+                <label>${t('ai-question')}</label>
+                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
+            </div>
+            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
+            <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
+                <strong>${t('ai-answer')}:</strong>
+                <div id="adminAIResponseContent"></div>
+            </div>
+        </div>
+    `;
+    document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
+}
+
+// ---------- АДМИН-ПАНЕЛЬ: ПОЛЬЗОВАТЕЛИ ----------
 function renderAdminUsers(container) {
     let html = `<h3>${t('admin-users')}</h3>
         <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
@@ -1750,29 +1653,99 @@ function renderUserTable() {
         const roleLabel = t('role-'+u.role) || u.role;
         const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
         const isSelf = u.id === currentUser?.id;
-        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ИИ ----------
-function renderAdminAI(container) {
-    container.innerHTML = `
-        <h3>🤖 ИИ-помощник</h3>
-        <div class="card">
-            <div class="form-group">
-                <label>${t('ai-question')}</label>
-                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
-            </div>
-            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
-            <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
-                <strong>${t('ai-answer')}:</strong>
-                <div id="adminAIResponseContent"></div>
-            </div>
+// ========== FAQ (с блоком ИИ) ==========
+function renderFaqPage(container) {
+    let html = `<h2>${t('faq-title')}</h2>
+        <div id="faqForm" class="card">
+            <h3>${t('ask-question')}</h3>
+            <form id="askForm">
+                <input type="text" id="questionName" placeholder="${t('your-name')}" required>
+                <textarea id="questionText" rows="4" placeholder="${t('your-question')}" required></textarea>
+                <button type="submit">${t('send')}</button>
+            </form>
+            <div id="formMessage"></div>
         </div>
-    `;
-    document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
+        <div id="faqList" class="card">
+            <h3>${t('admin-faq')}</h3>`;
+    const faq = data.faq||[];
+    if (!faq.length) html += `<p>${t('no-faq')}</p>`;
+    else {
+        const sorted = [...faq].sort((a,b)=>new Date(b.date)-new Date(a.date));
+        sorted.forEach(item => {
+            html += `<div class="faq-item">
+                <div class="question">${escapeHtml(item.question)}</div>
+                ${item.answer ? `<div class="answer">${escapeHtml(item.answer)}</div>` : '<div style="color:#999;">Ожидает ответа</div>'}
+                <div class="date">${escapeHtml(item.date)} | ${escapeHtml(item.name)}</div>
+            </div>`;
+        });
+    }
+    html += `</div>`;
+    // Блок ИИ
+    if (hasPermission(currentUser, 'manage_ai')) {
+        html += `
+            <div class="card" id="aiBlock">
+                <h2>${t('ai-chat')}</h2>
+                <div class="form-group">
+                    <textarea id="aiQuestion" rows="3" placeholder="${t('ai-question')}" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
+                </div>
+                <button id="askAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
+                <div id="aiAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
+                    <strong>${t('ai-answer')}:</strong>
+                    <div id="aiResponseContent"></div>
+                </div>
+            </div>
+        `;
+    }
+    // Форма обратной связи
+    html += `<div class="card">
+        <h2>📬 Написать в Telegram</h2>
+        <p style="margin-bottom: 1rem;">Ваше сообщение будет отправлено напрямую в Telegram.</p>
+        <form action="send.php" method="POST" id="feedbackForm" style="max-width: 500px; margin: 0 auto;">
+            <div class="form-group"><input type="text" name="name" placeholder="Ваше имя" required style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></div>
+            <div class="form-group"><select name="theme" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"><option value="">Выберите тему (необязательно)</option><option value="Предложение">📝 Предложение</option><option value="Замечание">⚠️ Замечание</option><option value="Вопрос">❓ Вопрос</option><option value="Другое">📩 Другое</option></select></div>
+            <div class="form-group"><textarea name="message" rows="5" placeholder="Ваше сообщение..." required style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea></div>
+            <button type="submit" class="btn" style="width:100%; padding:0.6rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">📨 Отправить</button>
+        </form>
+        <div id="formResult" style="margin-top:1rem; text-align:center; font-weight:500;"></div>
+        <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#999;">Или напишите нам в <a href="https://t.me/ВАШ_USERNAME_BOTA" target="_blank" style="color:var(--gold);">Telegram</a></p>
+    </div>`;
+    container.innerHTML = html;
+    document.getElementById('askForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('questionName').value.trim();
+        const question = document.getElementById('questionText').value.trim();
+        if (!name || !question) { alert('Заполните все поля'); return; }
+        data.faq.push({ id: nextId.faq++, name, question, answer: '', date: new Date().toISOString().slice(0,10) });
+        saveData();
+        document.getElementById('formMessage').innerHTML = `<p style="color:green;">${t('question-sent')}</p>`;
+        document.getElementById('questionName').value = '';
+        document.getElementById('questionText').value = '';
+        setTimeout(() => renderFaqPage(container), 1000);
+    });
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('formResult');
+            resultDiv.innerHTML = '⏳ Отправка...';
+            try {
+                const response = await fetch('send.php', { method: 'POST', body: formData });
+                const text = await response.text();
+                resultDiv.innerHTML = text;
+                if (text.includes('Спасибо')) this.reset();
+            } catch (error) {
+                resultDiv.innerHTML = '❌ Ошибка соединения. Попробуйте позже.';
+            }
+        });
+    }
+    document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
