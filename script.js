@@ -1,6 +1,7 @@
 // ============================================================
-//  script.js – полная версия с исправленной работой ИИ
+//  script.js – ПОЛНАЯ ВЕРСИЯ ДЛЯ САЙТА
 //  Пароль: Makar27.05.2014
+//  Все функции, админка, ИИ через Netlify Function
 // ============================================================
 
 console.log('script.js загружен');
@@ -637,7 +638,7 @@ function renderWorshipPage(container) {
     });
 }
 
-// ---------- FAQ ----------
+// ---------- FAQ (с блоком ИИ) ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card">
@@ -752,20 +753,30 @@ async function askAI() {
         });
 
         if (!response.ok) {
-            let errorText = `Ошибка сервера: ${response.status}`;
+            let errorText = `Ошибка сервера (${response.status})`;
             try {
                 const errorData = await response.json();
-                if (errorData && errorData.error) errorText = errorData.error;
-                else if (errorData && errorData.message) errorText = errorData.message;
+                if (errorData && errorData.error) {
+                    errorText = errorData.error;
+                } else if (errorData && errorData.message) {
+                    errorText = errorData.message;
+                } else {
+                    errorText = JSON.stringify(errorData);
+                }
             } catch (e) {
-                const text = await response.text();
-                if (text) errorText = text.substring(0, 200);
+                try {
+                    const text = await response.text();
+                    if (text) errorText = text.substring(0, 200);
+                } catch (e2) {}
             }
             throw new Error(errorText);
         }
 
         const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
+        const answer = data.result?.alternatives?.[0]?.message?.text;
+        if (!answer) {
+            throw new Error('Не удалось получить ответ от ИИ');
+        }
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
@@ -795,43 +806,35 @@ async function adminAskAI() {
         });
 
         if (!response.ok) {
-            let errorText = `Ошибка сервера: ${response.status}`;
+            let errorText = `Ошибка сервера (${response.status})`;
             try {
                 const errorData = await response.json();
-                if (errorData && errorData.error) errorText = errorData.error;
-                else if (errorData && errorData.message) errorText = errorData.message;
+                if (errorData && errorData.error) {
+                    errorText = errorData.error;
+                } else if (errorData && errorData.message) {
+                    errorText = errorData.message;
+                } else {
+                    errorText = JSON.stringify(errorData);
+                }
             } catch (e) {
-                const text = await response.text();
-                if (text) errorText = text.substring(0, 200);
+                try {
+                    const text = await response.text();
+                    if (text) errorText = text.substring(0, 200);
+                } catch (e2) {}
             }
             throw new Error(errorText);
         }
 
         const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
+        const answer = data.result?.alternatives?.[0]?.message?.text;
+        if (!answer) {
+            throw new Error('Не удалось получить ответ от ИИ');
+        }
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
-}
-
-function renderAdminAI(container) {
-    container.innerHTML = `
-        <h3>🤖 ИИ-помощник</h3>
-        <div class="card">
-            <div class="form-group">
-                <label>${t('ai-question')}</label>
-                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
-            </div>
-            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
-            <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
-                <strong>${t('ai-answer')}:</strong>
-                <div id="adminAIResponseContent"></div>
-            </div>
-        </div>
-    `;
-    document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
 }
 
 // ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
@@ -1089,6 +1092,25 @@ function renderUserTable() {
     });
     table += `</tbody></table>`;
     return table;
+}
+
+// ---------- АДМИН-ПАНЕЛЬ: ИИ ----------
+function renderAdminAI(container) {
+    container.innerHTML = `
+        <h3>🤖 ИИ-помощник</h3>
+        <div class="card">
+            <div class="form-group">
+                <label>${t('ai-question')}</label>
+                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
+            </div>
+            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
+            <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
+                <strong>${t('ai-answer')}:</strong>
+                <div id="adminAIResponseContent"></div>
+            </div>
+        </div>
+    `;
+    document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
 }
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
