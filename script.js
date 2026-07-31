@@ -335,76 +335,47 @@ function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vi
 function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
 function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
-// ========== ИИ ==========
+// ========== ИИ: ЗАПРОС К NETLIFY FUNCTION ==========
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
     const question = questionInput.value.trim();
-    if (!question) { alert('Введите вопрос'); return; }
+    if (!question) {
+        alert('Введите вопрос');
+        return;
+    }
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
+
     try {
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-        if (!response.ok) {
-            let errorText = `Ошибка сервера (${response.status})`;
-            try {
-                const errorData = await response.json();
-                if (errorData && typeof errorData === 'object') {
-                    if (errorData.error) errorText = errorData.error;
-                    else if (errorData.message) errorText = errorData.message;
-                    else errorText = JSON.stringify(errorData);
-                }
-            } catch (e) {
-                try { const text = await response.text(); if (text) errorText = text.substring(0, 200); } catch (e2) {}
-            }
-            throw new Error(errorText);
+
+        // Пытаемся получить текст ответа
+        const text = await response.text();
+        // Если ответ пустой или не JSON, выводим ошибку
+        if (!text) {
+            throw new Error('Пустой ответ от сервера');
         }
-        const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
-        contentDiv.textContent = answer;
-    } catch (error) {
-        console.error('Ошибка ИИ:', error);
-        contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
-    }
-}
-async function adminAskAI() {
-    const questionInput = document.getElementById('adminAIQuestion');
-    if (!questionInput) return;
-    const question = questionInput.value.trim();
-    if (!question) { alert('Введите вопрос'); return; }
-    const answerDiv = document.getElementById('adminAIAnswer');
-    const contentDiv = document.getElementById('adminAIResponseContent');
-    if (!answerDiv || !contentDiv) return;
-    answerDiv.style.display = 'block';
-    contentDiv.textContent = t('ai-thinking');
-    try {
-        const response = await fetch(AI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
-        });
-        if (!response.ok) {
-            let errorText = `Ошибка сервера (${response.status})`;
-            try {
-                const errorData = await response.json();
-                if (errorData && typeof errorData === 'object') {
-                    if (errorData.error) errorText = errorData.error;
-                    else if (errorData.message) errorText = errorData.message;
-                    else errorText = JSON.stringify(errorData);
-                }
-            } catch (e) {
-                try { const text = await response.text(); if (text) errorText = text.substring(0, 200); } catch (e2) {}
-            }
-            throw new Error(errorText);
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error('Сервер вернул невалидный JSON: ' + text.substring(0, 100));
         }
-        const data = await response.json();
+
+        if (!response.ok) {
+            const errorMsg = data.error || data.message || `Ошибка сервера (${response.status})`;
+            throw new Error(errorMsg);
+        }
+
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
@@ -413,6 +384,51 @@ async function adminAskAI() {
     }
 }
 
+async function adminAskAI() {
+    const questionInput = document.getElementById('adminAIQuestion');
+    if (!questionInput) return;
+    const question = questionInput.value.trim();
+    if (!question) {
+        alert('Введите вопрос');
+        return;
+    }
+    const answerDiv = document.getElementById('adminAIAnswer');
+    const contentDiv = document.getElementById('adminAIResponseContent');
+    if (!answerDiv || !contentDiv) return;
+    answerDiv.style.display = 'block';
+    contentDiv.textContent = t('ai-thinking');
+
+    try {
+        const response = await fetch(AI_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
+        });
+
+        const text = await response.text();
+        if (!text) {
+            throw new Error('Пустой ответ от сервера');
+        }
+
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            throw new Error('Сервер вернул невалидный JSON: ' + text.substring(0, 100));
+        }
+
+        if (!response.ok) {
+            const errorMsg = data.error || data.message || `Ошибка сервера (${response.status})`;
+            throw new Error(errorMsg);
+        }
+
+        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
+        contentDiv.textContent = answer;
+    } catch (error) {
+        console.error('Ошибка ИИ (admin):', error);
+        contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
+    }
+}
 // ========== АДМИН-ПАНЕЛЬ (ВСЕ РАЗДЕЛЫ РАБОТАЮТ) ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
