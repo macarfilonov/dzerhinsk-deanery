@@ -738,7 +738,6 @@ function renderFaqPage(container) {
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ========== ИИ: ФУНКЦИИ ДЛЯ HUGGING FACE ==========
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -747,51 +746,30 @@ async function askAI() {
         alert('Введите вопрос');
         return;
     }
-
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
     if (!answerDiv || !contentDiv) return;
-
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const url = CORS_PROXY + '?' + encodeURIComponent(`https://api-inference.huggingface.co/models/${HF_MODEL}`);
-        
-        const response = await fetch(url, {
+        const response = await fetch(AI_API_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${HF_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                inputs: question,
-                parameters: {
-                    max_new_tokens: 500,
-                    temperature: 0.7,
-                    return_full_text: false
-                }
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
         });
-
-        if (response.status === 503) {
-            throw new Error('Модель загружается, подождите 15–30 секунд и повторите запрос.');
-        }
-
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`Ошибка API: ${response.status} - ${text}`);
+            throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
         }
-
         const data = await response.json();
-        const answer = data[0]?.generated_text || 'Не удалось получить ответ';
+        const answer = data.result?.alternatives?.[0]?.message?.text || 'Не удалось получить ответ';
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + error.message;
     }
 }
-
 async function adminAskAI() {
     const questionInput = document.getElementById('adminAIQuestion');
     if (!questionInput) return;
@@ -800,51 +778,30 @@ async function adminAskAI() {
         alert('Введите вопрос');
         return;
     }
-
     const answerDiv = document.getElementById('adminAIAnswer');
     const contentDiv = document.getElementById('adminAIResponseContent');
     if (!answerDiv || !contentDiv) return;
-
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const url = CORS_PROXY + '?' + encodeURIComponent(`https://api-inference.huggingface.co/models/${HF_MODEL}`);
-        
-        const response = await fetch(url, {
+        const response = await fetch(AI_API_URL, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${HF_TOKEN}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                inputs: question,
-                parameters: {
-                    max_new_tokens: 500,
-                    temperature: 0.7,
-                    return_full_text: false
-                }
-            })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question })
         });
-
-        if (response.status === 503) {
-            throw new Error('Модель загружается, подождите 15–30 секунд и повторите запрос.');
-        }
-
         if (!response.ok) {
             const text = await response.text();
-            throw new Error(`Ошибка API: ${response.status} - ${text}`);
+            throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
         }
-
         const data = await response.json();
-        const answer = data[0]?.generated_text || 'Не удалось получить ответ';
+        const answer = data.result?.alternatives?.[0]?.message?.text || 'Не удалось получить ответ';
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + error.message;
     }
 }
-
 function renderAdminAI(container) {
     container.innerHTML = `
         <h3>🤖 ИИ-помощник</h3>
