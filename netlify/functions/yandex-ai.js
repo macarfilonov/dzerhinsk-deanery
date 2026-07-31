@@ -3,7 +3,7 @@ exports.handler = async (event) => {
     
     const headers = {
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
@@ -14,16 +14,24 @@ exports.handler = async (event) => {
 
     
     if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Метод не разрешён' }) };
+        return {
+            statusCode: 405,
+            headers,
+            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
+        };
     }
 
     try {
         
-        const body = JSON.parse(event.body);
-        const question = body.question;
+        const { question } = JSON.parse(event.body);
 
+        
         if (!question || question.trim() === '') {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Вопрос не может быть пустым.' })
+            };
         }
 
         
@@ -44,7 +52,9 @@ exports.handler = async (event) => {
                     temperature: 0.6,
                     maxTokens: 1000
                 },
-                messages: [{ role: 'user', text: question }]
+                messages: [
+                    { role: 'user', text: question }
+                ]
             })
         });
 
@@ -58,11 +68,11 @@ exports.handler = async (event) => {
             body: JSON.stringify(data)
         };
     } catch (error) {
-        
+        console.error('Ошибка в функции:', error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: error.message })
+            body: JSON.stringify({ error: error.message || 'Внутренняя ошибка сервера' })
         };
     }
 };
