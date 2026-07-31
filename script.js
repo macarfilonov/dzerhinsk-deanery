@@ -674,7 +674,10 @@ function renderFaqPage(container) {
 // ========== ИИ ==========
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
-    if (!questionInput) return;
+    if (!questionInput) {
+        console.error('❌ Поле aiQuestion не найдено');
+        return;
+    }
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -682,11 +685,15 @@ async function askAI() {
     }
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
-    if (!answerDiv || !contentDiv) return;
+    if (!answerDiv || !contentDiv) {
+        console.error('❌ Блок ответа не найден');
+        return;
+    }
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
+        console.log('📤 Отправка POST-запроса к', AI_API_URL);
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -694,6 +701,7 @@ async function askAI() {
         });
 
         const responseText = await response.text();
+        console.log('📥 Ответ сервера:', responseText);
 
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
@@ -712,14 +720,17 @@ async function askAI() {
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('Ошибка ИИ:', error);
+        console.error('❌ Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
 
 async function adminAskAI() {
     const questionInput = document.getElementById('adminAIQuestion');
-    if (!questionInput) return;
+    if (!questionInput) {
+        console.error('❌ Поле adminAIQuestion не найдено');
+        return;
+    }
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -727,11 +738,15 @@ async function adminAskAI() {
     }
     const answerDiv = document.getElementById('adminAIAnswer');
     const contentDiv = document.getElementById('adminAIResponseContent');
-    if (!answerDiv || !contentDiv) return;
+    if (!answerDiv || !contentDiv) {
+        console.error('❌ Блок ответа не найден');
+        return;
+    }
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
+        console.log('📤 Отправка POST-запроса (admin) к', AI_API_URL);
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -739,6 +754,7 @@ async function adminAskAI() {
         });
 
         const responseText = await response.text();
+        console.log('📥 Ответ сервера (admin):', responseText);
 
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
@@ -757,7 +773,7 @@ async function adminAskAI() {
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('Ошибка ИИ (admin):', error);
+        console.error('❌ Ошибка ИИ (admin):', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
