@@ -1,3 +1,4 @@
+// netlify/functions/yandex-ai.js
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -5,23 +6,35 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
+    // Обработка предварительного запроса (OPTIONS)
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers };
     }
 
+    // Разрешаем только POST
     if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, headers, body: 'Method Not Allowed' };
+        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Метод не разрешён' }) };
     }
 
     try {
-        const { question } = JSON.parse(event.body);
-        if (!question) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
+        // Парсим тело запроса
+        const body = JSON.parse(event.body);
+        const question = body.question;
+
+        // Проверяем, что вопрос передан
+        if (!question || typeof question !== 'string' || question.trim() === '') {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Вопрос не задан или пустой' })
+            };
         }
 
+        // Ваши ключи
         const API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
         const FOLDER_ID = 'ajemoiqftp64srhbelhf';
 
+        // Запрос к YandexGPT
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
             headers: {
@@ -39,17 +52,21 @@ exports.handler = async (event) => {
             })
         });
 
+        // Получаем ответ от Yandex
         const data = await response.json();
+
+        // Возвращаем ответ клиенту
         return {
             statusCode: response.status,
             headers,
             body: JSON.stringify(data)
         };
     } catch (error) {
+        console.error('Ошибка в функции:', error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: error.message })
+            body: JSON.stringify({ error: 'Внутренняя ошибка сервера: ' + error.message })
         };
     }
 };
