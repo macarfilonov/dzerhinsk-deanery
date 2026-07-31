@@ -1,40 +1,45 @@
 // netlify/functions/yandex-ai.js
 exports.handler = async (event) => {
+    // Настройки CORS – разрешаем запросы с любого источника
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
-    // Обработка предварительного запроса (OPTIONS)
+    // Если это предварительный OPTIONS-запрос (CORS preflight), отвечаем успешно
     if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 204, headers };
+        return {
+            statusCode: 204, // No Content
+            headers,
+            body: ''
+        };
     }
 
     // Разрешаем только POST
     if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Метод не разрешён' }) };
+        return {
+            statusCode: 405,
+            headers,
+            body: JSON.stringify({ error: 'Method Not Allowed' })
+        };
     }
 
     try {
         // Парсим тело запроса
-        const body = JSON.parse(event.body);
-        const question = body.question;
-
-        // Проверяем, что вопрос передан
-        if (!question || typeof question !== 'string' || question.trim() === '') {
+        const { question } = JSON.parse(event.body);
+        if (!question) {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Вопрос не задан или пустой' })
+                body: JSON.stringify({ error: 'Вопрос не задан' })
             };
         }
 
-        // Ваши ключи
         const API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
         const FOLDER_ID = 'ajemoiqftp64srhbelhf';
 
-        // Запрос к YandexGPT
+        // Вызов YandexGPT
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
             headers: {
@@ -52,21 +57,17 @@ exports.handler = async (event) => {
             })
         });
 
-        // Получаем ответ от Yandex
         const data = await response.json();
-
-        // Возвращаем ответ клиенту
         return {
             statusCode: response.status,
             headers,
             body: JSON.stringify(data)
         };
     } catch (error) {
-        console.error('Ошибка в функции:', error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: 'Внутренняя ошибка сервера: ' + error.message })
+            body: JSON.stringify({ error: error.message })
         };
     }
 };
