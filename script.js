@@ -1,12 +1,12 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ ДЛЯ САЙТА
+//  script.js – ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ
+//  Все функции, админка, ИИ, права, синхронизация
 //  Пароль: Makar27.05.2014
-//  Все функции, админка, ИИ через Netlify Function
 // ============================================================
 
-console.log('script.js загружен');
+console.log('✅ script.js загружен');
 
-// ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
+// ========== FIREBASE ==========
 const firebaseConfig = {
     apiKey: "AIzaSyA2b1AvOjIdI3iPCF3WAYMO10K4ZpFct7E",
     authDomain: "makar-b244c.firebaseapp.com",
@@ -17,13 +17,12 @@ const firebaseConfig = {
     appId: "1:987099529386:web:53609c931fd3fb4784d0d3",
     measurementId: "G-83K5PEKCT6"
 };
-
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
 
-// ========== НАСТРОЙКИ ИИ ==========
+// ========== ИИ ==========
 const AI_API_URL = '/.netlify/functions/yandex-ai';
 
 // ========== ПЕРЕВОДЫ ==========
@@ -132,11 +131,11 @@ const translations = {
 // ========== РОЛИ И ПРАВА ==========
 const rolePermissions = {
     developer: ['all'],
-    senior: ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_ai'],
-    junior: ['manage_schedule', 'manage_news', 'manage_announcements', 'manage_ai'],
-    editor: ['manage_news', 'manage_announcements']
+    senior: ['manage_temples','manage_clergy','manage_schedule','manage_news','manage_announcements','manage_sunday_schools','manage_about','manage_worship','manage_ai'],
+    junior: ['manage_schedule','manage_news','manage_announcements','manage_ai'],
+    editor: ['manage_news','manage_announcements']
 };
-const allPermissions = ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_users', 'manage_ai'];
+const allPermissions = ['manage_temples','manage_clergy','manage_schedule','manage_news','manage_announcements','manage_sunday_schools','manage_about','manage_worship','manage_users','manage_ai'];
 
 // ========== ДАННЫЕ ==========
 let data = {
@@ -147,13 +146,7 @@ let data = {
     announcements: [],
     sundaySchools: [],
     aboutText: 'Дзержинское благочиние объединяет приходы города Дзержинска и Дзержинского района. Благочинный – протоиерей Борис Полторжицкий. В благочинии действуют 7 храмов, ведутся активная социальная и молодёжная работа, работают воскресные школы.',
-    worship: {
-        prayers: [],
-        calendar: [],
-        readings: { apostol: '', evangelie: '' },
-        interpretations: [],
-        sacraments: []
-    },
+    worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
     faq: [],
     users: []
 };
@@ -164,21 +157,17 @@ let dataLoaded = false;
 let visionMode = false;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-}
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
 function t(key) { return translations[currentLang]?.[key] || key; }
 function getTempleName(id) { const t = data.temples.find(t => t.id === id); return t ? t.name : '?'; }
 function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 
-// ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
+// ========== ЗАГРУЗКА И СОХРАНЕНИЕ ==========
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
-    console.log('loadData() вызван');
     const stored = localStorage.getItem('blago_data');
     if (stored) {
         try {
@@ -186,24 +175,17 @@ function loadData() {
             data = parsed.data || data;
             nextId = parsed.nextId || nextId;
             migrateData();
-            console.log('Данные загружены из localStorage, храмов:', data.temples.length);
             renderCurrentPage();
             applyTranslations();
             fillTempleDropdown();
             restoreVisionMode();
-        } catch (e) {
-            console.warn('Ошибка загрузки из localStorage, создаём стандартные данные');
-            initDefaultData();
-        }
+        } catch(e) { console.warn('Ошибка загрузки localStorage', e); initDefaultData(); }
     } else {
-        console.log('localStorage пуст, инициализация');
         initDefaultData();
     }
-
-    db.ref('data').on('value', (snapshot) => {
-        const val = snapshot.val();
+    db.ref('data').on('value', snap => {
+        const val = snap.val();
         if (val) {
-            console.log('Получены данные из Firebase');
             data = val.data || data;
             nextId = val.nextId || nextId;
             migrateData();
@@ -213,12 +195,8 @@ function loadData() {
             fillTempleDropdown();
         }
     });
-
-    db.ref('data').once('value', (snapshot) => {
-        if (!snapshot.val()) {
-            console.log('Firebase пуст, инициализация');
-            initDefaultData();
-        }
+    db.ref('data').once('value', snap => {
+        if (!snap.val()) initDefaultData();
     });
 }
 
@@ -241,9 +219,7 @@ function setDefaultPhotos() {
     data.sundaySchools.forEach(s => { if (!s.photo) s.photo = 'placeholder.jpg'; });
 }
 
-// ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
 function initDefaultData() {
-    console.log('initDefaultData()');
     data = {
         temples: [
             { id:1, name:'Храм Покрова Пресвятой Богородицы, г. Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г. Дзержинск.', address:'Минская область, г. Дзержинск, ул. Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
@@ -287,7 +263,6 @@ function renderCurrentPage() {
     const container = document.getElementById('mainContent');
     if (!container) { console.error('mainContent not found'); return; }
     const page = document.body.dataset.page || 'main';
-    console.log('renderCurrentPage() для страницы:', page);
     const urlParams = new URLSearchParams(window.location.search);
     const isDetail = urlParams.has('id');
     if (isDetail) {
@@ -313,26 +288,15 @@ function renderCurrentPage() {
     updateVisionUI();
 }
 
-// ---------- ГЛАВНАЯ ----------
+// ГЛАВНАЯ
 function renderMainPage() {
     const container = document.getElementById('mainContent');
-    if (!container) return;
-    let html = `
-        <div class="hero-banner" onclick="window.location.href='temple-detail.html?id=1'">
-            <div style="text-align:center; z-index:2; position:relative;">
-                <h1>Храм Покрова Пресвятой Богородицы</h1>
-                <div class="sub">г. Дзержинск</div>
-            </div>
-        </div>
-        <h2 style="margin: 1.5rem 0 0.5rem; text-align:center; font-family: 'Cormorant Uncial', serif;">Наши храмы</h2>
-        <div class="carousel">
-            <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
-            <div class="carousel-track" id="carouselTrack">
-    `;
+    let html = `<div class="hero-banner" onclick="window.location.href='temple-detail.html?id=1'"><div style="text-align:center;z-index:2;"><h1>Храм Покрова Пресвятой Богородицы</h1><div class="sub">г. Дзержинск</div></div></div>
+    <h2 style="margin:1.5rem 0 0.5rem;text-align:center;font-family:'Cormorant Uncial',serif;">Наши храмы</h2>
+    <div class="carousel"><button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button><div class="carousel-track" id="carouselTrack">`;
     data.temples.forEach(t => {
         if (t.id === 1) return;
-        const imgSrc = getTemplePhoto(t);
-        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
+        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(getTemplePhoto(t))}" alt="${escapeHtml(t.name)}" loading="lazy"><div class="info">${escapeHtml(t.name)}</div></div>`;
     });
     html += `</div><button class="carousel-btn right" onclick="scrollCarousel(1)">›</button></div>`;
     // Новости
@@ -365,7 +329,7 @@ function renderMainPage() {
 }
 function scrollCarousel(direction) { const track = document.getElementById('carouselTrack'); if (track) track.scrollBy({ left: direction * 280, behavior: 'smooth' }); }
 
-// ---------- ВЫПАДАЮЩЕЕ МЕНЮ ----------
+// ВЫПАДАЮЩЕЕ МЕНЮ
 function fillTempleDropdown() {
     document.querySelectorAll('.dropdown-content').forEach(container => {
         container.innerHTML = '';
@@ -378,12 +342,12 @@ function fillTempleDropdown() {
     });
 }
 
-// ---------- СПИСОК ХРАМОВ ----------
+// СПИСОК ХРАМОВ
 function renderTemplesList(container) {
     let html = `<h2>${t('temples-title')}</h2><div class="grid">`;
     data.temples.forEach(t => {
         html += `<div class="grid-item" data-id="${t.id}" data-type="temple">
-            <img src="${escapeHtml(getTemplePhoto(t))}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
+            <img src="${escapeHtml(getTemplePhoto(t))}" alt="${escapeHtml(t.name)}" loading="lazy">
             <div class="info"><h3>${escapeHtml(t.name)}</h3>${t.isVacant ? `<div class="status vacant">${t('vacant')}</div>` : ''}</div>
         </div>`;
     });
@@ -392,7 +356,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 200); return; }
     const temple = data.temples.find(t => t.id === id);
@@ -402,7 +366,7 @@ function renderTempleDetail(container, id) {
     const photoSrc = getTemplePhoto(temple);
     let html = `<div class="detail-back" onclick="window.location.href='temples.html'">${t('back')}</div>
     <div class="detail-content">
-        <img src="${escapeHtml(photoSrc)}" class="main-photo" onerror="this.style.display='none'">
+        <img src="${escapeHtml(photoSrc)}" class="main-photo">
         <h2 class="temple-title">${escapeHtml(temple.name)}</h2>
         <div class="temple-summary"><p>${escapeHtml(temple.summary||'')}</p>${temple.address ? `<p class="address">📍 ${escapeHtml(temple.address)}</p>` : ''}</div>
         <div class="temple-actions">
@@ -432,12 +396,12 @@ function renderTempleDetail(container, id) {
     window.toggleSchedule = function() { const b = document.getElementById('templeSchedule'); if (b) b.style.display = b.style.display==='none'?'block':'none'; };
 }
 
-// ---------- ДУХОВЕНСТВО ----------
+// ДУХОВЕНСТВО
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
         html += `<div class="grid-item" data-id="${c.id}" data-type="clergy">
-            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" style="border-radius:20px; height:400px; object-fit:cover;">
+            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" style="border-radius:20px; height:400px; object-fit:cover;">
             <div class="info"><h3>${escapeHtml(c.name)}</h3><div class="status">${escapeHtml(c.rank)}</div><div style="font-size:0.8rem;color:#999;">${getTempleNames(c.templeIds)}</div></div>
         </div>`;
     });
@@ -460,7 +424,7 @@ function renderClergyDetail(id) {
     </div>`;
 }
 
-// ---------- РАСПИСАНИЕ (вкладка) ----------
+// РАСПИСАНИЕ (вкладка)
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2>
         <div class="card">
@@ -487,7 +451,7 @@ function initScheduleSelect(container) {
     });
 }
 
-// ---------- НОВОСТИ ----------
+// НОВОСТИ
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2>`;
     const news = data.news||[];
@@ -506,7 +470,7 @@ function renderNewsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ОБЪЯВЛЕНИЯ ----------
+// ОБЪЯВЛЕНИЯ
 function renderAnnouncementsList(container) {
     let html = `<h2>${t('announcements-title')}</h2>`;
     const ann = data.announcements||[];
@@ -518,7 +482,7 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
+// ВОСКРЕСНЫЕ ШКОЛЫ
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
         <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
@@ -532,7 +496,7 @@ function renderSundaySchoolsList(container) {
     (data.sundaySchools||[]).forEach(s => {
         const temple = data.temples.find(t => t.id === s.templeId);
         html += `<div class="grid-item" data-id="${s.id}" data-type="sunday-school">
-            <img src="${escapeHtml(s.photo||'placeholder.jpg')}" alt="${escapeHtml(s.name)}" loading="lazy" onerror="this.style.display='none'">
+            <img src="${escapeHtml(s.photo||'placeholder.jpg')}" alt="${escapeHtml(s.name)}" loading="lazy">
             <div class="info"><h3>${escapeHtml(s.name)}</h3><div class="type">${escapeHtml(s.type)}</div><div style="font-size:0.85rem;color:#999;">${temple ? escapeHtml(temple.name) : 'Без привязки'}</div></div>
         </div>`;
     });
@@ -555,13 +519,13 @@ function renderSundaySchoolDetail(id) {
     </div>`;
 }
 
-// ---------- О БЛАГОЧИНИИ ----------
+// О БЛАГОЧИНИИ
 function renderAboutPage(container) {
     container.innerHTML = `<h2>${t('nav-about')}</h2>
         <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// БОГОСЛУЖЕНИЯ
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -638,7 +602,7 @@ function renderWorshipPage(container) {
     });
 }
 
-// ---------- FAQ (с блоком ИИ) ----------
+// FAQ
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card">
@@ -665,7 +629,7 @@ function renderFaqPage(container) {
         });
     }
     html += `</div>`;
-    // Блок ИИ (только для авторизованных админов с правом manage_ai)
+    // Блок ИИ
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
@@ -681,7 +645,7 @@ function renderFaqPage(container) {
             </div>
         `;
     }
-    // Форма обратной связи в Telegram
+    // Форма обратной связи
     html += `<div class="card">
         <h2>📬 Написать в Telegram</h2>
         <p style="margin-bottom: 1rem;">Ваше сообщение будет отправлено напрямую в Telegram.</p>
@@ -695,7 +659,6 @@ function renderFaqPage(container) {
         <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#999;">Или напишите нам в <a href="https://t.me/ВАШ_USERNAME_BOTA" target="_blank" style="color:var(--gold);">Telegram</a></p>
     </div>`;
     container.innerHTML = html;
-    // Обработка формы вопросов
     document.getElementById('askForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const name = document.getElementById('questionName').value.trim();
@@ -708,7 +671,6 @@ function renderFaqPage(container) {
         document.getElementById('questionText').value = '';
         setTimeout(() => renderFaqPage(container), 1000);
     });
-    // Обработка формы Telegram
     const feedbackForm = document.getElementById('feedbackForm');
     if (feedbackForm) {
         feedbackForm.addEventListener('submit', async function(e) {
@@ -726,11 +688,10 @@ function renderFaqPage(container) {
             }
         });
     }
-    // Кнопка ИИ
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ========== ИИ: ЗАПРОС К NETLIFY FUNCTION ==========
+// ========== ИИ ==========
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -751,17 +712,14 @@ async function askAI() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-
         if (!response.ok) {
             let errorText = `Ошибка сервера (${response.status})`;
             try {
                 const errorData = await response.json();
-                if (errorData && errorData.error) {
-                    errorText = errorData.error;
-                } else if (errorData && errorData.message) {
-                    errorText = errorData.message;
-                } else {
-                    errorText = JSON.stringify(errorData);
+                if (errorData && typeof errorData === 'object') {
+                    if (errorData.error) errorText = errorData.error;
+                    else if (errorData.message) errorText = errorData.message;
+                    else errorText = JSON.stringify(errorData);
                 }
             } catch (e) {
                 try {
@@ -771,12 +729,8 @@ async function askAI() {
             }
             throw new Error(errorText);
         }
-
         const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text;
-        if (!answer) {
-            throw new Error('Не удалось получить ответ от ИИ');
-        }
+        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
@@ -804,17 +758,14 @@ async function adminAskAI() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-
         if (!response.ok) {
             let errorText = `Ошибка сервера (${response.status})`;
             try {
                 const errorData = await response.json();
-                if (errorData && errorData.error) {
-                    errorText = errorData.error;
-                } else if (errorData && errorData.message) {
-                    errorText = errorData.message;
-                } else {
-                    errorText = JSON.stringify(errorData);
+                if (errorData && typeof errorData === 'object') {
+                    if (errorData.error) errorText = errorData.error;
+                    else if (errorData.message) errorText = errorData.message;
+                    else errorText = JSON.stringify(errorData);
                 }
             } catch (e) {
                 try {
@@ -824,12 +775,8 @@ async function adminAskAI() {
             }
             throw new Error(errorText);
         }
-
         const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text;
-        if (!answer) {
-            throw new Error('Не удалось получить ответ от ИИ');
-        }
+        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
@@ -837,7 +784,7 @@ async function adminAskAI() {
     }
 }
 
-// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
+// ========== ПЕРЕВОДЫ ==========
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.dataset.i18n;
@@ -955,10 +902,15 @@ function renderAdminSchedule(container) {
             <button id="adminCancelScheduleBtn" class="btn btn-sm">${t('cancel')}</button>
         </div>`;
     container.innerHTML = html;
+    // Обработчики через делегирование
     container.addEventListener('click', function(e) {
         const target = e.target;
-        if (target.id === 'adminAddScheduleBtn') document.getElementById('adminScheduleForm').style.display = 'block';
-        if (target.id === 'adminCancelScheduleBtn') document.getElementById('adminScheduleForm').style.display = 'none';
+        if (target.id === 'adminAddScheduleBtn') {
+            document.getElementById('adminScheduleForm').style.display = 'block';
+        }
+        if (target.id === 'adminCancelScheduleBtn') {
+            document.getElementById('adminScheduleForm').style.display = 'none';
+        }
         if (target.id === 'adminSaveScheduleBtn') {
             const templeId = parseInt(document.getElementById('adminScheduleTemple').value);
             const date = document.getElementById('adminScheduleDate').value;
