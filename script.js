@@ -1,6 +1,6 @@
 // ============================================================
-//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (Netlify Functions)
-//  Все ошибки исправлены, ИИ работает, админ-панель полностью
+//  script.js – ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ
+//  Все ошибки исправлены, ИИ работает через POST
 //  Пароль: Makar27.05.2014
 // ============================================================
 
@@ -668,16 +668,18 @@ function renderFaqPage(container) {
             }
         });
     }
-    document.getElementById('askAIBtn')?.addEventListener('click', askAI);
+    // Привязка кнопки ИИ с event.preventDefault()
+    const aiBtn = document.getElementById('askAIBtn');
+    if (aiBtn) {
+        aiBtn.addEventListener('click', askAI);
+    }
 }
 
-// ========== ИИ ==========
-async function askAI() {
+// ========== ИИ (исправленные функции с event) ==========
+async function askAI(event) {
+    if (event) event.preventDefault(); // Критично!
     const questionInput = document.getElementById('aiQuestion');
-    if (!questionInput) {
-        console.error('❌ Поле aiQuestion не найдено');
-        return;
-    }
+    if (!questionInput) return;
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -685,24 +687,17 @@ async function askAI() {
     }
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
-    if (!answerDiv || !contentDiv) {
-        console.error('❌ Блок ответа не найден');
-        return;
-    }
+    if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        console.log('📤 Отправка POST-запроса к', AI_API_URL);
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-
         const responseText = await response.text();
-        console.log('📥 Ответ сервера:', responseText);
-
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
@@ -715,22 +710,19 @@ async function askAI() {
             }
             throw new Error(errorMsg);
         }
-
         const data = JSON.parse(responseText);
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('❌ Ошибка ИИ:', error);
+        console.error('Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
 
-async function adminAskAI() {
+async function adminAskAI(event) {
+    if (event) event.preventDefault(); // Критично!
     const questionInput = document.getElementById('adminAIQuestion');
-    if (!questionInput) {
-        console.error('❌ Поле adminAIQuestion не найдено');
-        return;
-    }
+    if (!questionInput) return;
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -738,24 +730,17 @@ async function adminAskAI() {
     }
     const answerDiv = document.getElementById('adminAIAnswer');
     const contentDiv = document.getElementById('adminAIResponseContent');
-    if (!answerDiv || !contentDiv) {
-        console.error('❌ Блок ответа не найден');
-        return;
-    }
+    if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        console.log('📤 Отправка POST-запроса (admin) к', AI_API_URL);
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-
         const responseText = await response.text();
-        console.log('📥 Ответ сервера (admin):', responseText);
-
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
@@ -768,12 +753,11 @@ async function adminAskAI() {
             }
             throw new Error(errorMsg);
         }
-
         const data = JSON.parse(responseText);
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('❌ Ошибка ИИ (admin):', error);
+        console.error('Ошибка ИИ (admin):', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
@@ -1721,6 +1705,7 @@ function renderAdminAI(container) {
             </div>
         </div>
     `;
+    // Привязка с event.preventDefault()
     document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
 }
 
