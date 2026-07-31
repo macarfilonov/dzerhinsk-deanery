@@ -1,3 +1,4 @@
+// netlify/functions/yandex-ai.js
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -10,22 +11,20 @@ exports.handler = async (event) => {
     }
 
     if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            headers,
-            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
-        };
+        return { statusCode: 405, headers, body: 'Method Not Allowed' };
     }
 
     try {
         const { question } = JSON.parse(event.body);
-        if (!question || question.trim() === '') {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не может быть пустым.' }) };
+        if (!question) {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
         }
 
-        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';
-
+        // НОВЫЙ API-КЛЮЧ
         const API_KEY = 'AQVN28cKTTornTEmLSU8R4mcQks6ThmG_JT7zkd-';
+        
+        // ПРАВИЛЬНЫЙ ИДЕНТИФИКАТОР ПАПКИ (из ошибки Яндекса)
+        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';
 
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
@@ -51,11 +50,10 @@ exports.handler = async (event) => {
             body: JSON.stringify(data)
         };
     } catch (error) {
-        console.error('Ошибка в функции:', error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: error.message || 'Внутренняя ошибка сервера' })
+            body: JSON.stringify({ error: error.message })
         };
     }
 };
