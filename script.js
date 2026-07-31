@@ -707,7 +707,7 @@ async function askAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const response = await fetch(AI_API_URL, {
+        const response = await fetch('/.netlify/functions/yandex-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
@@ -752,7 +752,7 @@ async function adminAskAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const response = await fetch(AI_API_URL, {
+        const response = await fetch('/.netlify/functions/yandex-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
