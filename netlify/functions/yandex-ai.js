@@ -7,40 +7,23 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
-
+    
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers };
     }
 
-
+    
     if (event.httpMethod !== 'POST') {
-        return { 
-            statusCode: 405, 
-            headers, 
-            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
-        };
+        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Метод не разрешён' }) };
     }
 
     try {
         
-        let body;
-        try {
-            body = JSON.parse(event.body);
-        } catch (e) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Невалидный JSON в теле запроса' })
-            };
-        }
-
+        const body = JSON.parse(event.body);
         const question = body.question;
-        if (!question) {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Поле "question" обязательно' })
-            };
+
+        if (!question || question.trim() === '') {
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
         }
 
         
@@ -48,61 +31,38 @@ exports.handler = async (event) => {
         const FOLDER_ID = 'ajemoiqftp64srhbelhf';
 
         
-        const yandexPayload = {
-            modelUri: `gpt://${FOLDER_ID}/yandexgpt-lite`,
-            completionOptions: {
-                stream: false,
-                temperature: 0.6,
-                maxTokens: 1000
-            },
-            messages: [
-                {
-                    role: 'user',
-                    text: question
-                }
-            ]
-        };
-
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
             headers: {
                 'Authorization': `Api-Key ${API_KEY}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(yandexPayload)
+            body: JSON.stringify({
+                modelUri: `gpt://${FOLDER_ID}/yandexgpt-lite`,
+                completionOptions: {
+                    stream: false,
+                    temperature: 0.6,
+                    maxTokens: 1000
+                },
+                messages: [{ role: 'user', text: question }]
+            })
         });
 
         
         const data = await response.json();
 
         
-        if (!response.ok) {
-            console.error('YandexGPT ошибка:', data);
-            return {
-                statusCode: response.status,
-                headers,
-                body: JSON.stringify({
-                    error: 'Ошибка YandexGPT',
-                    details: data
-                })
-            };
-        }
-
-        
         return {
-            statusCode: 200,
+            statusCode: response.status,
             headers,
             body: JSON.stringify(data)
         };
     } catch (error) {
-        console.error('Ошибка в функции:', error);
+        
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({
-                error: 'Внутренняя ошибка сервера',
-                message: error.message
-            })
+            body: JSON.stringify({ error: error.message })
         };
     }
 };
