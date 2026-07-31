@@ -1,73 +1,108 @@
-// netlify/functions/yandex-ai.js
+
 exports.handler = async (event) => {
-    // Настройки CORS – разрешаем запросы с любого источника
+    
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
-    // Если это предварительный OPTIONS-запрос (CORS preflight), отвечаем успешно
+
     if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 204, // No Content
-            headers,
-            body: ''
-        };
+        return { statusCode: 204, headers };
     }
 
-    // Разрешаем только POST
+
     if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            headers,
-            body: JSON.stringify({ error: 'Method Not Allowed' })
+        return { 
+            statusCode: 405, 
+            headers, 
+            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
         };
     }
 
     try {
-        // Парсим тело запроса
-        const { question } = JSON.parse(event.body);
+        
+        let body;
+        try {
+            body = JSON.parse(event.body);
+        } catch (e) {
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Невалидный JSON в теле запроса' })
+            };
+        }
+
+        const question = body.question;
         if (!question) {
             return {
                 statusCode: 400,
                 headers,
-                body: JSON.stringify({ error: 'Вопрос не задан' })
+                body: JSON.stringify({ error: 'Поле "question" обязательно' })
             };
         }
 
+        
         const API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
         const FOLDER_ID = 'ajemoiqftp64srhbelhf';
 
-        // Вызов YandexGPT
+        
+        const yandexPayload = {
+            modelUri: `gpt://${FOLDER_ID}/yandexgpt-lite`,
+            completionOptions: {
+                stream: false,
+                temperature: 0.6,
+                maxTokens: 1000
+            },
+            messages: [
+                {
+                    role: 'user',
+                    text: question
+                }
+            ]
+        };
+
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
             headers: {
                 'Authorization': `Api-Key ${API_KEY}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                modelUri: `gpt://${FOLDER_ID}/yandexgpt-lite`,
-                completionOptions: {
-                    stream: false,
-                    temperature: 0.6,
-                    maxTokens: 1000
-                },
-                messages: [{ role: 'user', text: question }]
-            })
+            body: JSON.stringify(yandexPayload)
         });
 
+        
         const data = await response.json();
+
+        
+        if (!response.ok) {
+            console.error('YandexGPT ошибка:', data);
+            return {
+                statusCode: response.status,
+                headers,
+                body: JSON.stringify({
+                    error: 'Ошибка YandexGPT',
+                    details: data
+                })
+            };
+        }
+
+        
         return {
-            statusCode: response.status,
+            statusCode: 200,
             headers,
             body: JSON.stringify(data)
         };
     } catch (error) {
+        console.error('Ошибка в функции:', error);
         return {
             statusCode: 500,
             headers,
-            body: JSON.stringify({ error: error.message })
+            body: JSON.stringify({
+                error: 'Внутренняя ошибка сервера',
+                message: error.message
+            })
         };
     }
 };
