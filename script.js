@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ АДМИН-ПАНЕЛЬ
+//  script.js – ПОЛНАЯ АДМИН-ПАНЕЛЬ (ИСПРАВЛЕННАЯ)
 //  Все разделы работают, нет заглушек "в разработке"
 //  Пароль: Makar27.05.2014
 // ============================================================
@@ -25,7 +25,7 @@ const db = firebase.database();
 // ========== ИИ ==========
 const AI_API_URL = '/.netlify/functions/yandex-ai';
 
-// ========== ПЕРЕВОДЫ (добавлены ключи для админки) ==========
+// ========== ПЕРЕВОДЫ ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -164,7 +164,7 @@ function getTempleNames(ids) { if (!ids || !ids.length) return 'не привя�
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 
-// ========== ЗАГРУЗКА И СОХРАНЕНИЕ (без изменений) ==========
+// ========== ЗАГРУЗКА И СОХРАНЕНИЕ ==========
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
@@ -798,7 +798,7 @@ function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vi
 function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
 function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
-// ========== АДМИН-ПАНЕЛЬ (ВСЕ РАЗДЕЛЫ РАБОТАЮТ) ==========
+// ========== АДМИН-ПАНЕЛЬ ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -866,6 +866,7 @@ function renderAdminDashboard() {
     document.querySelectorAll('.admin-menu-btn').forEach(btn => btn.addEventListener('click', function() { renderAdminSection(this.dataset.section); }));
 }
 
+// ---------- ОСНОВНАЯ ФУНКЦИЯ РЕНДЕРИНГА РАЗДЕЛОВ ----------
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
@@ -898,7 +899,10 @@ function renderAdminSection(section) {
         case 'users': if (hasPermission(currentUser, 'manage_users')) renderAdminUsers(content); else content.innerHTML = '<p>Доступ запрещён.</p>'; break;
         default: content.innerHTML = '<p>Неизвестный раздел.</p>';
     }
-}
+}// ============================================================
+//  Часть 2 – ВСЕ ФУНКЦИИ АДМИН-ПАНЕЛИ
+//  (вставить сразу после Части 1)
+// ============================================================
 
 // ---------- УПРАВЛЕНИЕ РАСПИСАНИЕМ ----------
 function renderAdminSchedule(container) {
@@ -1404,7 +1408,9 @@ function renderAdminAbout(container) {
 
 // ---------- УПРАВЛЕНИЕ БОГОСЛУЖЕНИЯМИ ----------
 function renderAdminWorship(container) {
-    const w = data.worship || { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
+    // Защита от undefined
+    if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
+    const w = data.worship;
     let html = `<h3>Управление богослужениями</h3>
         <div style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
             <button id="adminAddPrayerBtn" class="btn">➕ Молитва</button>
@@ -1599,7 +1605,7 @@ function renderAdminWorship(container) {
     });
 }
 function renderPrayersList() {
-    if (!data.worship.prayers.length) return '<p>Нет молитв</p>';
+    if (!data.worship || !data.worship.prayers || !data.worship.prayers.length) return '<p>Нет молитв</p>';
     let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
     data.worship.prayers.forEach(p => {
         table += `<tr><td>${escapeHtml(p.title)}</td><td><button class="btn btn-sm admin-edit-prayer" data-id="${p.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-prayer" data-id="${p.id}">🗑️</button></td></tr>`;
@@ -1608,7 +1614,7 @@ function renderPrayersList() {
     return table;
 }
 function renderInterpretationsList() {
-    if (!data.worship.interpretations.length) return '<p>Нет толкований</p>';
+    if (!data.worship || !data.worship.interpretations || !data.worship.interpretations.length) return '<p>Нет толкований</p>';
     let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
     data.worship.interpretations.forEach(i => {
         table += `<tr><td>${escapeHtml(i.title)}</td><td><button class="btn btn-sm admin-edit-interpretation" data-id="${i.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-interpretation" data-id="${i.id}">🗑️</button></td></tr>`;
@@ -1617,7 +1623,7 @@ function renderInterpretationsList() {
     return table;
 }
 function renderSacramentsList() {
-    if (!data.worship.sacraments.length) return '<p>Нет записей</p>';
+    if (!data.worship || !data.worship.sacraments || !data.worship.sacraments.length) return '<p>Нет записей</p>';
     let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
     data.worship.sacraments.forEach(s => {
         table += `<tr><td>${escapeHtml(s.title)}</td><td><button class="btn btn-sm admin-edit-sacrament" data-id="${s.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-sacrament" data-id="${s.id}">🗑️</button></td></tr>`;
@@ -1627,7 +1633,120 @@ function renderSacramentsList() {
 }
 
 // ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
-// Функции renderAdminUsers, renderUserTable, renderAdminAI уже были ранее – они остаются без изменений.
+function renderAdminUsers(container) {
+    let html = `<h3>Управление пользователями</h3>
+        <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
+        <div id="adminUserList">${renderUserTable()}</div>
+        <div id="adminUserForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="userFormTitle">${t('add-user')}</h4>
+            <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>${t('password')}</label><input type="password" id="userFormPassword" style="width:100%; padding:0.4rem;" placeholder="${t('password')}"></div>
+            <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
+            <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
+            <input type="hidden" id="userFormEditId" value="">
+            <button id="userFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="userFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    document.getElementById('userFormRole').addEventListener('change', function() {
+        const role = this.value;
+        const perms = rolePermissions[role] || [];
+        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+    });
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddUserBtn') {
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('add-user');
+            document.getElementById('userFormUsername').value = '';
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = 'junior';
+            document.getElementById('userFormEditId').value = '';
+            const perms = rolePermissions['junior'] || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+        if (target.id === 'userFormCancelBtn') document.getElementById('adminUserForm').style.display = 'none';
+        if (target.id === 'userFormSaveBtn') {
+            const editId = document.getElementById('userFormEditId').value;
+            const username = document.getElementById('userFormUsername').value.trim();
+            const password = document.getElementById('userFormPassword').value.trim();
+            const role = document.getElementById('userFormRole').value;
+            const checkedPerms = [];
+            document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
+            if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
+            if (!username) { alert('Введите логин'); return; }
+            if (data.users.find(u => u.username === username && u.id != editId)) { alert('Пользователь с таким логином уже существует'); return; }
+            if (editId) {
+                const u = data.users.find(u => u.id == editId);
+                if (u) { u.username = username; if (password) u.password = password; u.role = role; u.permissions = checkedPerms; }
+            } else {
+                if (!password) { alert('Введите пароль'); return; }
+                data.users.push({ id: nextId.user++, username, password, role, permissions: checkedPerms });
+            }
+            saveData();
+            document.getElementById('adminUserForm').style.display = 'none';
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-delete-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            if (u.id === currentUser.id) { alert('Нельзя удалить себя'); return; }
+            if (!confirm(t('confirm-delete'))) return;
+            data.users = data.users.filter(u => u.id !== id);
+            saveData();
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-edit-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('edit-user');
+            document.getElementById('userFormUsername').value = u.username;
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = u.role;
+            document.getElementById('userFormEditId').value = u.id;
+            const perms = u.permissions || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+    });
+}
+function renderUserTable() {
+    if (!data.users.length) return `<p>Нет пользователей</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Логин</th><th>Роль</th><th>Права</th><th>Действия</th></tr></thead><tbody>`;
+    data.users.forEach(u => {
+        const roleLabel = t('role-'+u.role) || u.role;
+        const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
+        const isSelf = u.id === currentUser?.id;
+        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ИИ-ПОМОЩНИКОМ ----------
+function renderAdminAI(container) {
+    container.innerHTML = `
+        <h3>🤖 ИИ-помощник</h3>
+        <div class="card">
+            <div class="form-group">
+                <label>${t('ai-question')}</label>
+                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
+            </div>
+            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
+            <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
+                <strong>${t('ai-answer')}:</strong>
+                <div id="adminAIResponseContent"></div>
+            </div>
+        </div>
+    `;
+    document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
+}
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
 let clickCount = 0, clickTimer = null;
