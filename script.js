@@ -288,7 +288,6 @@ function renderCurrentPage() {
     updateVisionUI();
 }
 
-// ---------- ГЛАВНАЯ ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     let html = `<div class="hero-banner" onclick="window.location.href='temple-detail.html?id=1'"><div style="text-align:center;z-index:2;"><h1>Храм Покрова Пресвятой Богородицы</h1><div class="sub">г. Дзержинск</div></div></div>
@@ -329,7 +328,6 @@ function renderMainPage() {
 }
 function scrollCarousel(direction) { const track = document.getElementById('carouselTrack'); if (track) track.scrollBy({ left: direction * 280, behavior: 'smooth' }); }
 
-// ---------- ВЫПАДАЮЩЕЕ МЕНЮ ----------
 function fillTempleDropdown() {
     document.querySelectorAll('.dropdown-content').forEach(container => {
         container.innerHTML = '';
@@ -342,7 +340,6 @@ function fillTempleDropdown() {
     });
 }
 
-// ---------- СПИСОК ХРАМОВ ----------
 function renderTemplesList(container) {
     let html = `<h2>${t('temples-title')}</h2><div class="grid">`;
     data.temples.forEach(t => {
@@ -356,7 +353,6 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 200); return; }
     const temple = data.temples.find(t => t.id === id);
@@ -396,7 +392,6 @@ function renderTempleDetail(container, id) {
     window.toggleSchedule = function() { const b = document.getElementById('templeSchedule'); if (b) b.style.display = b.style.display==='none'?'block':'none'; };
 }
 
-// ---------- ДУХОВЕНСТВО ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -424,7 +419,6 @@ function renderClergyDetail(id) {
     </div>`;
 }
 
-// ---------- РАСПИСАНИЕ (вкладка) ----------
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2>
         <div class="card">
@@ -451,7 +445,6 @@ function initScheduleSelect(container) {
     });
 }
 
-// ---------- НОВОСТИ ----------
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2>`;
     const news = data.news||[];
@@ -470,7 +463,6 @@ function renderNewsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ОБЪЯВЛЕНИЯ ----------
 function renderAnnouncementsList(container) {
     let html = `<h2>${t('announcements-title')}</h2>`;
     const ann = data.announcements||[];
@@ -482,7 +474,6 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
         <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
@@ -519,13 +510,11 @@ function renderSundaySchoolDetail(id) {
     </div>`;
 }
 
-// ---------- О БЛАГОЧИНИИ ----------
 function renderAboutPage(container) {
     container.innerHTML = `<h2>${t('nav-about')}</h2>
         <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -542,36 +531,28 @@ function renderWorshipPage(container) {
         html += `<button class="tab-btn worship-tab-btn ${idx === 0 ? 'active' : ''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:transparent; color:var(--primary); font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
-    // Расписание
     html += `<div class="worship-block active" id="worship-schedule">${getScheduleHTML()}</div>`;
-    // Молитвослов
     html += `<div class="worship-block" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-    // Календарь
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
-            <div>
-                <script language="Javascript" src="https://script.pravoslavie.ru/calendar.php"></script>
-            </div>
+            <div><script language="Javascript" src="https://script.pravoslavie.ru/calendar.php"></script></div>
         </div>
     </div>`;
-    // Чтения дня
     html += `<div class="worship-block" id="worship-readings">
         <h3>Чтения дня</h3>
         <p><strong>Апостол:</strong> ${escapeHtml(data.worship?.readings?.apostol || '')}</p>
         <p><strong>Евангелие:</strong> ${escapeHtml(data.worship?.readings?.evangelie || '')}</p>
     </div>`;
-    // Толкования
     html += `<div class="worship-block" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
-    // Подготовка к таинствам
     html += `<div class="worship-block" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
@@ -602,7 +583,6 @@ function renderWorshipPage(container) {
     });
 }
 
-// ---------- FAQ ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card">
@@ -629,7 +609,7 @@ function renderFaqPage(container) {
         });
     }
     html += `</div>`;
-    // Блок ИИ
+    // Блок ИИ (только для админов с правом manage_ai)
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
@@ -707,7 +687,7 @@ async function askAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const response = await fetch('/.netlify/functions/yandex-ai', {
+        const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
@@ -752,7 +732,7 @@ async function adminAskAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const response = await fetch('/.netlify/functions/yandex-ai', {
+        const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
@@ -1614,9 +1594,99 @@ function renderSacramentsList() {
 
 // ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
 function renderAdminUsers(container) {
-    // ... (полный код из предыдущей версии)
-    // Поскольку код очень большой, оставлю ссылку на стандартный вариант, который был выше.
-    // Он полностью рабочий.
+    let html = `<h3>${t('admin-users')}</h3>
+        <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
+        <div id="adminUserList">${renderUserTable()}</div>
+        <div id="adminUserForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="userFormTitle">${t('add-user')}</h4>
+            <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>${t('password')}</label><input type="password" id="userFormPassword" style="width:100%; padding:0.4rem;" placeholder="${t('password')}"></div>
+            <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
+            <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
+            <input type="hidden" id="userFormEditId" value="">
+            <button id="userFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="userFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    document.getElementById('userFormRole').addEventListener('change', function() {
+        const role = this.value;
+        const perms = rolePermissions[role] || [];
+        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+    });
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddUserBtn') {
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('add-user');
+            document.getElementById('userFormUsername').value = '';
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = 'junior';
+            document.getElementById('userFormEditId').value = '';
+            const perms = rolePermissions['junior'] || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+        if (target.id === 'userFormCancelBtn') document.getElementById('adminUserForm').style.display = 'none';
+        if (target.id === 'userFormSaveBtn') {
+            const editId = document.getElementById('userFormEditId').value;
+            const username = document.getElementById('userFormUsername').value.trim();
+            const password = document.getElementById('userFormPassword').value.trim();
+            const role = document.getElementById('userFormRole').value;
+            const checkedPerms = [];
+            document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
+            if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
+            if (!username) { alert('Введите логин'); return; }
+            if (data.users.find(u => u.username === username && u.id != editId)) { alert('Пользователь с таким логином уже существует'); return; }
+            if (editId) {
+                const u = data.users.find(u => u.id == editId);
+                if (u) { u.username = username; if (password) u.password = password; u.role = role; u.permissions = checkedPerms; }
+            } else {
+                if (!password) { alert('Введите пароль'); return; }
+                data.users.push({ id: nextId.user++, username, password, role, permissions: checkedPerms });
+            }
+            saveData();
+            document.getElementById('adminUserForm').style.display = 'none';
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-delete-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            if (u.id === currentUser.id) { alert('Нельзя удалить себя'); return; }
+            if (!confirm(t('confirm-delete'))) return;
+            data.users = data.users.filter(u => u.id !== id);
+            saveData();
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-edit-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('edit-user');
+            document.getElementById('userFormUsername').value = u.username;
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = u.role;
+            document.getElementById('userFormEditId').value = u.id;
+            const perms = u.permissions || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+    });
+}
+function renderUserTable() {
+    if (!data.users.length) return `<p>${t('no-users')}</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
+    data.users.forEach(u => {
+        const roleLabel = t('role-'+u.role) || u.role;
+        const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
+        const isSelf = u.id === currentUser?.id;
+        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
 }
 
 // ---------- УПРАВЛЕНИЕ ИИ В АДМИНКЕ ----------
