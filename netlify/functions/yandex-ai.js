@@ -12,9 +12,10 @@ exports.handler = async (event) => {
         const { question } = JSON.parse(event.body);
         if (!question) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
 
+
         const API_KEY = 'AQVN29lKQKWdIKPOTY7mwGx23bcUiD6vNqJnb4wa';
-        // Пробуем использовать облако вместо каталога
-        const FOLDER_ID = 'b1g62nveu7qd8s7umldm'; // или 'b1grgek3bgbqc3vagodq'
+
+        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';
 
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
