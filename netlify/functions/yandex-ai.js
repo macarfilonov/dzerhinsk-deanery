@@ -1,4 +1,3 @@
-// netlify/functions/yandex-ai.js
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
