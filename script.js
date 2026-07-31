@@ -16,7 +16,7 @@ const firebaseConfig = {
     appId: "1:987099529386:web:53609c931fd3fb4784d0d3",
     measurementId: "G-83K5PEKCT6"
 };
-
+const AI_API_URL = '/.netlify/functions/huggingface-ai';
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
