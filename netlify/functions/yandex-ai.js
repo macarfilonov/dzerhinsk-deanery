@@ -13,7 +13,7 @@ exports.handler = async (event) => {
         if (!question) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
 
 
-        const API_KEY = 'AQVNxBHY7aLNf4WOARUdoXOXJdczZ6OnMAZFI8kc';
+        const API_KEY = 'AQVNy8V1Av5b9tygPQc8YZURlszbkmb1N9--Wxyt';
         const FOLDER_ID = 'b1grgek3bgbqc3vagodq';  
 
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
