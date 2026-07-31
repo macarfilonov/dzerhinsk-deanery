@@ -683,13 +683,11 @@ function renderFaqPage(container) {
     // Привязываем кнопку ИИ (с preventDefault внутри функции)
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }// ========== ИИ (с event.preventDefault()) ==========
+// ========== ИИ ==========
 async function askAI(event) {
     if (event) event.preventDefault();
     const questionInput = document.getElementById('aiQuestion');
-    if (!questionInput) {
-        console.error('❌ Поле aiQuestion не найдено');
-        return;
-    }
+    if (!questionInput) return;
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -697,16 +695,12 @@ async function askAI(event) {
     }
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
-    if (!answerDiv || !contentDiv) {
-        console.error('❌ Блок ответа не найден');
-        return;
-    }
+    if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        console.log('📤 Отправка POST-запроса к', AI_API_URL);
-        const response = await fetch(AI_API_URL, {
+        const response = await fetch('/.netlify/functions/yandex-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
@@ -719,9 +713,17 @@ async function askAI(event) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
                 const errorJson = JSON.parse(responseText);
-                if (errorJson && errorJson.error) errorMsg = errorJson.error;
-                else if (errorJson && errorJson.message) errorMsg = errorJson.message;
-                else errorMsg = responseText;
+                if (errorJson && errorJson.error) {
+                    if (typeof errorJson.error === 'object' && errorJson.error.message) {
+                        errorMsg = errorJson.error.message;
+                    } else {
+                        errorMsg = errorJson.error;
+                    }
+                } else if (errorJson && errorJson.message) {
+                    errorMsg = errorJson.message;
+                } else {
+                    errorMsg = responseText;
+                }
             } catch (e) {
                 errorMsg = responseText || errorMsg;
             }
@@ -740,10 +742,7 @@ async function askAI(event) {
 async function adminAskAI(event) {
     if (event) event.preventDefault();
     const questionInput = document.getElementById('adminAIQuestion');
-    if (!questionInput) {
-        console.error('❌ Поле adminAIQuestion не найдено');
-        return;
-    }
+    if (!questionInput) return;
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -751,16 +750,12 @@ async function adminAskAI(event) {
     }
     const answerDiv = document.getElementById('adminAIAnswer');
     const contentDiv = document.getElementById('adminAIResponseContent');
-    if (!answerDiv || !contentDiv) {
-        console.error('❌ Блок ответа не найден');
-        return;
-    }
+    if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        console.log('📤 Отправка POST-запроса (admin) к', AI_API_URL);
-        const response = await fetch(AI_API_URL, {
+        const response = await fetch('/.netlify/functions/yandex-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
@@ -773,9 +768,17 @@ async function adminAskAI(event) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
                 const errorJson = JSON.parse(responseText);
-                if (errorJson && errorJson.error) errorMsg = errorJson.error;
-                else if (errorJson && errorJson.message) errorMsg = errorJson.message;
-                else errorMsg = responseText;
+                if (errorJson && errorJson.error) {
+                    if (typeof errorJson.error === 'object' && errorJson.error.message) {
+                        errorMsg = errorJson.error.message;
+                    } else {
+                        errorMsg = errorJson.error;
+                    }
+                } else if (errorJson && errorJson.message) {
+                    errorMsg = errorJson.message;
+                } else {
+                    errorMsg = responseText;
+                }
             } catch (e) {
                 errorMsg = responseText || errorMsg;
             }
@@ -790,7 +793,6 @@ async function adminAskAI(event) {
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
-
 // ========== ПЕРЕВОДЫ ==========
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
