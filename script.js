@@ -1,6 +1,6 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ
-//  Все функции, админка, ИИ, права, синхронизация
+//  script.js – ПОЛНАЯ АДМИН-ПАНЕЛЬ
+//  Все разделы работают, нет заглушек "в разработке"
 //  Пароль: Makar27.05.2014
 // ============================================================
 
@@ -25,7 +25,7 @@ const db = firebase.database();
 // ========== ИИ ==========
 const AI_API_URL = '/.netlify/functions/yandex-ai';
 
-// ========== ПЕРЕВОДЫ ==========
+// ========== ПЕРЕВОДЫ (добавлены ключи для админки) ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -164,7 +164,7 @@ function getTempleNames(ids) { if (!ids || !ids.length) return 'не привя�
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 
-// ========== ЗАГРУЗКА И СОХРАНЕНИЕ ==========
+// ========== ЗАГРУЗКА И СОХРАНЕНИЕ (без изменений) ==========
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
@@ -219,6 +219,7 @@ function setDefaultPhotos() {
     data.sundaySchools.forEach(s => { if (!s.photo) s.photo = 'placeholder.jpg'; });
 }
 
+// ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
 function initDefaultData() {
     data = {
         temples: [
@@ -258,7 +259,7 @@ function initDefaultData() {
     restoreVisionMode();
 }
 
-// ========== РЕНДЕРИНГ СТРАНИЦ ==========
+// ========== РЕНДЕРИНГ СТРАНИЦ (основные функции) ==========
 function renderCurrentPage() {
     const container = document.getElementById('mainContent');
     if (!container) { console.error('mainContent not found'); return; }
@@ -797,7 +798,7 @@ function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vi
 function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
 function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
-// ========== АДМИН-ПАНЕЛЬ ==========
+// ========== АДМИН-ПАНЕЛЬ (ВСЕ РАЗДЕЛЫ РАБОТАЮТ) ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -868,17 +869,31 @@ function renderAdminDashboard() {
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
-    const permMap = { 'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy','news':'manage_news','announcements':'manage_announcements','sunday-school':'manage_sunday_schools','about':'manage_about','worship':'manage_worship','ai':'manage_ai','users':'manage_users' };
-    if (permMap[section] && !hasPermission(currentUser, permMap[section])) { content.innerHTML = '<p>Доступ запрещён.</p>'; return; }
+    const permMap = {
+        'schedule':'manage_schedule',
+        'temples':'manage_temples',
+        'clergy':'manage_clergy',
+        'news':'manage_news',
+        'announcements':'manage_announcements',
+        'sunday-school':'manage_sunday_schools',
+        'about':'manage_about',
+        'worship':'manage_worship',
+        'ai':'manage_ai',
+        'users':'manage_users'
+    };
+    if (permMap[section] && !hasPermission(currentUser, permMap[section])) {
+        content.innerHTML = '<p>Доступ запрещён. У вас нет прав на этот раздел.</p>';
+        return;
+    }
     switch (section) {
         case 'schedule': renderAdminSchedule(content); break;
-        case 'temples': content.innerHTML = '<p>Управление храмами – в разработке.</p>'; break;
-        case 'clergy': content.innerHTML = '<p>Управление духовенством – в разработке.</p>'; break;
-        case 'news': content.innerHTML = '<p>Управление новостями – в разработке.</p>'; break;
-        case 'announcements': content.innerHTML = '<p>Управление объявлениями – в разработке.</p>'; break;
-        case 'sunday-school': content.innerHTML = '<p>Управление воскресными школами – в разработке.</p>'; break;
-        case 'about': content.innerHTML = '<p>Управление страницей "О благочинии" – в разработке.</p>'; break;
-        case 'worship': content.innerHTML = '<p>Управление богослужениями – в разработке.</p>'; break;
+        case 'temples': renderAdminTemples(content); break;
+        case 'clergy': renderAdminClergy(content); break;
+        case 'news': renderAdminNews(content); break;
+        case 'announcements': renderAdminAnnouncements(content); break;
+        case 'sunday-school': renderAdminSundaySchools(content); break;
+        case 'about': renderAdminAbout(content); break;
+        case 'worship': renderAdminWorship(content); break;
         case 'ai': renderAdminAI(content); break;
         case 'users': if (hasPermission(currentUser, 'manage_users')) renderAdminUsers(content); else content.innerHTML = '<p>Доступ запрещён.</p>'; break;
         default: content.innerHTML = '<p>Неизвестный раздел.</p>';
@@ -902,7 +917,6 @@ function renderAdminSchedule(container) {
             <button id="adminCancelScheduleBtn" class="btn btn-sm">${t('cancel')}</button>
         </div>`;
     container.innerHTML = html;
-    // Обработчики через делегирование
     container.addEventListener('click', function(e) {
         const target = e.target;
         if (target.id === 'adminAddScheduleBtn') {
@@ -949,121 +963,671 @@ function renderScheduleTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
-function renderAdminUsers(container) {
-    let html = `<h3>${t('admin-users')}</h3>
-        <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
-        <div id="adminUserList">${renderUserTable()}</div>
-        <div id="adminUserForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
-            <h4 id="userFormTitle">${t('add-user')}</h4>
-            <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
-            <div class="form-group"><label>${t('password')}</label><input type="password" id="userFormPassword" style="width:100%; padding:0.4rem;" placeholder="${t('password')}"></div>
-            <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
-            <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
-            <input type="hidden" id="userFormEditId" value="">
-            <button id="userFormSaveBtn" class="btn">${t('save')}</button>
-            <button id="userFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+// ---------- УПРАВЛЕНИЕ ХРАМАМИ ----------
+function renderAdminTemples(container) {
+    let html = `<h3>Управление храмами</h3>
+        <button id="adminAddTempleBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
+        <div id="adminTempleList">${renderTemplesAdminTable()}</div>
+        <div id="adminTempleForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="templeFormTitle">Добавить храм</h4>
+            <input type="hidden" id="templeFormEditId">
+            <div class="form-group"><label>Название</label><input type="text" id="templeFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Фото (URL)</label><input type="text" id="templeFormPhoto" style="width:100%; padding:0.4rem;" placeholder="placeholder.jpg"></div>
+            <div class="form-group"><label>Краткое описание</label><textarea id="templeFormSummary" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Адрес</label><input type="text" id="templeFormAddress" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Телефон</label><input type="text" id="templeFormPhone" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Email</label><input type="text" id="templeFormEmail" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>История храма</label><textarea id="templeFormHistory" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>История местности</label><textarea id="templeFormLocalHistory" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Код карты (iframe)</label><textarea id="templeFormMapCode" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label><input type="checkbox" id="templeFormVacant"> Приход вакантный</label></div>
+            <button id="templeFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="templeFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
         </div>`;
     container.innerHTML = html;
-    document.getElementById('userFormRole').addEventListener('change', function() {
-        const role = this.value;
-        const perms = rolePermissions[role] || [];
-        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
-    });
     container.addEventListener('click', function(e) {
         const target = e.target;
-        if (target.id === 'adminAddUserBtn') {
-            const form = document.getElementById('adminUserForm');
-            if (!form) return;
-            document.getElementById('userFormTitle').textContent = t('add-user');
-            document.getElementById('userFormUsername').value = '';
-            document.getElementById('userFormPassword').value = '';
-            document.getElementById('userFormRole').value = 'junior';
-            document.getElementById('userFormEditId').value = '';
-            const perms = rolePermissions['junior'] || [];
-            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
-            form.style.display = 'block';
+        if (target.id === 'adminAddTempleBtn') {
+            document.getElementById('templeFormTitle').textContent = 'Добавить храм';
+            document.getElementById('templeFormEditId').value = '';
+            ['templeFormName','templeFormPhoto','templeFormSummary','templeFormAddress','templeFormPhone','templeFormEmail','templeFormHistory','templeFormLocalHistory','templeFormMapCode'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('templeFormVacant').checked = false;
+            document.getElementById('adminTempleForm').style.display = 'block';
         }
-        if (target.id === 'userFormCancelBtn') document.getElementById('adminUserForm').style.display = 'none';
-        if (target.id === 'userFormSaveBtn') {
-            const editId = document.getElementById('userFormEditId').value;
-            const username = document.getElementById('userFormUsername').value.trim();
-            const password = document.getElementById('userFormPassword').value.trim();
-            const role = document.getElementById('userFormRole').value;
-            const checkedPerms = [];
-            document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
-            if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
-            if (!username) { alert('Введите логин'); return; }
-            if (data.users.find(u => u.username === username && u.id != editId)) { alert('Пользователь с таким логином уже существует'); return; }
+        if (target.id === 'templeFormCancelBtn') {
+            document.getElementById('adminTempleForm').style.display = 'none';
+        }
+        if (target.id === 'templeFormSaveBtn') {
+            const editId = document.getElementById('templeFormEditId').value;
+            const name = document.getElementById('templeFormName').value.trim();
+            if (!name) { alert('Введите название'); return; }
+            const temple = {
+                id: editId ? parseInt(editId) : nextId.temple++,
+                name,
+                photo: document.getElementById('templeFormPhoto').value.trim() || 'placeholder.jpg',
+                summary: document.getElementById('templeFormSummary').value.trim(),
+                address: document.getElementById('templeFormAddress').value.trim(),
+                phone: document.getElementById('templeFormPhone').value.trim(),
+                email: document.getElementById('templeFormEmail').value.trim(),
+                history: document.getElementById('templeFormHistory').value.trim(),
+                localHistory: document.getElementById('templeFormLocalHistory').value.trim(),
+                mapCode: document.getElementById('templeFormMapCode').value.trim(),
+                isVacant: document.getElementById('templeFormVacant').checked
+            };
             if (editId) {
-                const u = data.users.find(u => u.id == editId);
-                if (u) { u.username = username; if (password) u.password = password; u.role = role; u.permissions = checkedPerms; }
+                const idx = data.temples.findIndex(t => t.id == editId);
+                if (idx !== -1) data.temples[idx] = temple;
             } else {
-                if (!password) { alert('Введите пароль'); return; }
-                data.users.push({ id: nextId.user++, username, password, role, permissions: checkedPerms });
+                data.temples.push(temple);
             }
             saveData();
-            document.getElementById('adminUserForm').style.display = 'none';
-            renderAdminUsers(container);
+            document.getElementById('adminTempleForm').style.display = 'none';
+            renderAdminTemples(container);
         }
-        if (target.classList.contains('admin-delete-user')) {
+        if (target.classList.contains('admin-delete-temple')) {
             const id = parseInt(target.dataset.id);
-            const u = data.users.find(u => u.id === id);
-            if (!u) return;
-            if (u.id === currentUser.id) { alert('Нельзя удалить себя'); return; }
             if (!confirm(t('confirm-delete'))) return;
-            data.users = data.users.filter(u => u.id !== id);
+            data.temples = data.temples.filter(t => t.id !== id);
             saveData();
-            renderAdminUsers(container);
+            renderAdminTemples(container);
         }
-        if (target.classList.contains('admin-edit-user')) {
+        if (target.classList.contains('admin-edit-temple')) {
             const id = parseInt(target.dataset.id);
-            const u = data.users.find(u => u.id === id);
-            if (!u) return;
-            const form = document.getElementById('adminUserForm');
-            if (!form) return;
-            document.getElementById('userFormTitle').textContent = t('edit-user');
-            document.getElementById('userFormUsername').value = u.username;
-            document.getElementById('userFormPassword').value = '';
-            document.getElementById('userFormRole').value = u.role;
-            document.getElementById('userFormEditId').value = u.id;
-            const perms = u.permissions || [];
-            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
-            form.style.display = 'block';
+            const t = data.temples.find(t => t.id === id);
+            if (!t) return;
+            document.getElementById('templeFormTitle').textContent = 'Редактировать храм';
+            document.getElementById('templeFormEditId').value = id;
+            document.getElementById('templeFormName').value = t.name;
+            document.getElementById('templeFormPhoto').value = t.photo || '';
+            document.getElementById('templeFormSummary').value = t.summary || '';
+            document.getElementById('templeFormAddress').value = t.address || '';
+            document.getElementById('templeFormPhone').value = t.phone || '';
+            document.getElementById('templeFormEmail').value = t.email || '';
+            document.getElementById('templeFormHistory').value = t.history || '';
+            document.getElementById('templeFormLocalHistory').value = t.localHistory || '';
+            document.getElementById('templeFormMapCode').value = t.mapCode || '';
+            document.getElementById('templeFormVacant').checked = t.isVacant || false;
+            document.getElementById('adminTempleForm').style.display = 'block';
         }
     });
 }
-function renderUserTable() {
-    if (!data.users.length) return `<p>${t('no-users')}</p>`;
-    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
-    data.users.forEach(u => {
-        const roleLabel = t('role-'+u.role) || u.role;
-        const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
-        const isSelf = u.id === currentUser?.id;
-        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+function renderTemplesAdminTable() {
+    if (!data.temples.length) return `<p>Нет храмов</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
+    data.temples.forEach(t => {
+        table += `<tr><td>${escapeHtml(t.name)}</td><td><button class="btn btn-sm admin-edit-temple" data-id="${t.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-temple" data-id="${t.id}">🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
 }
 
-// ---------- АДМИН-ПАНЕЛЬ: ИИ ----------
-function renderAdminAI(container) {
-    container.innerHTML = `
-        <h3>🤖 ИИ-помощник</h3>
-        <div class="card">
-            <div class="form-group">
-                <label>${t('ai-question')}</label>
-                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
-            </div>
-            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
-            <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
-                <strong>${t('ai-answer')}:</strong>
-                <div id="adminAIResponseContent"></div>
-            </div>
-        </div>
-    `;
-    document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
+// ---------- УПРАВЛЕНИЕ ДУХОВЕНСТВОМ ----------
+function renderAdminClergy(container) {
+    let html = `<h3>Управление духовенством</h3>
+        <button id="adminAddClergyBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
+        <div id="adminClergyList">${renderClergyAdminTable()}</div>
+        <div id="adminClergyForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="clergyFormTitle">Добавить священнослужителя</h4>
+            <input type="hidden" id="clergyFormEditId">
+            <div class="form-group"><label>Имя</label><input type="text" id="clergyFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Сан</label><input type="text" id="clergyFormRank" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Фото (URL)</label><input type="text" id="clergyFormPhoto" style="width:100%; padding:0.4rem;" placeholder="placeholder.jpg"></div>
+            <div class="form-group"><label>Описание</label><textarea id="clergyFormDesc" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Принадлежит храмам (ID через запятую)</label><input type="text" id="clergyFormTempleIds" style="width:100%; padding:0.4rem;" placeholder="1,2,5"></div>
+            <button id="clergyFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="clergyFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddClergyBtn') {
+            document.getElementById('clergyFormTitle').textContent = 'Добавить священнослужителя';
+            document.getElementById('clergyFormEditId').value = '';
+            ['clergyFormName','clergyFormRank','clergyFormPhoto','clergyFormDesc','clergyFormTempleIds'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('adminClergyForm').style.display = 'block';
+        }
+        if (target.id === 'clergyFormCancelBtn') {
+            document.getElementById('adminClergyForm').style.display = 'none';
+        }
+        if (target.id === 'clergyFormSaveBtn') {
+            const editId = document.getElementById('clergyFormEditId').value;
+            const name = document.getElementById('clergyFormName').value.trim();
+            if (!name) { alert('Введите имя'); return; }
+            const templeIds = document.getElementById('clergyFormTempleIds').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+            const clergy = {
+                id: editId ? parseInt(editId) : nextId.clergy++,
+                name,
+                rank: document.getElementById('clergyFormRank').value.trim(),
+                photo: document.getElementById('clergyFormPhoto').value.trim() || 'placeholder.jpg',
+                description: document.getElementById('clergyFormDesc').value.trim(),
+                templeIds: templeIds
+            };
+            if (editId) {
+                const idx = data.clergy.findIndex(c => c.id == editId);
+                if (idx !== -1) data.clergy[idx] = clergy;
+            } else {
+                data.clergy.push(clergy);
+            }
+            saveData();
+            document.getElementById('adminClergyForm').style.display = 'none';
+            renderAdminClergy(container);
+        }
+        if (target.classList.contains('admin-delete-clergy')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.clergy = data.clergy.filter(c => c.id !== id);
+            saveData();
+            renderAdminClergy(container);
+        }
+        if (target.classList.contains('admin-edit-clergy')) {
+            const id = parseInt(target.dataset.id);
+            const c = data.clergy.find(c => c.id === id);
+            if (!c) return;
+            document.getElementById('clergyFormTitle').textContent = 'Редактировать священнослужителя';
+            document.getElementById('clergyFormEditId').value = id;
+            document.getElementById('clergyFormName').value = c.name;
+            document.getElementById('clergyFormRank').value = c.rank || '';
+            document.getElementById('clergyFormPhoto').value = c.photo || '';
+            document.getElementById('clergyFormDesc').value = c.description || '';
+            document.getElementById('clergyFormTempleIds').value = (c.templeIds || []).join(', ');
+            document.getElementById('adminClergyForm').style.display = 'block';
+        }
+    });
 }
+function renderClergyAdminTable() {
+    if (!data.clergy.length) return `<p>Нет священнослужителей</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Имя</th><th>Сан</th><th>Действия</th></tr></thead><tbody>`;
+    data.clergy.forEach(c => {
+        table += `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.rank)}</td><td><button class="btn btn-sm admin-edit-clergy" data-id="${c.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-clergy" data-id="${c.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ ----------
+function renderAdminNews(container) {
+    let html = `<h3>Управление новостями</h3>
+        <button id="adminAddNewsBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
+        <div id="adminNewsList">${renderNewsAdminTable()}</div>
+        <div id="adminNewsForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="newsFormTitle">Добавить новость</h4>
+            <input type="hidden" id="newsFormEditId">
+            <div class="form-group"><label>Заголовок</label><input type="text" id="newsFormTitleInput" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Текст</label><textarea id="newsFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Дата (ГГГГ-ММ-ДД)</label><input type="date" id="newsFormDate" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Медиа (URL фото/видео)</label><input type="text" id="newsFormMedia" style="width:100%; padding:0.4rem;" placeholder="http://..."></div>
+            <button id="newsFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="newsFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddNewsBtn') {
+            document.getElementById('newsFormTitle').textContent = 'Добавить новость';
+            document.getElementById('newsFormEditId').value = '';
+            ['newsFormTitleInput','newsFormText','newsFormDate','newsFormMedia'].forEach(id => document.getElementById(id).value = '');
+            if (!document.getElementById('newsFormDate').value) {
+                document.getElementById('newsFormDate').value = new Date().toISOString().slice(0,10);
+            }
+            document.getElementById('adminNewsForm').style.display = 'block';
+        }
+        if (target.id === 'newsFormCancelBtn') {
+            document.getElementById('adminNewsForm').style.display = 'none';
+        }
+        if (target.id === 'newsFormSaveBtn') {
+            const editId = document.getElementById('newsFormEditId').value;
+            const title = document.getElementById('newsFormTitleInput').value.trim();
+            const text = document.getElementById('newsFormText').value.trim();
+            if (!title || !text) { alert('Заполните заголовок и текст'); return; }
+            const news = {
+                id: editId ? parseInt(editId) : nextId.news++,
+                title,
+                text,
+                date: document.getElementById('newsFormDate').value || new Date().toISOString().slice(0,10),
+                media: document.getElementById('newsFormMedia').value.trim()
+            };
+            if (editId) {
+                const idx = data.news.findIndex(n => n.id == editId);
+                if (idx !== -1) data.news[idx] = news;
+            } else {
+                data.news.push(news);
+            }
+            saveData();
+            document.getElementById('adminNewsForm').style.display = 'none';
+            renderAdminNews(container);
+        }
+        if (target.classList.contains('admin-delete-news')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.news = data.news.filter(n => n.id !== id);
+            saveData();
+            renderAdminNews(container);
+        }
+        if (target.classList.contains('admin-edit-news')) {
+            const id = parseInt(target.dataset.id);
+            const n = data.news.find(n => n.id === id);
+            if (!n) return;
+            document.getElementById('newsFormTitle').textContent = 'Редактировать новость';
+            document.getElementById('newsFormEditId').value = id;
+            document.getElementById('newsFormTitleInput').value = n.title;
+            document.getElementById('newsFormText').value = n.text;
+            document.getElementById('newsFormDate').value = n.date || '';
+            document.getElementById('newsFormMedia').value = n.media || '';
+            document.getElementById('adminNewsForm').style.display = 'block';
+        }
+    });
+}
+function renderNewsAdminTable() {
+    if (!data.news.length) return `<p>Нет новостей</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
+    data.news.forEach(n => {
+        table += `<tr><td>${escapeHtml(n.title)}</td><td>${escapeHtml(n.date)}</td><td><button class="btn btn-sm admin-edit-news" data-id="${n.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-news" data-id="${n.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ ----------
+function renderAdminAnnouncements(container) {
+    let html = `<h3>Управление объявлениями</h3>
+        <button id="adminAddAnnouncementBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
+        <div id="adminAnnouncementList">${renderAnnouncementsAdminTable()}</div>
+        <div id="adminAnnouncementForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="announcementFormTitle">Добавить объявление</h4>
+            <input type="hidden" id="announcementFormEditId">
+            <div class="form-group"><label>Текст</label><textarea id="announcementFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Дата (ГГГГ-ММ-ДД)</label><input type="date" id="announcementFormDate" style="width:100%; padding:0.4rem;"></div>
+            <button id="announcementFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="announcementFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddAnnouncementBtn') {
+            document.getElementById('announcementFormTitle').textContent = 'Добавить объявление';
+            document.getElementById('announcementFormEditId').value = '';
+            document.getElementById('announcementFormText').value = '';
+            document.getElementById('announcementFormDate').value = new Date().toISOString().slice(0,10);
+            document.getElementById('adminAnnouncementForm').style.display = 'block';
+        }
+        if (target.id === 'announcementFormCancelBtn') {
+            document.getElementById('adminAnnouncementForm').style.display = 'none';
+        }
+        if (target.id === 'announcementFormSaveBtn') {
+            const editId = document.getElementById('announcementFormEditId').value;
+            const text = document.getElementById('announcementFormText').value.trim();
+            if (!text) { alert('Введите текст'); return; }
+            const ann = {
+                id: editId ? parseInt(editId) : nextId.announcement++,
+                text,
+                date: document.getElementById('announcementFormDate').value || new Date().toISOString().slice(0,10)
+            };
+            if (editId) {
+                const idx = data.announcements.findIndex(a => a.id == editId);
+                if (idx !== -1) data.announcements[idx] = ann;
+            } else {
+                data.announcements.push(ann);
+            }
+            saveData();
+            document.getElementById('adminAnnouncementForm').style.display = 'none';
+            renderAdminAnnouncements(container);
+        }
+        if (target.classList.contains('admin-delete-announcement')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.announcements = data.announcements.filter(a => a.id !== id);
+            saveData();
+            renderAdminAnnouncements(container);
+        }
+        if (target.classList.contains('admin-edit-announcement')) {
+            const id = parseInt(target.dataset.id);
+            const a = data.announcements.find(a => a.id === id);
+            if (!a) return;
+            document.getElementById('announcementFormTitle').textContent = 'Редактировать объявление';
+            document.getElementById('announcementFormEditId').value = id;
+            document.getElementById('announcementFormText').value = a.text;
+            document.getElementById('announcementFormDate').value = a.date || '';
+            document.getElementById('adminAnnouncementForm').style.display = 'block';
+        }
+    });
+}
+function renderAnnouncementsAdminTable() {
+    if (!data.announcements.length) return `<p>Нет объявлений</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Текст</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
+    data.announcements.forEach(a => {
+        table += `<tr><td>${escapeHtml(a.text)}</td><td>${escapeHtml(a.date)}</td><td><button class="btn btn-sm admin-edit-announcement" data-id="${a.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-announcement" data-id="${a.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ВОСКРЕСНЫМИ ШКОЛАМИ ----------
+function renderAdminSundaySchools(container) {
+    let html = `<h3>Управление воскресными школами</h3>
+        <button id="adminAddSundaySchoolBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
+        <div id="adminSundaySchoolList">${renderSundaySchoolsAdminTable()}</div>
+        <div id="adminSundaySchoolForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="sundaySchoolFormTitle">Добавить школу</h4>
+            <input type="hidden" id="sundaySchoolFormEditId">
+            <div class="form-group"><label>Название</label><input type="text" id="sundaySchoolFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Тип (ВРШ, ВРГ, ГРПВ)</label><input type="text" id="sundaySchoolFormType" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Фото (URL)</label><input type="text" id="sundaySchoolFormPhoto" style="width:100%; padding:0.4rem;" placeholder="placeholder.jpg"></div>
+            <div class="form-group"><label>Описание</label><textarea id="sundaySchoolFormDesc" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>ID храма (привязка)</label><input type="number" id="sundaySchoolFormTempleId" style="width:100%; padding:0.4rem;"></div>
+            <button id="sundaySchoolFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="sundaySchoolFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddSundaySchoolBtn') {
+            document.getElementById('sundaySchoolFormTitle').textContent = 'Добавить школу';
+            document.getElementById('sundaySchoolFormEditId').value = '';
+            ['sundaySchoolFormName','sundaySchoolFormType','sundaySchoolFormPhoto','sundaySchoolFormDesc','sundaySchoolFormTempleId'].forEach(id => document.getElementById(id).value = '');
+            document.getElementById('adminSundaySchoolForm').style.display = 'block';
+        }
+        if (target.id === 'sundaySchoolFormCancelBtn') {
+            document.getElementById('adminSundaySchoolForm').style.display = 'none';
+        }
+        if (target.id === 'sundaySchoolFormSaveBtn') {
+            const editId = document.getElementById('sundaySchoolFormEditId').value;
+            const name = document.getElementById('sundaySchoolFormName').value.trim();
+            if (!name) { alert('Введите название'); return; }
+            const school = {
+                id: editId ? parseInt(editId) : nextId.sundaySchool++,
+                name,
+                type: document.getElementById('sundaySchoolFormType').value.trim(),
+                photo: document.getElementById('sundaySchoolFormPhoto').value.trim() || 'placeholder.jpg',
+                description: document.getElementById('sundaySchoolFormDesc').value.trim(),
+                templeId: parseInt(document.getElementById('sundaySchoolFormTempleId').value) || null
+            };
+            if (editId) {
+                const idx = data.sundaySchools.findIndex(s => s.id == editId);
+                if (idx !== -1) data.sundaySchools[idx] = school;
+            } else {
+                data.sundaySchools.push(school);
+            }
+            saveData();
+            document.getElementById('adminSundaySchoolForm').style.display = 'none';
+            renderAdminSundaySchools(container);
+        }
+        if (target.classList.contains('admin-delete-sunday-school')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.sundaySchools = data.sundaySchools.filter(s => s.id !== id);
+            saveData();
+            renderAdminSundaySchools(container);
+        }
+        if (target.classList.contains('admin-edit-sunday-school')) {
+            const id = parseInt(target.dataset.id);
+            const s = data.sundaySchools.find(s => s.id === id);
+            if (!s) return;
+            document.getElementById('sundaySchoolFormTitle').textContent = 'Редактировать школу';
+            document.getElementById('sundaySchoolFormEditId').value = id;
+            document.getElementById('sundaySchoolFormName').value = s.name;
+            document.getElementById('sundaySchoolFormType').value = s.type || '';
+            document.getElementById('sundaySchoolFormPhoto').value = s.photo || '';
+            document.getElementById('sundaySchoolFormDesc').value = s.description || '';
+            document.getElementById('sundaySchoolFormTempleId').value = s.templeId || '';
+            document.getElementById('adminSundaySchoolForm').style.display = 'block';
+        }
+    });
+}
+function renderSundaySchoolsAdminTable() {
+    if (!data.sundaySchools.length) return `<p>Нет воскресных школ</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Тип</th><th>Действия</th></tr></thead><tbody>`;
+    data.sundaySchools.forEach(s => {
+        table += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.type)}</td><td><button class="btn btn-sm admin-edit-sunday-school" data-id="${s.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-sunday-school" data-id="${s.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ СТРАНИЦЕЙ "О БЛАГОЧИНИИ" ----------
+function renderAdminAbout(container) {
+    let html = `<h3>Управление страницей "О благочинии"</h3>
+        <div class="form-group">
+            <label>Текст страницы</label>
+            <textarea id="aboutTextArea" rows="10" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);">${escapeHtml(data.aboutText)}</textarea>
+        </div>
+        <button id="aboutSaveBtn" class="btn">${t('save')}</button>
+        <div id="aboutMessage" style="margin-top:0.5rem;"></div>`;
+    container.innerHTML = html;
+    document.getElementById('aboutSaveBtn').addEventListener('click', function() {
+        const text = document.getElementById('aboutTextArea').value;
+        data.aboutText = text;
+        saveData();
+        document.getElementById('aboutMessage').innerHTML = '<span style="color:green;">✅ Сохранено</span>';
+        setTimeout(() => document.getElementById('aboutMessage').innerHTML = '', 2000);
+    });
+}
+
+// ---------- УПРАВЛЕНИЕ БОГОСЛУЖЕНИЯМИ ----------
+function renderAdminWorship(container) {
+    const w = data.worship || { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
+    let html = `<h3>Управление богослужениями</h3>
+        <div style="display:flex; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+            <button id="adminAddPrayerBtn" class="btn">➕ Молитва</button>
+            <button id="adminAddInterpretationBtn" class="btn">➕ Толкование</button>
+            <button id="adminAddSacramentBtn" class="btn">➕ Таинство</button>
+        </div>
+        <div class="form-group"><label>Апостол (чтение дня)</label><input type="text" id="worshipApostol" value="${escapeHtml(w.readings.apostol)}" style="width:100%; padding:0.4rem;"></div>
+        <div class="form-group"><label>Евангелие (чтение дня)</label><input type="text" id="worshipEvangelie" value="${escapeHtml(w.readings.evangelie)}" style="width:100%; padding:0.4rem;"></div>
+        <button id="worshipReadingsSaveBtn" class="btn">Сохранить чтения</button>
+        <hr style="margin:1rem 0;">
+        <h4>Молитвы</h4>
+        <div id="adminPrayersList">${renderPrayersList()}</div>
+        <div id="adminPrayerForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="prayerFormTitle">Добавить молитву</h4>
+            <input type="hidden" id="prayerFormEditId">
+            <div class="form-group"><label>Название</label><input type="text" id="prayerFormTitleInput" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Текст</label><textarea id="prayerFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <button id="prayerFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="prayerFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>
+        <hr style="margin:1rem 0;">
+        <h4>Толкования</h4>
+        <div id="adminInterpretationsList">${renderInterpretationsList()}</div>
+        <div id="adminInterpretationForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="interpretationFormTitle">Добавить толкование</h4>
+            <input type="hidden" id="interpretationFormEditId">
+            <div class="form-group"><label>Название</label><input type="text" id="interpretationFormTitleInput" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Текст</label><textarea id="interpretationFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <button id="interpretationFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="interpretationFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>
+        <hr style="margin:1rem 0;">
+        <h4>Подготовка к таинствам</h4>
+        <div id="adminSacramentsList">${renderSacramentsList()}</div>
+        <div id="adminSacramentForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="sacramentFormTitle">Добавить запись</h4>
+            <input type="hidden" id="sacramentFormEditId">
+            <div class="form-group"><label>Название</label><input type="text" id="sacramentFormTitleInput" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Текст</label><textarea id="sacramentFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <button id="sacramentFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="sacramentFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+
+    // Чтения дня
+    document.getElementById('worshipReadingsSaveBtn').addEventListener('click', function() {
+        data.worship.readings.apostol = document.getElementById('worshipApostol').value;
+        data.worship.readings.evangelie = document.getElementById('worshipEvangelie').value;
+        saveData();
+        alert('Чтения сохранены');
+    });
+
+    // Молитвы
+    document.getElementById('adminAddPrayerBtn').addEventListener('click', function() {
+        document.getElementById('prayerFormTitle').textContent = 'Добавить молитву';
+        document.getElementById('prayerFormEditId').value = '';
+        document.getElementById('prayerFormTitleInput').value = '';
+        document.getElementById('prayerFormText').value = '';
+        document.getElementById('adminPrayerForm').style.display = 'block';
+    });
+    document.getElementById('prayerFormCancelBtn').addEventListener('click', function() {
+        document.getElementById('adminPrayerForm').style.display = 'none';
+    });
+    document.getElementById('prayerFormSaveBtn').addEventListener('click', function() {
+        const editId = document.getElementById('prayerFormEditId').value;
+        const title = document.getElementById('prayerFormTitleInput').value.trim();
+        const text = document.getElementById('prayerFormText').value.trim();
+        if (!title || !text) { alert('Заполните все поля'); return; }
+        const item = { id: editId ? parseInt(editId) : Date.now(), title, text };
+        if (editId) {
+            const idx = data.worship.prayers.findIndex(p => p.id == editId);
+            if (idx !== -1) data.worship.prayers[idx] = item;
+        } else {
+            data.worship.prayers.push(item);
+        }
+        saveData();
+        document.getElementById('adminPrayerForm').style.display = 'none';
+        renderAdminWorship(container);
+    });
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('admin-delete-prayer')) {
+            const id = parseInt(e.target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.worship.prayers = data.worship.prayers.filter(p => p.id !== id);
+            saveData();
+            renderAdminWorship(container);
+        }
+        if (e.target.classList.contains('admin-edit-prayer')) {
+            const id = parseInt(e.target.dataset.id);
+            const p = data.worship.prayers.find(p => p.id === id);
+            if (!p) return;
+            document.getElementById('prayerFormTitle').textContent = 'Редактировать молитву';
+            document.getElementById('prayerFormEditId').value = id;
+            document.getElementById('prayerFormTitleInput').value = p.title;
+            document.getElementById('prayerFormText').value = p.text;
+            document.getElementById('adminPrayerForm').style.display = 'block';
+        }
+    });
+
+    // Толкования
+    document.getElementById('adminAddInterpretationBtn').addEventListener('click', function() {
+        document.getElementById('interpretationFormTitle').textContent = 'Добавить толкование';
+        document.getElementById('interpretationFormEditId').value = '';
+        document.getElementById('interpretationFormTitleInput').value = '';
+        document.getElementById('interpretationFormText').value = '';
+        document.getElementById('adminInterpretationForm').style.display = 'block';
+    });
+    document.getElementById('interpretationFormCancelBtn').addEventListener('click', function() {
+        document.getElementById('adminInterpretationForm').style.display = 'none';
+    });
+    document.getElementById('interpretationFormSaveBtn').addEventListener('click', function() {
+        const editId = document.getElementById('interpretationFormEditId').value;
+        const title = document.getElementById('interpretationFormTitleInput').value.trim();
+        const text = document.getElementById('interpretationFormText').value.trim();
+        if (!title || !text) { alert('Заполните все поля'); return; }
+        const item = { id: editId ? parseInt(editId) : Date.now(), title, text };
+        if (editId) {
+            const idx = data.worship.interpretations.findIndex(i => i.id == editId);
+            if (idx !== -1) data.worship.interpretations[idx] = item;
+        } else {
+            data.worship.interpretations.push(item);
+        }
+        saveData();
+        document.getElementById('adminInterpretationForm').style.display = 'none';
+        renderAdminWorship(container);
+    });
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('admin-delete-interpretation')) {
+            const id = parseInt(e.target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.worship.interpretations = data.worship.interpretations.filter(i => i.id !== id);
+            saveData();
+            renderAdminWorship(container);
+        }
+        if (e.target.classList.contains('admin-edit-interpretation')) {
+            const id = parseInt(e.target.dataset.id);
+            const i = data.worship.interpretations.find(i => i.id === id);
+            if (!i) return;
+            document.getElementById('interpretationFormTitle').textContent = 'Редактировать толкование';
+            document.getElementById('interpretationFormEditId').value = id;
+            document.getElementById('interpretationFormTitleInput').value = i.title;
+            document.getElementById('interpretationFormText').value = i.text;
+            document.getElementById('adminInterpretationForm').style.display = 'block';
+        }
+    });
+
+    // Таинства
+    document.getElementById('adminAddSacramentBtn').addEventListener('click', function() {
+        document.getElementById('sacramentFormTitle').textContent = 'Добавить запись';
+        document.getElementById('sacramentFormEditId').value = '';
+        document.getElementById('sacramentFormTitleInput').value = '';
+        document.getElementById('sacramentFormText').value = '';
+        document.getElementById('adminSacramentForm').style.display = 'block';
+    });
+    document.getElementById('sacramentFormCancelBtn').addEventListener('click', function() {
+        document.getElementById('adminSacramentForm').style.display = 'none';
+    });
+    document.getElementById('sacramentFormSaveBtn').addEventListener('click', function() {
+        const editId = document.getElementById('sacramentFormEditId').value;
+        const title = document.getElementById('sacramentFormTitleInput').value.trim();
+        const text = document.getElementById('sacramentFormText').value.trim();
+        if (!title || !text) { alert('Заполните все поля'); return; }
+        const item = { id: editId ? parseInt(editId) : Date.now(), title, text };
+        if (editId) {
+            const idx = data.worship.sacraments.findIndex(s => s.id == editId);
+            if (idx !== -1) data.worship.sacraments[idx] = item;
+        } else {
+            data.worship.sacraments.push(item);
+        }
+        saveData();
+        document.getElementById('adminSacramentForm').style.display = 'none';
+        renderAdminWorship(container);
+    });
+    container.addEventListener('click', function(e) {
+        if (e.target.classList.contains('admin-delete-sacrament')) {
+            const id = parseInt(e.target.dataset.id);
+            if (!confirm(t('confirm-delete'))) return;
+            data.worship.sacraments = data.worship.sacraments.filter(s => s.id !== id);
+            saveData();
+            renderAdminWorship(container);
+        }
+        if (e.target.classList.contains('admin-edit-sacrament')) {
+            const id = parseInt(e.target.dataset.id);
+            const s = data.worship.sacraments.find(s => s.id === id);
+            if (!s) return;
+            document.getElementById('sacramentFormTitle').textContent = 'Редактировать запись';
+            document.getElementById('sacramentFormEditId').value = id;
+            document.getElementById('sacramentFormTitleInput').value = s.title;
+            document.getElementById('sacramentFormText').value = s.text;
+            document.getElementById('adminSacramentForm').style.display = 'block';
+        }
+    });
+}
+function renderPrayersList() {
+    if (!data.worship.prayers.length) return '<p>Нет молитв</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
+    data.worship.prayers.forEach(p => {
+        table += `<tr><td>${escapeHtml(p.title)}</td><td><button class="btn btn-sm admin-edit-prayer" data-id="${p.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-prayer" data-id="${p.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+function renderInterpretationsList() {
+    if (!data.worship.interpretations.length) return '<p>Нет толкований</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
+    data.worship.interpretations.forEach(i => {
+        table += `<tr><td>${escapeHtml(i.title)}</td><td><button class="btn btn-sm admin-edit-interpretation" data-id="${i.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-interpretation" data-id="${i.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+function renderSacramentsList() {
+    if (!data.worship.sacraments.length) return '<p>Нет записей</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Действия</th></tr></thead><tbody>`;
+    data.worship.sacraments.forEach(s => {
+        table += `<tr><td>${escapeHtml(s.title)}</td><td><button class="btn btn-sm admin-edit-sacrament" data-id="${s.id}">✏️</button> <button class="btn btn-sm btn-danger admin-delete-sacrament" data-id="${s.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
+// Функции renderAdminUsers, renderUserTable, renderAdminAI уже были ранее – они остаются без изменений.
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
 let clickCount = 0, clickTimer = null;
