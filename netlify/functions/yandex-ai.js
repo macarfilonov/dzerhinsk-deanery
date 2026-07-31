@@ -13,9 +13,7 @@ exports.handler = async (event) => {
         return {
             statusCode: 405,
             headers,
-            body: JSON.stringify({
-                error: `Метод не разрешён. Используйте POST. Получен метод: ${event.httpMethod}`
-            })
+            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
         };
     }
 
