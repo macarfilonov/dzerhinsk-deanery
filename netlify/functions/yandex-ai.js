@@ -25,9 +25,9 @@ exports.handler = async (event) => {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не может быть пустым.' }) };
         }
 
-        // ПРАВИЛЬНЫЙ FOLDER_ID (из ответа Яндекса)
+      
         const API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
-        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';  // ← исправлено
+        const FOLDER_ID = 'b1grgek3bgbqc3vagodq'; 
 
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
