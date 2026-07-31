@@ -23,7 +23,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const db = firebase.database();
 
 // ========== ИИ ==========
-const AI_API_URL = '/.netlify/functions/yandex-ai';
+const AI_API_URL = '/.netlify/functions/huggingface-ai';
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
