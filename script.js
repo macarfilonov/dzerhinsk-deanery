@@ -1,7 +1,7 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ
-//  Все ошибки исправлены, ИИ работает через POST
+//  script.js – ФИНАЛЬНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ (2026)
 //  Пароль: Makar27.05.2014
+//  Работает на HTTPS, все кнопки ИИ — type="button"
 // ============================================================
 
 console.log('✅ script.js загружен');
@@ -288,6 +288,7 @@ function renderCurrentPage() {
     updateVisionUI();
 }
 
+// ---------- ГЛАВНАЯ ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     let html = `<div class="hero-banner" onclick="window.location.href='temple-detail.html?id=1'"><div style="text-align:center;z-index:2;"><h1>Храм Покрова Пресвятой Богородицы</h1><div class="sub">г. Дзержинск</div></div></div>
@@ -328,6 +329,7 @@ function renderMainPage() {
 }
 function scrollCarousel(direction) { const track = document.getElementById('carouselTrack'); if (track) track.scrollBy({ left: direction * 280, behavior: 'smooth' }); }
 
+// ---------- ВЫПАДАЮЩЕЕ МЕНЮ ----------
 function fillTempleDropdown() {
     document.querySelectorAll('.dropdown-content').forEach(container => {
         container.innerHTML = '';
@@ -340,6 +342,7 @@ function fillTempleDropdown() {
     });
 }
 
+// ---------- СПИСОК ХРАМОВ ----------
 function renderTemplesList(container) {
     let html = `<h2>${t('temples-title')}</h2><div class="grid">`;
     data.temples.forEach(t => {
@@ -353,6 +356,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 200); return; }
     const temple = data.temples.find(t => t.id === id);
@@ -392,6 +396,7 @@ function renderTempleDetail(container, id) {
     window.toggleSchedule = function() { const b = document.getElementById('templeSchedule'); if (b) b.style.display = b.style.display==='none'?'block':'none'; };
 }
 
+// ---------- ДУХОВЕНСТВО ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -419,6 +424,7 @@ function renderClergyDetail(id) {
     </div>`;
 }
 
+// ---------- РАСПИСАНИЕ (вкладка) ----------
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2>
         <div class="card">
@@ -445,6 +451,7 @@ function initScheduleSelect(container) {
     });
 }
 
+// ---------- НОВОСТИ ----------
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2>`;
     const news = data.news||[];
@@ -463,6 +470,7 @@ function renderNewsList(container) {
     container.innerHTML = html;
 }
 
+// ---------- ОБЪЯВЛЕНИЯ ----------
 function renderAnnouncementsList(container) {
     let html = `<h2>${t('announcements-title')}</h2>`;
     const ann = data.announcements||[];
@@ -474,6 +482,7 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
+// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
         <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
@@ -510,11 +519,13 @@ function renderSundaySchoolDetail(id) {
     </div>`;
 }
 
+// ---------- О БЛАГОЧИНИИ ----------
 function renderAboutPage(container) {
     container.innerHTML = `<h2>${t('nav-about')}</h2>
         <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
 }
 
+// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -583,6 +594,7 @@ function renderWorshipPage(container) {
     });
 }
 
+// ---------- FAQ (С КНОПКОЙ type="button") ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card">
@@ -609,7 +621,7 @@ function renderFaqPage(container) {
         });
     }
     html += `</div>`;
-    // Блок ИИ (только для админов с правом manage_ai)
+    // Блок ИИ (кнопка с type="button")
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
@@ -617,7 +629,7 @@ function renderFaqPage(container) {
                 <div class="form-group">
                     <textarea id="aiQuestion" rows="3" placeholder="${t('ai-question')}" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
                 </div>
-                <button id="askAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
+                <button type="button" id="askAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
                 <div id="aiAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
                     <strong>${t('ai-answer')}:</strong>
                     <div id="aiResponseContent"></div>
@@ -668,18 +680,16 @@ function renderFaqPage(container) {
             }
         });
     }
-    // Привязка кнопки ИИ с event.preventDefault()
-    const aiBtn = document.getElementById('askAIBtn');
-    if (aiBtn) {
-        aiBtn.addEventListener('click', askAI);
-    }
-}
-
-// ========== ИИ (исправленные функции с event) ==========
+    // Привязываем кнопку ИИ (с preventDefault внутри функции)
+    document.getElementById('askAIBtn')?.addEventListener('click', askAI);
+}// ========== ИИ (с event.preventDefault()) ==========
 async function askAI(event) {
-    if (event) event.preventDefault(); // Критично!
+    if (event) event.preventDefault();
     const questionInput = document.getElementById('aiQuestion');
-    if (!questionInput) return;
+    if (!questionInput) {
+        console.error('❌ Поле aiQuestion не найдено');
+        return;
+    }
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -687,17 +697,24 @@ async function askAI(event) {
     }
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
-    if (!answerDiv || !contentDiv) return;
+    if (!answerDiv || !contentDiv) {
+        console.error('❌ Блок ответа не найден');
+        return;
+    }
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
+        console.log('📤 Отправка POST-запроса к', AI_API_URL);
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
+
         const responseText = await response.text();
+        console.log('📥 Ответ сервера:', responseText);
+
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
@@ -710,19 +727,23 @@ async function askAI(event) {
             }
             throw new Error(errorMsg);
         }
+
         const data = JSON.parse(responseText);
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('Ошибка ИИ:', error);
+        console.error('❌ Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
 
 async function adminAskAI(event) {
-    if (event) event.preventDefault(); // Критично!
+    if (event) event.preventDefault();
     const questionInput = document.getElementById('adminAIQuestion');
-    if (!questionInput) return;
+    if (!questionInput) {
+        console.error('❌ Поле adminAIQuestion не найдено');
+        return;
+    }
     const question = questionInput.value.trim();
     if (!question) {
         alert('Введите вопрос');
@@ -730,17 +751,24 @@ async function adminAskAI(event) {
     }
     const answerDiv = document.getElementById('adminAIAnswer');
     const contentDiv = document.getElementById('adminAIResponseContent');
-    if (!answerDiv || !contentDiv) return;
+    if (!answerDiv || !contentDiv) {
+        console.error('❌ Блок ответа не найден');
+        return;
+    }
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
+        console.log('📤 Отправка POST-запроса (admin) к', AI_API_URL);
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
+
         const responseText = await response.text();
+        console.log('📥 Ответ сервера (admin):', responseText);
+
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
@@ -753,11 +781,12 @@ async function adminAskAI(event) {
             }
             throw new Error(errorMsg);
         }
+
         const data = JSON.parse(responseText);
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('Ошибка ИИ (admin):', error);
+        console.error('❌ Ошибка ИИ (admin):', error);
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
@@ -1689,7 +1718,7 @@ function renderUserTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ИИ В АДМИНКЕ ----------
+// ---------- УПРАВЛЕНИЕ ИИ В АДМИНКЕ (кнопка type="button") ----------
 function renderAdminAI(container) {
     container.innerHTML = `
         <h3>🤖 ИИ-помощник</h3>
@@ -1698,14 +1727,13 @@ function renderAdminAI(container) {
                 <label>${t('ai-question')}</label>
                 <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
             </div>
-            <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
+            <button type="button" id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
             <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
                 <strong>${t('ai-answer')}:</strong>
                 <div id="adminAIResponseContent"></div>
             </div>
         </div>
     `;
-    // Привязка с event.preventDefault()
     document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
 }
 
