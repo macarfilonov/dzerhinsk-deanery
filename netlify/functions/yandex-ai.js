@@ -13,9 +13,7 @@ exports.handler = async (event) => {
         return {
             statusCode: 405,
             headers,
-            body: JSON.stringify({
-                error: `Метод не разрешён. Используйте POST. Получен метод: ${event.httpMethod}`
-            })
+            body: JSON.stringify({ error: 'Метод не разрешён. Используйте POST.' })
         };
     }
 
@@ -26,7 +24,7 @@ exports.handler = async (event) => {
         }
 
         const API_KEY = 'AQVN0Yi2ZXsQBGxx0qGOW4Gmm5ptMWdhl3yD-gIQ';
-        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';
+        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';   // правильный folder_id
 
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
