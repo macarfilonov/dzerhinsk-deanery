@@ -351,31 +351,30 @@ async function askAI() {
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const response = await fetch(AI_API_URL, {
+        const response = await fetch('/.netlify/functions/yandex-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
 
-        // Пытаемся получить текст ответа
-        const text = await response.text();
-        // Если ответ пустой или не JSON, выводим ошибку
-        if (!text) {
-            throw new Error('Пустой ответ от сервера');
-        }
-
-        let data;
-        try {
-            data = JSON.parse(text);
-        } catch (e) {
-            throw new Error('Сервер вернул невалидный JSON: ' + text.substring(0, 100));
-        }
+        // Читаем ответ как текст, чтобы увидеть реальную ошибку
+        const responseText = await response.text();
 
         if (!response.ok) {
-            const errorMsg = data.error || data.message || `Ошибка сервера (${response.status})`;
+            let errorMsg = `Ошибка сервера (${response.status})`;
+            try {
+                const errorJson = JSON.parse(responseText);
+                if (errorJson && errorJson.error) errorMsg = errorJson.error;
+                else if (errorJson && errorJson.message) errorMsg = errorJson.message;
+                else errorMsg = responseText;
+            } catch (e) {
+                errorMsg = responseText || errorMsg;
+            }
             throw new Error(errorMsg);
         }
 
+        // Парсим JSON
+        const data = JSON.parse(responseText);
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
@@ -383,6 +382,7 @@ async function askAI() {
         contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
+
 
 async function adminAskAI() {
     const questionInput = document.getElementById('adminAIQuestion');
@@ -396,25 +396,23 @@ async function adminAskAI() {
     const contentDiv = document.getElementById('adminAIResponseContent');
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
-    contentDiv.textContent = 'ИИ думает...';
+    contentDiv.textContent = t('ai-thinking');
 
     try {
         const response = await fetch('/.netlify/functions/yandex-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: question })
+            body: JSON.stringify({ question })
         });
 
-        // Получаем ответ как текст для отладки
         const responseText = await response.text();
-        console.log('Ответ от функции:', response.status, responseText);
 
         if (!response.ok) {
             let errorMsg = `Ошибка сервера (${response.status})`;
             try {
-                const errorData = JSON.parse(responseText);
-                if (errorData && errorData.error) errorMsg = errorData.error;
-                else if (errorData && errorData.message) errorMsg = errorData.message;
+                const errorJson = JSON.parse(responseText);
+                if (errorJson && errorJson.error) errorMsg = errorJson.error;
+                else if (errorJson && errorJson.message) errorMsg = errorJson.message;
                 else errorMsg = responseText;
             } catch (e) {
                 errorMsg = responseText || errorMsg;
@@ -422,18 +420,12 @@ async function adminAskAI() {
             throw new Error(errorMsg);
         }
 
-        let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            throw new Error('Ответ не является валидным JSON');
-        }
-
+        const data = JSON.parse(responseText);
         const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('Ошибка ИИ:', error);
-        contentDiv.textContent = 'Ошибка: ' + (error.message || String(error));
+        console.error('Ошибка ИИ (admin):', error);
+        contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
     }
 }
 // ========== АДМИН-ПАНЕЛЬ (ВСЕ РАЗДЕЛЫ РАБОТАЮТ) ==========
