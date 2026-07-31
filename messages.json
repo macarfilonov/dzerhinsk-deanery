@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "user_id": 5276906556,
+    "username": "makarFD",
+    "first_name": "Макар",
+    "last_name": "Филонов",
+    "text": "во сколько будет служба",
+    "timestamp": "2026-07-06T13:58:28.242909",
+    "answered": true,
+    "answer": "Сегодня вечером",
+    "answered_at": "2026-07-06T13:59:47.163426"
+  },
+  {
+    "id": 2,
+    "user_id": 5276906556,
+    "username": "makarFD",
+    "first_name": "Макар",
+    "last_name": "Филонов",
+    "text": "📋 Непрочитанные",
+    "timestamp": "2026-07-06T14:00:43.736814",
+    "answered": false,
+    "answer": null,
+    "answered_at": null
+  },
+  {
+    "id": 3,
+    "user_id": 5276906556,
+    "username": "makarFD",
+    "first_name": "Макар",
+    "last_name": "Филонов",
+    "text": "📂 Все сообщения",
+    "timestamp": "2026-07-06T14:00:47.633551",
+    "answered": false,
+    "answer": null,
+    "answered_at": null
+  },
+  {
+    "id": 4,
+    "user_id": 5276906556,
+    "username": "makarFD",
+    "first_name": "Макар",
+    "last_name": "Филонов",
+    "text": "📤 Рассылка",
+    "timestamp": "2026-07-06T14:00:50.912731",
+    "answered": false,
+    "answer": null,
+    "answered_at": null
+  },
+  {
+    "id": 5,
+    "user_id": 5276906556,
+    "username": "makarFD",
+    "first_name": "Макар",
+    "last_name": "Филонов",
+    "text": "❓ Помощь",
+    "timestamp": "2026-07-06T14:00:52.108637",
+    "answered": false,
+    "answer": null,
+    "answered_at": null
+  }
+]
