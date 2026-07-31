@@ -683,9 +683,7 @@ function renderFaqPage(container) {
     // Привязываем кнопку ИИ (с preventDefault внутри функции)
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }// ========== ИИ (с event.preventDefault()) ==========
-// ========== ИИ ==========
-async function askAI(event) {
-    if (event) event.preventDefault();
+async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
     const question = questionInput.value.trim();
@@ -693,52 +691,52 @@ async function askAI(event) {
         alert('Введите вопрос');
         return;
     }
+
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
     if (!answerDiv || !contentDiv) return;
+
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
 
     try {
-        const response = await fetch('/.netlify/functions/yandex-ai', {
+        const HF_TOKEN = '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';
+        const MODEL = 'Qwen/Qwen2.5-7B-Instruct';
+        const PROXY_URL = 'https://corsproxy.io/';
+
+        const response = await fetch(PROXY_URL + '?' + encodeURIComponent(`https://api-inference.huggingface.co/models/${MODEL}`), {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
+            headers: {
+                'Authorization': `Bearer ${HF_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                inputs: question,
+                parameters: {
+                    max_new_tokens: 500,
+                    temperature: 0.7,
+                    return_full_text: false
+                }
+            })
         });
 
-        const responseText = await response.text();
-        console.log('📥 Ответ сервера:', responseText);
-
-        if (!response.ok) {
-            let errorMsg = `Ошибка сервера (${response.status})`;
-            try {
-                const errorJson = JSON.parse(responseText);
-                if (errorJson && errorJson.error) {
-                    if (typeof errorJson.error === 'object' && errorJson.error.message) {
-                        errorMsg = errorJson.error.message;
-                    } else {
-                        errorMsg = errorJson.error;
-                    }
-                } else if (errorJson && errorJson.message) {
-                    errorMsg = errorJson.message;
-                } else {
-                    errorMsg = responseText;
-                }
-            } catch (e) {
-                errorMsg = responseText || errorMsg;
-            }
-            throw new Error(errorMsg);
+        if (response.status === 503) {
+            throw new Error('Модель загружается, подождите 15-30 секунд и повторите запрос.');
         }
 
-        const data = JSON.parse(responseText);
-        const answer = data.result?.alternatives?.[0]?.message?.text || 'Ответ не получен';
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Ошибка API: ${response.status} - ${text}`);
+        }
+
+        const data = await response.json();
+        const answer = data[0]?.generated_text || 'Не удалось получить ответ';
         contentDiv.textContent = answer;
     } catch (error) {
-        console.error('❌ Ошибка ИИ:', error);
-        contentDiv.textContent = t('ai-error') + ': ' + (error.message || String(error));
+        console.error('Ошибка ИИ:', error);
+        contentDiv.textContent = t('ai-error') + ': ' + error.message;
     }
 }
-
 async function adminAskAI(event) {
     if (event) event.preventDefault();
     const questionInput = document.getElementById('adminAIQuestion');
