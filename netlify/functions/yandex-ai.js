@@ -5,15 +5,10 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
-    
-    console.log('Request method:', event.httpMethod);
-
-
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers };
     }
 
-    
     if (event.httpMethod !== 'POST') {
         return {
             statusCode: 405,
@@ -26,17 +21,13 @@ exports.handler = async (event) => {
 
     try {
         const { question } = JSON.parse(event.body);
-
         if (!question || question.trim() === '') {
-            return {
-                statusCode: 400,
-                headers,
-                body: JSON.stringify({ error: 'Вопрос не может быть пустым.' })
-            };
+            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не может быть пустым.' }) };
         }
 
+        // ПРАВИЛЬНЫЙ FOLDER_ID (из ответа Яндекса)
         const API_KEY = 'AQVN1sS0_uTE5uK3Vi-hnW4bmZxVjhVu74-rBDQ-';
-        const FOLDER_ID = 'ajemoiqftp64srhbelhf';
+        const FOLDER_ID = 'b1grgek3bgbqc3vagodq';  // ← исправлено
 
         const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
             method: 'POST',
