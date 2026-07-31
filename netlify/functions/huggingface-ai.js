@@ -1,4 +1,3 @@
-
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -6,18 +5,26 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'POST, OPTIONS'
     };
 
-    if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers };
-    if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: 'Method Not Allowed' };
+    if (event.httpMethod === 'OPTIONS') {
+        return { statusCode: 204, headers };
+    }
+
+    if (event.httpMethod !== 'POST') {
+        return { statusCode: 405, headers, body: 'Method Not Allowed' };
+    }
 
     try {
         const { question } = JSON.parse(event.body);
         if (!question) {
-            return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({ error: 'Вопрос не задан' })
+            };
         }
 
-
-        const HF_TOKEN = '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';
-
+        const HF_TOKEN = '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';
+        // Модель с поддержкой русского языка
         const MODEL = 'Qwen/Qwen2.5-7B-Instruct';
 
         const response = await fetch(
@@ -45,8 +52,8 @@ exports.handler = async (event) => {
                 return {
                     statusCode: 503,
                     headers,
-                    body: JSON.stringify({ 
-                        error: 'Модель загружается, подождите 10-20 секунд и повторите запрос.' 
+                    body: JSON.stringify({
+                        error: 'Модель загружается, подождите 15–30 секунд и повторите запрос.'
                     })
                 };
             }
@@ -58,20 +65,17 @@ exports.handler = async (event) => {
         }
 
         const data = await response.json();
-        
         const answer = data[0]?.generated_text || 'Не удалось получить ответ';
 
         return {
             statusCode: 200,
             headers,
-            body: JSON.stringify({ 
-                result: { 
-                    alternatives: [{ 
-                        message: { 
-                            text: answer 
-                        } 
-                    }] 
-                } 
+            body: JSON.stringify({
+                result: {
+                    alternatives: [{
+                        message: { text: answer }
+                    }]
+                }
             })
         };
     } catch (error) {
