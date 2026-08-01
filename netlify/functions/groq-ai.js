@@ -16,12 +16,11 @@ exports.handler = async (event) => {
 
         const GROQ_API_KEY = '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';
 
-        // Можно использовать разные модели:
+        //Можно использовать разные модели:
         // 'llama-3.3-70b-versatile' - самая мощная (но лимит 1000 запросов/день)
         // 'mixtral-8x7b-32768' - хорошая, быстрая
         // 'gemma2-9b-it' - лёгкая, быстрая
-        const MODEL = 'mixtral-8x7b-32768';
-
+        const MODEL = 'llama-3.3-70b-versatile';
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
