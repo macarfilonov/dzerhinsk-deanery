@@ -1,3 +1,9 @@
+// ============================================================
+//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ для сайта Дзержинского благочиния
+//  Все функции: страницы, админка, ИИ (Groq), календарь, синхронизация
+//  Дата: 01.08.2026
+// ============================================================
+
 console.log('script.js загружен');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
@@ -11,11 +17,14 @@ const firebaseConfig = {
     appId: "1:987099529386:web:53609c931fd3fb4784d0d3",
     measurementId: "G-83K5PEKCT6"
 };
-const AI_API_URL = '/.netlify/functions/groq-ai';
+
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
+
+// ========== НАСТРОЙКИ ИИ (GROQ) ==========
+const AI_API_URL = '/.netlify/functions/groq-ai';
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -137,7 +146,7 @@ let data = {
     news: [],
     announcements: [],
     sundaySchools: [],
-    aboutText: 'Дзержинское благочиние объединяет приходы города Дзержинска и Дзержинского района. Благочинный – протоиерей Борис Полторжицкий. В благочинии действуют 7 храмов, ведутся активная социальная и молодёжная работа, работают воскресные школы.',
+    aboutText: 'Дзержинское благочиние...',
     worship: {
         prayers: [],
         calendar: [],
@@ -259,7 +268,7 @@ function initDefaultData() {
         news: [],
         announcements: [],
         sundaySchools: [],
-        aboutText: 'Дзержинское благочиние объединяет приходы города Дзержинска и Дзержинского района. Благочинный – протоиерей Борис Полторжицкий. В благочинии действуют 7 храмов, ведутся активная социальная и молодёжная работа, работают воскресные школы.',
+        aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
         faq: [],
         users: [ { id:1, username:'Makar', password:'Makar27.05.2014', role:'developer', permissions:['all'] } ]
@@ -546,19 +555,53 @@ function renderSundaySchoolDetail(id) {
     </div>`;
 }
 
-// ---------- О БЛАГОЧИНИИ ----------
+// ---------- О БЛАГОЧИНИИ (НОВЫЙ ТЕКСТ) ----------
 function renderAboutPage(container) {
-    container.innerHTML = `<h2>${t('nav-about')}</h2>
-        <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
+    console.log('renderAboutPage()');
+    if (!container) return;
+    let html = `<h2>О благочинии</h2>
+        <div class="card">
+            <div style="white-space: pre-line;">
+                Дзержинское благочиние: Духовное Сердце Города с Семи Храмами
+
+                Добро пожаловать на страницу Дзержинского благочиния — места, где вера и любовь Христова наполняют жизнь нашего города. Мы рады приветствовать вас и приглашаем познакомиться с духовным центром, который объединяет верующих в молитве и добрых делах.
+
+                Наш благочинный: Протоиерей Борис Полторжицкий.
+
+                Под его мудрым руководством благочиние развивается, храмы оживают, а приходская жизнь становится богаче и содержательнее.
+
+                История и настоящее:
+
+                Дзержинское благочиние — это не просто территория, объединяющая несколько храмов. Это живой организм, где каждый приход имеет свою уникальную историю и традиции. Наши храмы — это архитектурные жемчужины, но главное — это дома Божии, где каждый может найти утешение, поддержку и обрести духовный мир.
+
+                Жизнь благочиния:
+
+                Богослужения: Регулярные богослужения, Таинства Церкви, молитвенные собрания — всё это составляет основу духовной жизни наших прихожан.
+                Миссионерская деятельность: Мы стремимся нести свет Христовой истины каждому человеку, организуя просветительские беседы, воскресные школы и мероприятия для детей и взрослых.
+                Социальное служение: Особое внимание уделяется помощи нуждающимся. Мы заботимся о престарелых, малоимущих, детях-сиротах, участвуя в различных благотворительных акциях.
+                Культурно-просветительская работа: Проводятся лекции, концерты, выставки, направленные на духовное и культурное развитие нашей паствы.
+
+                Наше духовное созвездие:
+
+                Дзержинское благочиние гордится своими семью храмами, каждый из которых является уникальным центром духовной жизни. Благочиннический центр и сердце нашего благочиния — это величественный Храм Покрова Пресвятой Богородицы в Дзержинске.
+
+                Приглашаем вас:
+
+                Присоединяйтесь к нам! Посетите наши храмы, станьте частью нашего приходского сообщества. Мы верим, что вместе мы можем сделать мир добрее и светлее.
+
+                С любовью во Христе, Дзержинское благочиние.
+            </div>
+        </div>`;
+    container.innerHTML = html;
+    applyTranslations();
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// ---------- БОГОСЛУЖЕНИЯ (без "Чтения дня", календарь через iframe) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
         { id: 'prayers', label: 'Молитвослов' },
         { id: 'calendar', label: 'Календарь' },
-        { id: 'readings', label: 'Чтения дня' },
         { id: 'interpretations', label: 'Толкования' },
         { id: 'sacraments', label: 'Подготовка к таинствам' }
     ];
@@ -577,20 +620,16 @@ function renderWorshipPage(container) {
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-    // Календарь
+    // Календарь (iframe)
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
             <div>
-                <script language="Javascript" src="https://script.pravoslavie.ru/calendar.php"></script>
+                <iframe src="https://script.pravoslavie.ru/calendar.php" 
+                        style="width:100%; height:600px; border:none; border-radius:16px; box-shadow: 0 4px 12px var(--shadow);">
+                </iframe>
             </div>
         </div>
-    </div>`;
-    // Чтения дня
-    html += `<div class="worship-block" id="worship-readings">
-        <h3>Чтения дня</h3>
-        <p><strong>Апостол:</strong> ${escapeHtml(data.worship?.readings?.apostol || '')}</p>
-        <p><strong>Евангелие:</strong> ${escapeHtml(data.worship?.readings?.evangelie || '')}</p>
     </div>`;
     // Толкования
     html += `<div class="worship-block" id="worship-interpretations">`;
@@ -629,7 +668,7 @@ function renderWorshipPage(container) {
     });
 }
 
-// ---------- FAQ (с ИИ) ----------
+// ---------- FAQ (ИИ доступен только для админов) ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card">
@@ -657,7 +696,7 @@ function renderFaqPage(container) {
     }
     html += `</div>`;
 
-    // Блок ИИ (только для авторизованных админов с правом manage_ai)
+    // Блок ИИ (только для админов с правом manage_ai)
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
@@ -674,7 +713,6 @@ function renderFaqPage(container) {
         `;
     }
 
-    // Форма обратной связи в Telegram
     html += `<div class="card">
         <h2>📬 Написать в Telegram</h2>
         <p style="margin-bottom: 1rem;">Ваше сообщение будет отправлено напрямую в Telegram.</p>
@@ -687,10 +725,7 @@ function renderFaqPage(container) {
         <div id="formResult" style="margin-top:1rem; text-align:center; font-weight:500;"></div>
         <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#999;">Или напишите нам в <a href="https://t.me/ВАШ_USERNAME_BOTA" target="_blank" style="color:var(--gold);">Telegram</a></p>
     </div>`;
-
     container.innerHTML = html;
-    applyTranslations();
-
     // Обработка формы вопросов
     document.getElementById('askForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -704,7 +739,6 @@ function renderFaqPage(container) {
         document.getElementById('questionText').value = '';
         setTimeout(() => renderFaqPage(container), 1000);
     });
-
     // Обработка формы Telegram
     const feedbackForm = document.getElementById('feedbackForm');
     if (feedbackForm) {
@@ -723,11 +757,11 @@ function renderFaqPage(container) {
             }
         });
     }
-
     // Кнопка ИИ
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
+// ---------- ИИ: ЗАПРОС К GROQ (ЧЕРЕЗ NETLIFY FUNCTION) ----------
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -748,18 +782,29 @@ async function askAI() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
+
         if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
+            let errorMsg = `Ошибка сервера: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) errorMsg = errorData.error;
+            } catch (e) {}
+            throw new Error(errorMsg);
         }
-        const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text || 'Не удалось получить ответ';
+
+        const text = await response.text();
+        if (!text) throw new Error('Пустой ответ от сервера');
+        let data;
+        try { data = JSON.parse(text); } catch (e) { throw new Error('Некорректный JSON-ответ'); }
+
+        const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + error.message;
     }
 }
+
 async function adminAskAI() {
     const questionInput = document.getElementById('adminAIQuestion');
     if (!questionInput) return;
@@ -780,18 +825,29 @@ async function adminAskAI() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
+
         if (!response.ok) {
-            const text = await response.text();
-            throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
+            let errorMsg = `Ошибка сервера: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) errorMsg = errorData.error;
+            } catch (e) {}
+            throw new Error(errorMsg);
         }
-        const data = await response.json();
-        const answer = data.result?.alternatives?.[0]?.message?.text || 'Не удалось получить ответ';
+
+        const text = await response.text();
+        if (!text) throw new Error('Пустой ответ от сервера');
+        let data;
+        try { data = JSON.parse(text); } catch (e) { throw new Error('Некорректный JSON-ответ'); }
+
+        const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
         contentDiv.textContent = answer;
     } catch (error) {
         console.error('Ошибка ИИ:', error);
         contentDiv.textContent = t('ai-error') + ': ' + error.message;
     }
 }
+
 function renderAdminAI(container) {
     container.innerHTML = `
         <h3>🤖 ИИ-помощник</h3>
