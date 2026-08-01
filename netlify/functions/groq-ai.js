@@ -1,4 +1,3 @@
-// netlify/functions/groq-ai.js
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -21,7 +20,7 @@ exports.handler = async (event) => {
         // 'llama-3.3-70b-versatile' - самая мощная (но лимит 1000 запросов/день)
         // 'mixtral-8x7b-32768' - хорошая, быстрая
         // 'gemma2-9b-it' - лёгкая, быстрая
-        const MODEL = 'mixtral-8x7b-32768'; // выберите любую
+        const MODEL = 'mixtral-8x7b-32768';
 
         const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
