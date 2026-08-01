@@ -1,8 +1,3 @@
-// ============================================================
-//  script.js – полная версия сайта Дзержинского благочиния
-//  Все страницы, админка, права, синхронизация, ИИ (Hugging Face)
-// ============================================================
-
 console.log('script.js загружен');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
@@ -16,16 +11,11 @@ const firebaseConfig = {
     appId: "1:987099529386:web:53609c931fd3fb4784d0d3",
     measurementId: "G-83K5PEKCT6"
 };
-const AI_API_URL = '/.netlify/functions/huggingface-ai';
+const AI_API_URL = '/.netlify/functions/groq-ai';
 if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
-
-// ========== НАСТРОЙКИ HUGGING FACE ==========
-const HF_TOKEN = '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';   // ❗ ВСТАВЬТЕ СВОЙ НОВЫЙ ТОКЕН
-const HF_MODEL = 'Qwen/Qwen2.5-7B-Instruct';
-const CORS_PROXY = 'https://corsproxy.io/';
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
