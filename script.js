@@ -1,7 +1,5 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ для сайта Дзержинского благочиния
-//  Все функции: страницы, админка, ИИ (Groq), календарь, синхронизация
-//  Дата: 01.08.2026
+//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (календарь, админка, ИИ)
 // ============================================================
 
 console.log('script.js загружен');
@@ -146,7 +144,7 @@ let data = {
     news: [],
     announcements: [],
     sundaySchools: [],
-    aboutText: 'Дзержинское благочиние...',
+    aboutText: '',
     worship: {
         prayers: [],
         calendar: [],
@@ -596,7 +594,7 @@ function renderAboutPage(container) {
     applyTranslations();
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (без "Чтения дня", календарь через iframe) ----------
+// ---------- БОГОСЛУЖЕНИЯ (календарь через iframe, убраны чтения дня) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -625,7 +623,7 @@ function renderWorshipPage(container) {
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
             <div>
-                <iframe src="https://script.pravoslavie.ru/calendar.php" 
+                <iframe src="https://script.pravoslavie.ru/calendar.php?hrams=0&tmshift=0&encoding=u" 
                         style="width:100%; height:600px; border:none; border-radius:16px; box-shadow: 0 4px 12px var(--shadow);">
                 </iframe>
             </div>
@@ -947,11 +945,26 @@ function renderAdminDashboard() {
     document.querySelectorAll('.admin-menu-btn').forEach(btn => btn.addEventListener('click', function() { renderAdminSection(this.dataset.section); }));
 }
 
+// ---------- ИСПРАВЛЕННАЯ АДМИН-ПАНЕЛЬ (РАСПИСАНИЕ, ПОЛЬЗОВАТЕЛИ, ИИ РАБОТАЮТ) ----------
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
-    const permMap = { 'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy','news':'manage_news','announcements':'manage_announcements','sunday-school':'manage_sunday_schools','about':'manage_about','worship':'manage_worship','ai':'manage_ai','users':'manage_users' };
-    if (permMap[section] && !hasPermission(currentUser, permMap[section])) { content.innerHTML = '<p>Доступ запрещён.</p>'; return; }
+    const permMap = {
+        'schedule': 'manage_schedule',
+        'temples': 'manage_temples',
+        'clergy': 'manage_clergy',
+        'news': 'manage_news',
+        'announcements': 'manage_announcements',
+        'sunday-school': 'manage_sunday_schools',
+        'about': 'manage_about',
+        'worship': 'manage_worship',
+        'ai': 'manage_ai',
+        'users': 'manage_users'
+    };
+    if (permMap[section] && !hasPermission(currentUser, permMap[section])) {
+        content.innerHTML = '<p>Доступ запрещён.</p>';
+        return;
+    }
     switch (section) {
         case 'schedule': renderAdminSchedule(content); break;
         case 'temples': content.innerHTML = '<p>Управление храмами – в разработке.</p>'; break;
