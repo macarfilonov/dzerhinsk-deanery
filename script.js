@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (календарь, админка, ИИ)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (все разделы админки, календарь, увеличенные фото)
 // ============================================================
 
 console.log('script.js загружен');
@@ -23,6 +23,58 @@ const db = firebase.database();
 
 // ========== НАСТРОЙКИ ИИ (GROQ) ==========
 const AI_API_URL = '/.netlify/functions/groq-ai';
+
+// ========== ДОБАВЛЯЕМ СТИЛИ ДЛЯ УВЕЛИЧЕННЫХ ФОТО И КНОПКИ VISION ==========
+(function addCustomStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        #visionToggle {
+            font-size: 0.8rem !important;
+            padding: 0.2rem 0.6rem !important;
+            border-width: 1px !important;
+            background: var(--gold) !important;
+            color: #fff !important;
+            border-radius: 40px !important;
+            cursor: pointer !important;
+            transition: 0.2s !important;
+            font-weight: bold !important;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1) !important;
+        }
+        #visionToggle:hover { background: #b89a4a !important; }
+        @media (max-width: 480px) {
+            #visionToggle { font-size: 0.65rem !important; padding: 0.1rem 0.4rem !important; }
+        }
+        .temple-detail .clergy-card {
+            width: 220px !important;
+            padding: 1rem !important;
+            text-align: center !important;
+        }
+        .temple-detail .clergy-card img {
+            width: 200px !important;
+            height: 200px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+            margin: 0 auto 0.5rem !important;
+            display: block !important;
+        }
+        .temple-detail .clergy-list {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
+            gap: 1.5rem !important;
+        }
+        @media (max-width: 700px) {
+            .temple-detail .clergy-card { width: 160px !important; padding: 0.8rem !important; }
+            .temple-detail .clergy-card img { width: 140px !important; height: 140px !important; }
+        }
+        @media (max-width: 480px) {
+            .temple-detail .clergy-card { width: 90% !important; max-width: 220px !important; margin: 0 auto !important; }
+            .temple-detail .clergy-card img { width: 180px !important; height: 180px !important; }
+            .temple-detail .clergy-list { justify-content: center !important; gap: 1rem !important; }
+        }
+    `;
+    document.head.appendChild(style);
+})();
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -162,10 +214,7 @@ let dataLoaded = false;
 let visionMode = false;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
-}
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
 function t(key) { return translations[currentLang]?.[key] || key; }
 function getTempleName(id) { const t = data.temples.find(t => t.id === id); return t ? t.name : '?'; }
 function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
@@ -176,7 +225,6 @@ function hasPermission(user, permission) { return user?.permissions?.includes('a
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
-    console.log('loadData() вызван');
     const stored = localStorage.getItem('blago_data');
     if (stored) {
         try {
@@ -184,24 +232,16 @@ function loadData() {
             data = parsed.data || data;
             nextId = parsed.nextId || nextId;
             migrateData();
-            console.log('Данные загружены из localStorage, храмов:', data.temples.length);
             renderCurrentPage();
             applyTranslations();
             fillTempleDropdown();
             restoreVisionMode();
-        } catch (e) {
-            console.warn('Ошибка загрузки из localStorage, создаём стандартные данные');
-            initDefaultData();
-        }
-    } else {
-        console.log('localStorage пуст, инициализация');
-        initDefaultData();
-    }
+        } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
+    } else { initDefaultData(); }
 
     db.ref('data').on('value', (snapshot) => {
         const val = snapshot.val();
         if (val) {
-            console.log('Получены данные из Firebase');
             data = val.data || data;
             nextId = val.nextId || nextId;
             migrateData();
@@ -211,12 +251,8 @@ function loadData() {
             fillTempleDropdown();
         }
     });
-
     db.ref('data').once('value', (snapshot) => {
-        if (!snapshot.val()) {
-            console.log('Firebase пуст, инициализация');
-            initDefaultData();
-        }
+        if (!snapshot.val()) { initDefaultData(); }
     });
 }
 
@@ -225,8 +261,7 @@ function migrateData() {
     ['news','announcements','schedules','sundaySchools','faq','temples','clergy'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
-    if (!data.users) data.users = [];
-    if (data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
+    if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
     setDefaultPhotos();
 }
 
@@ -239,9 +274,7 @@ function setDefaultPhotos() {
     data.sundaySchools.forEach(s => { if (!s.photo) s.photo = 'placeholder.jpg'; });
 }
 
-// ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
 function initDefaultData() {
-    console.log('initDefaultData()');
     data = {
         temples: [
             { id:1, name:'Храм Покрова Пресвятой Богородицы, г. Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г. Дзержинск.', address:'Минская область, г. Дзержинск, ул. Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
@@ -283,9 +316,8 @@ function initDefaultData() {
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
 function renderCurrentPage() {
     const container = document.getElementById('mainContent');
-    if (!container) { console.error('mainContent not found'); return; }
+    if (!container) return;
     const page = document.body.dataset.page || 'main';
-    console.log('renderCurrentPage() для страницы:', page);
     const urlParams = new URLSearchParams(window.location.search);
     const isDetail = urlParams.has('id');
     if (isDetail) {
@@ -322,11 +354,10 @@ function renderMainPage() {
                 <div class="sub">г. Дзержинск</div>
             </div>
         </div>
-        <h2 style="margin: 1.5rem 0 0.5rem; text-align:center; font-family: 'Cormorant Uncial', serif;">Наши храмы</h2>
+        <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
         <div class="carousel">
             <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
-            <div class="carousel-track" id="carouselTrack">
-    `;
+            <div class="carousel-track" id="carouselTrack">`;
     data.temples.forEach(t => {
         if (t.id === 1) return;
         const imgSrc = getTemplePhoto(t);
@@ -390,7 +421,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с классом temple-detail и увеличенными фото) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 200); return; }
     const temple = data.temples.find(t => t.id === id);
@@ -398,23 +429,43 @@ function renderTempleDetail(container, id) {
     const clergyList = data.clergy.filter(c => c.templeIds && c.templeIds.includes(id));
     const scheduleList = data.schedules.filter(s => s.templeId === id);
     const photoSrc = getTemplePhoto(temple);
-    let html = `<div class="detail-back" onclick="window.location.href='temples.html'">${t('back')}</div>
-    <div class="detail-content">
-        <img src="${escapeHtml(photoSrc)}" class="main-photo" onerror="this.style.display='none'">
-        <h2 class="temple-title">${escapeHtml(temple.name)}</h2>
-        <div class="temple-summary"><p>${escapeHtml(temple.summary||'')}</p>${temple.address ? `<p class="address">📍 ${escapeHtml(temple.address)}</p>` : ''}</div>
-        <div class="temple-actions">
-            <button class="action-btn" onclick="toggleClergy()">👥 ${t('clergy-list')}</button>
-            <button class="action-btn" onclick="toggleContacts()">📞 Контакты</button>
-            <button class="action-btn" onclick="toggleSchedule()">📅 ${t('schedule-title')}</button>
-            ${temple.phone ? `<a href="tel:${escapeHtml(temple.phone)}" class="action-btn phone-btn">📱 Позвонить</a>` : ''}
+    let html = `<div class="page active temple-detail">
+        <div class="detail-back" onclick="window.location.href='temples.html'">${t('back')}</div>
+        <div class="detail-content">
+            <img src="${escapeHtml(photoSrc)}" class="main-photo" onerror="this.style.display='none'">
+            <h2 class="temple-title">${escapeHtml(temple.name)}</h2>
+            <div class="temple-summary"><p>${escapeHtml(temple.summary||'')}</p>${temple.address ? `<p class="address">📍 ${escapeHtml(temple.address)}</p>` : ''}</div>
+            <div class="temple-actions">
+                <button class="action-btn" onclick="toggleClergy()">👥 ${t('clergy-list')}</button>
+                <button class="action-btn" onclick="toggleContacts()">📞 Контакты</button>
+                <button class="action-btn" onclick="toggleSchedule()">📅 ${t('schedule-title')}</button>
+                ${temple.phone ? `<a href="tel:${escapeHtml(temple.phone)}" class="action-btn phone-btn">📱 Позвонить</a>` : ''}
+            </div>
+            <div id="templeClergy" style="display:none;">
+                <h3>${t('clergy-list')}</h3>
+                ${clergyList.length ? `<div class="clergy-list">${clergyList.map(c => `
+                    <div class="clergy-card" data-id="${c.id}" data-type="clergy-detail">
+                        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" onerror="this.style.display='none'">
+                        <div><strong>${escapeHtml(c.name)}</strong></div>
+                        <div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div>
+                    </div>
+                `).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
+            </div>
+            <div id="templeContacts" style="display:none;">
+                <div class="temple-contacts">
+                    ${temple.phone ? `<div class="contact-item"><strong>📞 Телефон:</strong> <a href="tel:${escapeHtml(temple.phone)}">${escapeHtml(temple.phone)}</a></div>` : ''}
+                    ${temple.email ? `<div class="contact-item"><strong>📧 Email:</strong> <a href="mailto:${escapeHtml(temple.email)}">${escapeHtml(temple.email)}</a></div>` : ''}
+                    ${temple.address ? `<div class="contact-item"><strong>📍 Адрес:</strong> ${escapeHtml(temple.address)}</div>` : ''}
+                    <div class="map-container">${temple.mapCode || '<p>Карта не добавлена.</p>'}</div>
+                </div>
+            </div>
+            <div id="templeSchedule" style="display:none;">
+                ${scheduleList.length ? `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>${scheduleList.map(s => `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`).join('')}</tbody></table>` : `<p>${t('no-schedule')}</p>`}
+            </div>
+            <div class="tabs"><button class="tab-btn active" data-tab="history">${t('history')}</button><button class="tab-btn" data-tab="local-history">${t('local-history')}</button></div>
+            <div id="tab-history" class="tab-content active"><p>${escapeHtml(temple.history) || 'История не добавлена.'}</p></div>
+            <div id="tab-local-history" class="tab-content"><p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p></div>
         </div>
-        <div id="templeClergy" style="display:none;"><h3>${t('clergy-list')}</h3>${clergyList.length ? `<div class="clergy-list">${clergyList.map(c => `<div class="clergy-card" data-id="${c.id}"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}</div>
-        <div id="templeContacts" style="display:none;"><div class="temple-contacts">${temple.phone ? `<div><strong>📞 Телефон:</strong> <a href="tel:${escapeHtml(temple.phone)}">${escapeHtml(temple.phone)}</a></div>` : ''}${temple.email ? `<div><strong>📧 Email:</strong> <a href="mailto:${escapeHtml(temple.email)}">${escapeHtml(temple.email)}</a></div>` : ''}${temple.address ? `<div><strong>📍 Адрес:</strong> ${escapeHtml(temple.address)}</div>` : ''}<div class="map-container">${temple.mapCode || '<p>Карта не добавлена.</p>'}</div></div></div>
-        <div id="templeSchedule" style="display:none;">${scheduleList.length ? `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>${scheduleList.map(s => `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`).join('')}</tbody></table>` : `<p>${t('no-schedule')}</p>`}</div>
-        <div class="tabs"><button class="tab-btn active" data-tab="history">${t('history')}</button><button class="tab-btn" data-tab="local-history">${t('local-history')}</button></div>
-        <div id="tab-history" class="tab-content active"><p>${escapeHtml(temple.history) || 'История не добавлена.'}</p></div>
-        <div id="tab-local-history" class="tab-content"><p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p></div>
     </div>`;
     container.innerHTML = html;
     container.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', function() {
@@ -553,48 +604,14 @@ function renderSundaySchoolDetail(id) {
     </div>`;
 }
 
-// ---------- О БЛАГОЧИНИИ (НОВЫЙ ТЕКСТ) ----------
+// ---------- О БЛАГОЧИНИИ ----------
 function renderAboutPage(container) {
-    console.log('renderAboutPage()');
-    if (!container) return;
     let html = `<h2>О благочинии</h2>
-        <div class="card">
-            <div style="white-space: pre-line;">
-                Дзержинское благочиние: Духовное Сердце Города с Семи Храмами
-
-                Добро пожаловать на страницу Дзержинского благочиния — места, где вера и любовь Христова наполняют жизнь нашего города. Мы рады приветствовать вас и приглашаем познакомиться с духовным центром, который объединяет верующих в молитве и добрых делах.
-
-                Наш благочинный: Протоиерей Борис Полторжицкий.
-
-                Под его мудрым руководством благочиние развивается, храмы оживают, а приходская жизнь становится богаче и содержательнее.
-
-                История и настоящее:
-
-                Дзержинское благочиние — это не просто территория, объединяющая несколько храмов. Это живой организм, где каждый приход имеет свою уникальную историю и традиции. Наши храмы — это архитектурные жемчужины, но главное — это дома Божии, где каждый может найти утешение, поддержку и обрести духовный мир.
-
-                Жизнь благочиния:
-
-                Богослужения: Регулярные богослужения, Таинства Церкви, молитвенные собрания — всё это составляет основу духовной жизни наших прихожан.
-                Миссионерская деятельность: Мы стремимся нести свет Христовой истины каждому человеку, организуя просветительские беседы, воскресные школы и мероприятия для детей и взрослых.
-                Социальное служение: Особое внимание уделяется помощи нуждающимся. Мы заботимся о престарелых, малоимущих, детях-сиротах, участвуя в различных благотворительных акциях.
-                Культурно-просветительская работа: Проводятся лекции, концерты, выставки, направленные на духовное и культурное развитие нашей паствы.
-
-                Наше духовное созвездие:
-
-                Дзержинское благочиние гордится своими семью храмами, каждый из которых является уникальным центром духовной жизни. Благочиннический центр и сердце нашего благочиния — это величественный Храм Покрова Пресвятой Богородицы в Дзержинске.
-
-                Приглашаем вас:
-
-                Присоединяйтесь к нам! Посетите наши храмы, станьте частью нашего приходского сообщества. Мы верим, что вместе мы можем сделать мир добрее и светлее.
-
-                С любовью во Христе, Дзержинское благочиние.
-            </div>
-        </div>`;
+        <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
     container.innerHTML = html;
-    applyTranslations();
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (календарь через iframe, убраны чтения дня) ----------
+// ---------- БОГОСЛУЖЕНИЯ (календарь через iframe) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -607,7 +624,7 @@ function renderWorshipPage(container) {
         <div class="card">
             <div class="tabs worship-tabs" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">`;
     tabs.forEach((tab, idx) => {
-        html += `<button class="tab-btn worship-tab-btn ${idx === 0 ? 'active' : ''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:transparent; color:var(--primary); font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
+        html += `<button class="tab-btn worship-tab-btn ${idx===0?'active':''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:transparent; color:var(--primary); font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
     // Расписание
@@ -618,15 +635,12 @@ function renderWorshipPage(container) {
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-    // Календарь (iframe)
+    // Календарь
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
-            <div>
-                <iframe src="https://script.pravoslavie.ru/calendar.php?hrams=0&tmshift=0&encoding=u" 
-                        style="width:100%; height:600px; border:none; border-radius:16px; box-shadow: 0 4px 12px var(--shadow);">
-                </iframe>
-            </div>
+            <div><iframe src="https://days.pravoslavie.ru/" style="width:100%; height:700px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe></div>
+            <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Источник: days.pravoslavie.ru</p>
         </div>
     </div>`;
     // Толкования
@@ -656,21 +670,17 @@ function renderWorshipPage(container) {
             this.style.background = 'var(--gold)';
             this.style.color = 'white';
             container.querySelectorAll('.worship-block').forEach(block => block.classList.remove('active'));
-            const target = document.getElementById('worship-' + tabId);
+            const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
         });
-        if (btn.classList.contains('active')) {
-            btn.style.background = 'var(--gold)';
-            btn.style.color = 'white';
-        }
+        if (btn.classList.contains('active')) { btn.style.background = 'var(--gold)'; btn.style.color = 'white'; }
     });
 }
 
-// ---------- FAQ (ИИ доступен только для админов) ----------
+// ---------- FAQ (ИИ) ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
-        <div id="faqForm" class="card">
-            <h3>${t('ask-question')}</h3>
+        <div id="faqForm" class="card"><h3>${t('ask-question')}</h3>
             <form id="askForm">
                 <input type="text" id="questionName" placeholder="${t('your-name')}" required>
                 <textarea id="questionText" rows="4" placeholder="${t('your-question')}" required></textarea>
@@ -678,30 +688,23 @@ function renderFaqPage(container) {
             </form>
             <div id="formMessage"></div>
         </div>
-        <div id="faqList" class="card">
-            <h3>${t('admin-faq')}</h3>`;
+        <div id="faqList" class="card"><h3>${t('admin-faq')}</h3>`;
     const faq = data.faq||[];
     if (!faq.length) html += `<p>${t('no-faq')}</p>`;
     else {
         const sorted = [...faq].sort((a,b)=>new Date(b.date)-new Date(a.date));
         sorted.forEach(item => {
-            html += `<div class="faq-item">
-                <div class="question">${escapeHtml(item.question)}</div>
+            html += `<div class="faq-item"><div class="question">${escapeHtml(item.question)}</div>
                 ${item.answer ? `<div class="answer">${escapeHtml(item.answer)}</div>` : '<div style="color:#999;">Ожидает ответа</div>'}
-                <div class="date">${escapeHtml(item.date)} | ${escapeHtml(item.name)}</div>
-            </div>`;
+                <div class="date">${escapeHtml(item.date)} | ${escapeHtml(item.name)}</div></div>`;
         });
     }
     html += `</div>`;
-
-    // Блок ИИ (только для админов с правом manage_ai)
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
                 <h2>${t('ai-chat')}</h2>
-                <div class="form-group">
-                    <textarea id="aiQuestion" rows="3" placeholder="${t('ai-question')}" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
-                </div>
+                <div class="form-group"><textarea id="aiQuestion" rows="3" placeholder="${t('ai-question')}" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea></div>
                 <button id="askAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
                 <div id="aiAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
                     <strong>${t('ai-answer')}:</strong>
@@ -710,13 +713,10 @@ function renderFaqPage(container) {
             </div>
         `;
     }
-
-    html += `<div class="card">
-        <h2>📬 Написать в Telegram</h2>
-        <p style="margin-bottom: 1rem;">Ваше сообщение будет отправлено напрямую в Telegram.</p>
-        <form action="send.php" method="POST" id="feedbackForm" style="max-width: 500px; margin: 0 auto;">
+    html += `<div class="card"><h2>📬 Написать в Telegram</h2>
+        <form action="send.php" method="POST" id="feedbackForm" style="max-width:500px;margin:0 auto;">
             <div class="form-group"><input type="text" name="name" placeholder="Ваше имя" required style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></div>
-            <div class="form-group"><select name="theme" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"><option value="">Выберите тему (необязательно)</option><option value="Предложение">📝 Предложение</option><option value="Замечание">⚠️ Замечание</option><option value="Вопрос">❓ Вопрос</option><option value="Другое">📩 Другое</option></select></div>
+            <div class="form-group"><select name="theme" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"><option value="">Выберите тему</option><option value="Предложение">📝 Предложение</option><option value="Замечание">⚠️ Замечание</option><option value="Вопрос">❓ Вопрос</option><option value="Другое">📩 Другое</option></select></div>
             <div class="form-group"><textarea name="message" rows="5" placeholder="Ваше сообщение..." required style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea></div>
             <button type="submit" class="btn" style="width:100%; padding:0.6rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">📨 Отправить</button>
         </form>
@@ -724,7 +724,6 @@ function renderFaqPage(container) {
         <p style="text-align:center; margin-top:1rem; font-size:0.85rem; color:#999;">Или напишите нам в <a href="https://t.me/ВАШ_USERNAME_BOTA" target="_blank" style="color:var(--gold);">Telegram</a></p>
     </div>`;
     container.innerHTML = html;
-    // Обработка формы вопросов
     document.getElementById('askForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const name = document.getElementById('questionName').value.trim();
@@ -737,7 +736,6 @@ function renderFaqPage(container) {
         document.getElementById('questionText').value = '';
         setTimeout(() => renderFaqPage(container), 1000);
     });
-    // Обработка формы Telegram
     const feedbackForm = document.getElementById('feedbackForm');
     if (feedbackForm) {
         feedbackForm.addEventListener('submit', async function(e) {
@@ -755,46 +753,38 @@ function renderFaqPage(container) {
             }
         });
     }
-    // Кнопка ИИ
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ---------- ИИ: ЗАПРОС К GROQ (ЧЕРЕЗ NETLIFY FUNCTION) ----------
+// ---------- ИИ ----------
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
     const question = questionInput.value.trim();
-    if (!question) {
-        alert('Введите вопрос');
-        return;
-    }
+    if (!question) { alert('Введите вопрос'); return; }
     const answerDiv = document.getElementById('aiAnswer');
     const contentDiv = document.getElementById('aiResponseContent');
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
-
     try {
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-
         if (!response.ok) {
             let errorMsg = `Ошибка сервера: ${response.status}`;
             try {
                 const errorData = await response.json();
                 if (errorData.error) errorMsg = errorData.error;
-            } catch (e) {}
+            } catch(e) {}
             throw new Error(errorMsg);
         }
-
         const text = await response.text();
         if (!text) throw new Error('Пустой ответ от сервера');
         let data;
-        try { data = JSON.parse(text); } catch (e) { throw new Error('Некорректный JSON-ответ'); }
-
+        try { data = JSON.parse(text); } catch(e) { throw new Error('Некорректный JSON-ответ'); }
         const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
         contentDiv.textContent = answer;
     } catch (error) {
@@ -807,37 +797,30 @@ async function adminAskAI() {
     const questionInput = document.getElementById('adminAIQuestion');
     if (!questionInput) return;
     const question = questionInput.value.trim();
-    if (!question) {
-        alert('Введите вопрос');
-        return;
-    }
+    if (!question) { alert('Введите вопрос'); return; }
     const answerDiv = document.getElementById('adminAIAnswer');
     const contentDiv = document.getElementById('adminAIResponseContent');
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = t('ai-thinking');
-
     try {
         const response = await fetch(AI_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question })
         });
-
         if (!response.ok) {
             let errorMsg = `Ошибка сервера: ${response.status}`;
             try {
                 const errorData = await response.json();
                 if (errorData.error) errorMsg = errorData.error;
-            } catch (e) {}
+            } catch(e) {}
             throw new Error(errorMsg);
         }
-
         const text = await response.text();
         if (!text) throw new Error('Пустой ответ от сервера');
         let data;
-        try { data = JSON.parse(text); } catch (e) { throw new Error('Некорректный JSON-ответ'); }
-
+        try { data = JSON.parse(text); } catch(e) { throw new Error('Некорректный JSON-ответ'); }
         const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
         contentDiv.textContent = answer;
     } catch (error) {
@@ -850,10 +833,7 @@ function renderAdminAI(container) {
     container.innerHTML = `
         <h3>🤖 ИИ-помощник</h3>
         <div class="card">
-            <div class="form-group">
-                <label>${t('ai-question')}</label>
-                <textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
-            </div>
+            <div class="form-group"><label>${t('ai-question')}</label><textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea></div>
             <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
             <div id="adminAIAnswer" style="margin-top:1rem; padding:1rem; background:var(--bg); border-radius:16px; display:none;">
                 <strong>${t('ai-answer')}:</strong>
@@ -945,37 +925,30 @@ function renderAdminDashboard() {
     document.querySelectorAll('.admin-menu-btn').forEach(btn => btn.addEventListener('click', function() { renderAdminSection(this.dataset.section); }));
 }
 
-// ---------- ИСПРАВЛЕННАЯ АДМИН-ПАНЕЛЬ (РАСПИСАНИЕ, ПОЛЬЗОВАТЕЛИ, ИИ РАБОТАЮТ) ----------
+// ========== ВСЕ РАЗДЕЛЫ АДМИНКИ (полные CRUD) ==========
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
     const permMap = {
-        'schedule': 'manage_schedule',
-        'temples': 'manage_temples',
-        'clergy': 'manage_clergy',
-        'news': 'manage_news',
-        'announcements': 'manage_announcements',
-        'sunday-school': 'manage_sunday_schools',
-        'about': 'manage_about',
-        'worship': 'manage_worship',
-        'ai': 'manage_ai',
-        'users': 'manage_users'
+        'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy',
+        'news':'manage_news','announcements':'manage_announcements',
+        'sunday-school':'manage_sunday_schools','about':'manage_about',
+        'worship':'manage_worship','ai':'manage_ai','users':'manage_users'
     };
     if (permMap[section] && !hasPermission(currentUser, permMap[section])) {
-        content.innerHTML = '<p>Доступ запрещён.</p>';
-        return;
+        content.innerHTML = '<p>Доступ запрещён.</p>'; return;
     }
     switch (section) {
         case 'schedule': renderAdminSchedule(content); break;
-        case 'temples': content.innerHTML = '<p>Управление храмами – в разработке.</p>'; break;
-        case 'clergy': content.innerHTML = '<p>Управление духовенством – в разработке.</p>'; break;
-        case 'news': content.innerHTML = '<p>Управление новостями – в разработке.</p>'; break;
-        case 'announcements': content.innerHTML = '<p>Управление объявлениями – в разработке.</p>'; break;
-        case 'sunday-school': content.innerHTML = '<p>Управление воскресными школами – в разработке.</p>'; break;
-        case 'about': content.innerHTML = '<p>Управление страницей "О благочинии" – в разработке.</p>'; break;
-        case 'worship': content.innerHTML = '<p>Управление богослужениями – в разработке.</p>'; break;
+        case 'temples': renderAdminTemples(content); break;
+        case 'clergy': renderAdminClergy(content); break;
+        case 'news': renderAdminNews(content); break;
+        case 'announcements': renderAdminAnnouncements(content); break;
+        case 'sunday-school': renderAdminSundaySchools(content); break;
+        case 'about': renderAdminAbout(content); break;
+        case 'worship': renderAdminWorship(content); break;
         case 'ai': renderAdminAI(content); break;
-        case 'users': if (hasPermission(currentUser, 'manage_users')) renderAdminUsers(content); else content.innerHTML = '<p>Доступ запрещён.</p>'; break;
+        case 'users': renderAdminUsers(content); break;
         default: content.innerHTML = '<p>Неизвестный раздел.</p>';
     }
 }
@@ -1034,6 +1007,567 @@ function renderScheduleTable() {
     let table = `<table class="schedule-table"><thead><tr><th>${t('temple')}</th><th>${t('date')}</th><th>${t('event')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
     sorted.forEach(s => {
         table += `<tr><td>${escapeHtml(getTempleName(s.templeId))}</td><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td><td><button class="btn btn-sm btn-danger admin-delete-schedule" data-id="${s.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ХРАМАМИ ----------
+function renderAdminTemples(container) {
+    let html = `<h3>Управление храмами</h3>
+        <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
+        <div id="adminTempleList">${renderTemplesTable()}</div>
+        <div id="adminTempleForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="templeFormTitle">Добавить храм</h4>
+            <input type="hidden" id="templeFormId">
+            <div class="form-group"><label>Название</label><input type="text" id="templeFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Краткое описание</label><textarea id="templeFormSummary" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Адрес</label><input type="text" id="templeFormAddress" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Телефон</label><input type="text" id="templeFormPhone" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Email</label><input type="text" id="templeFormEmail" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>История храма</label><textarea id="templeFormHistory" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>История местности</label><textarea id="templeFormLocalHistory" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Код карты (iframe)</label><textarea id="templeFormMapCode" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Фото (имя файла)</label><input type="text" id="templeFormPhoto" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label><input type="checkbox" id="templeFormVacant"> Приход вакантный</label></div>
+            <button id="templeFormSaveBtn" class="btn">Сохранить</button>
+            <button id="templeFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminTempleAddBtn') {
+            document.getElementById('templeFormTitle').textContent = 'Добавить храм';
+            document.getElementById('templeFormId').value = '';
+            ['Name','Summary','Address','Phone','Email','History','LocalHistory','MapCode','Photo'].forEach(f => document.getElementById('templeForm'+f).value = '');
+            document.getElementById('templeFormVacant').checked = false;
+            document.getElementById('adminTempleForm').style.display = 'block';
+        }
+        if (target.id === 'templeFormCancelBtn') document.getElementById('adminTempleForm').style.display = 'none';
+        if (target.id === 'templeFormSaveBtn') {
+            const id = document.getElementById('templeFormId').value;
+            const temple = {
+                name: document.getElementById('templeFormName').value.trim(),
+                summary: document.getElementById('templeFormSummary').value.trim(),
+                address: document.getElementById('templeFormAddress').value.trim(),
+                phone: document.getElementById('templeFormPhone').value.trim(),
+                email: document.getElementById('templeFormEmail').value.trim(),
+                history: document.getElementById('templeFormHistory').value.trim(),
+                localHistory: document.getElementById('templeFormLocalHistory').value.trim(),
+                mapCode: document.getElementById('templeFormMapCode').value.trim(),
+                photo: document.getElementById('templeFormPhoto').value.trim() || 'placeholder.jpg',
+                isVacant: document.getElementById('templeFormVacant').checked
+            };
+            if (!temple.name) { alert('Название обязательно'); return; }
+            if (id) {
+                const exist = data.temples.find(t => t.id == id);
+                if (exist) Object.assign(exist, temple);
+            } else {
+                temple.id = nextId.temple++;
+                data.temples.push(temple);
+            }
+            saveData();
+            document.getElementById('adminTempleForm').style.display = 'none';
+            renderAdminTemples(container);
+        }
+        if (target.classList.contains('admin-temple-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить храм?')) return;
+            data.temples = data.temples.filter(t => t.id !== id);
+            saveData();
+            renderAdminTemples(container);
+        }
+        if (target.classList.contains('admin-temple-edit')) {
+            const id = parseInt(target.dataset.id);
+            const t = data.temples.find(t => t.id === id);
+            if (!t) return;
+            document.getElementById('templeFormTitle').textContent = 'Редактировать храм';
+            document.getElementById('templeFormId').value = id;
+            ['Name','Summary','Address','Phone','Email','History','LocalHistory','MapCode','Photo'].forEach(f => {
+                document.getElementById('templeForm'+f).value = t[f.toLowerCase()] || '';
+            });
+            document.getElementById('templeFormVacant').checked = t.isVacant || false;
+            document.getElementById('adminTempleForm').style.display = 'block';
+        }
+    });
+}
+
+function renderTemplesTable() {
+    if (!data.temples.length) return '<p>Нет храмов</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Адрес</th><th>Действия</th></tr></thead><tbody>`;
+    data.temples.forEach(t => {
+        table += `<tr><td>${escapeHtml(t.name)}</td><td>${escapeHtml(t.address||'')}</td>
+            <td><button class="btn btn-sm admin-temple-edit" data-id="${t.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-temple-delete" data-id="${t.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ДУХОВЕНСТВОМ ----------
+function renderAdminClergy(container) {
+    let html = `<h3>Управление духовенством</h3>
+        <button id="adminClergyAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
+        <div id="adminClergyList">${renderClergyTable()}</div>
+        <div id="adminClergyForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="clergyFormTitle">Добавить священнослужителя</h4>
+            <input type="hidden" id="clergyFormId">
+            <div class="form-group"><label>Имя</label><input type="text" id="clergyFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Сан</label><input type="text" id="clergyFormRank" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Описание</label><textarea id="clergyFormDesc" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Фото (имя файла)</label><input type="text" id="clergyFormPhoto" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Храмы (ID через запятую)</label><input type="text" id="clergyFormTempleIds" style="width:100%; padding:0.4rem;" placeholder="1,2,3"></div>
+            <button id="clergyFormSaveBtn" class="btn">Сохранить</button>
+            <button id="clergyFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminClergyAddBtn') {
+            document.getElementById('clergyFormTitle').textContent = 'Добавить священнослужителя';
+            document.getElementById('clergyFormId').value = '';
+            ['Name','Rank','Desc','Photo','TempleIds'].forEach(f => document.getElementById('clergyForm'+f).value = '');
+            document.getElementById('adminClergyForm').style.display = 'block';
+        }
+        if (target.id === 'clergyFormCancelBtn') document.getElementById('adminClergyForm').style.display = 'none';
+        if (target.id === 'clergyFormSaveBtn') {
+            const id = document.getElementById('clergyFormId').value;
+            const clergy = {
+                name: document.getElementById('clergyFormName').value.trim(),
+                rank: document.getElementById('clergyFormRank').value.trim(),
+                description: document.getElementById('clergyFormDesc').value.trim(),
+                photo: document.getElementById('clergyFormPhoto').value.trim() || 'placeholder.jpg',
+                templeIds: document.getElementById('clergyFormTempleIds').value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n))
+            };
+            if (!clergy.name) { alert('Имя обязательно'); return; }
+            if (id) {
+                const exist = data.clergy.find(c => c.id == id);
+                if (exist) Object.assign(exist, clergy);
+            } else {
+                clergy.id = nextId.clergy++;
+                data.clergy.push(clergy);
+            }
+            saveData();
+            document.getElementById('adminClergyForm').style.display = 'none';
+            renderAdminClergy(container);
+        }
+        if (target.classList.contains('admin-clergy-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            data.clergy = data.clergy.filter(c => c.id !== id);
+            saveData();
+            renderAdminClergy(container);
+        }
+        if (target.classList.contains('admin-clergy-edit')) {
+            const id = parseInt(target.dataset.id);
+            const c = data.clergy.find(c => c.id === id);
+            if (!c) return;
+            document.getElementById('clergyFormTitle').textContent = 'Редактировать';
+            document.getElementById('clergyFormId').value = id;
+            document.getElementById('clergyFormName').value = c.name;
+            document.getElementById('clergyFormRank').value = c.rank;
+            document.getElementById('clergyFormDesc').value = c.description||'';
+            document.getElementById('clergyFormPhoto').value = c.photo||'';
+            document.getElementById('clergyFormTempleIds').value = (c.templeIds||[]).join(', ');
+            document.getElementById('adminClergyForm').style.display = 'block';
+        }
+    });
+}
+
+function renderClergyTable() {
+    if (!data.clergy.length) return '<p>Нет священнослужителей</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Имя</th><th>Сан</th><th>Храмы</th><th>Действия</th></tr></thead><tbody>`;
+    data.clergy.forEach(c => {
+        const templeNames = (c.templeIds||[]).map(id => getTempleName(id)).join(', ');
+        table += `<tr><td>${escapeHtml(c.name)}</td><td>${escapeHtml(c.rank)}</td><td>${escapeHtml(templeNames)}</td>
+            <td><button class="btn btn-sm admin-clergy-edit" data-id="${c.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-clergy-delete" data-id="${c.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ ----------
+function renderAdminNews(container) {
+    let html = `<h3>Управление новостями</h3>
+        <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
+        <div id="adminNewsList">${renderNewsTable()}</div>
+        <div id="adminNewsForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="newsFormTitle">Добавить новость</h4>
+            <input type="hidden" id="newsFormId">
+            <div class="form-group"><label>Заголовок</label><input type="text" id="newsFormTitleInput" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Текст</label><textarea id="newsFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Дата</label><input type="date" id="newsFormDate" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Медиа (URL)</label><input type="text" id="newsFormMedia" style="width:100%; padding:0.4rem;"></div>
+            <button id="newsFormSaveBtn" class="btn">Сохранить</button>
+            <button id="newsFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminNewsAddBtn') {
+            document.getElementById('newsFormTitle').textContent = 'Добавить новость';
+            document.getElementById('newsFormId').value = '';
+            document.getElementById('newsFormTitleInput').value = '';
+            document.getElementById('newsFormText').value = '';
+            document.getElementById('newsFormDate').value = new Date().toISOString().slice(0,10);
+            document.getElementById('newsFormMedia').value = '';
+            document.getElementById('adminNewsForm').style.display = 'block';
+        }
+        if (target.id === 'newsFormCancelBtn') document.getElementById('adminNewsForm').style.display = 'none';
+        if (target.id === 'newsFormSaveBtn') {
+            const id = document.getElementById('newsFormId').value;
+            const news = {
+                title: document.getElementById('newsFormTitleInput').value.trim(),
+                text: document.getElementById('newsFormText').value.trim(),
+                date: document.getElementById('newsFormDate').value,
+                media: document.getElementById('newsFormMedia').value.trim()
+            };
+            if (!news.title) { alert('Заголовок обязателен'); return; }
+            if (id) {
+                const exist = data.news.find(n => n.id == id);
+                if (exist) Object.assign(exist, news);
+            } else {
+                news.id = nextId.news++;
+                data.news.push(news);
+            }
+            saveData();
+            document.getElementById('adminNewsForm').style.display = 'none';
+            renderAdminNews(container);
+        }
+        if (target.classList.contains('admin-news-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            data.news = data.news.filter(n => n.id !== id);
+            saveData();
+            renderAdminNews(container);
+        }
+        if (target.classList.contains('admin-news-edit')) {
+            const id = parseInt(target.dataset.id);
+            const n = data.news.find(n => n.id === id);
+            if (!n) return;
+            document.getElementById('newsFormTitle').textContent = 'Редактировать';
+            document.getElementById('newsFormId').value = id;
+            document.getElementById('newsFormTitleInput').value = n.title;
+            document.getElementById('newsFormText').value = n.text||'';
+            document.getElementById('newsFormDate').value = n.date||'';
+            document.getElementById('newsFormMedia').value = n.media||'';
+            document.getElementById('adminNewsForm').style.display = 'block';
+        }
+    });
+}
+
+function renderNewsTable() {
+    if (!data.news.length) return '<p>Нет новостей</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
+    data.news.forEach(n => {
+        table += `<tr><td>${escapeHtml(n.title)}</td><td>${escapeHtml(n.date||'')}</td>
+            <td><button class="btn btn-sm admin-news-edit" data-id="${n.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-news-delete" data-id="${n.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ ----------
+function renderAdminAnnouncements(container) {
+    let html = `<h3>Управление объявлениями</h3>
+        <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
+        <div id="adminAnnounceList">${renderAnnounceTable()}</div>
+        <div id="adminAnnounceForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="announceFormTitle">Добавить объявление</h4>
+            <input type="hidden" id="announceFormId">
+            <div class="form-group"><label>Текст</label><textarea id="announceFormText" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Дата</label><input type="date" id="announceFormDate" style="width:100%; padding:0.4rem;"></div>
+            <button id="announceFormSaveBtn" class="btn">Сохранить</button>
+            <button id="announceFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAnnounceAddBtn') {
+            document.getElementById('announceFormTitle').textContent = 'Добавить объявление';
+            document.getElementById('announceFormId').value = '';
+            document.getElementById('announceFormText').value = '';
+            document.getElementById('announceFormDate').value = new Date().toISOString().slice(0,10);
+            document.getElementById('adminAnnounceForm').style.display = 'block';
+        }
+        if (target.id === 'announceFormCancelBtn') document.getElementById('adminAnnounceForm').style.display = 'none';
+        if (target.id === 'announceFormSaveBtn') {
+            const id = document.getElementById('announceFormId').value;
+            const announce = {
+                text: document.getElementById('announceFormText').value.trim(),
+                date: document.getElementById('announceFormDate').value
+            };
+            if (!announce.text) { alert('Текст обязателен'); return; }
+            if (id) {
+                const exist = data.announcements.find(a => a.id == id);
+                if (exist) Object.assign(exist, announce);
+            } else {
+                announce.id = nextId.announcement++;
+                data.announcements.push(announce);
+            }
+            saveData();
+            document.getElementById('adminAnnounceForm').style.display = 'none';
+            renderAdminAnnouncements(container);
+        }
+        if (target.classList.contains('admin-announce-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            data.announcements = data.announcements.filter(a => a.id !== id);
+            saveData();
+            renderAdminAnnouncements(container);
+        }
+        if (target.classList.contains('admin-announce-edit')) {
+            const id = parseInt(target.dataset.id);
+            const a = data.announcements.find(a => a.id === id);
+            if (!a) return;
+            document.getElementById('announceFormTitle').textContent = 'Редактировать';
+            document.getElementById('announceFormId').value = id;
+            document.getElementById('announceFormText').value = a.text;
+            document.getElementById('announceFormDate').value = a.date||'';
+            document.getElementById('adminAnnounceForm').style.display = 'block';
+        }
+    });
+}
+
+function renderAnnounceTable() {
+    if (!data.announcements.length) return '<p>Нет объявлений</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Текст</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
+    data.announcements.forEach(a => {
+        table += `<tr><td>${escapeHtml(a.text)}</td><td>${escapeHtml(a.date||'')}</td>
+            <td><button class="btn btn-sm admin-announce-edit" data-id="${a.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-announce-delete" data-id="${a.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ ВОСКРЕСНЫМИ ШКОЛАМИ ----------
+function renderAdminSundaySchools(container) {
+    let html = `<h3>Управление воскресными школами</h3>
+        <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
+        <div id="adminSSList">${renderSSTable()}</div>
+        <div id="adminSSForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="ssFormTitle">Добавить школу</h4>
+            <input type="hidden" id="ssFormId">
+            <div class="form-group"><label>Название</label><input type="text" id="ssFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Тип (ВРШ, ВРГ, ГРПВ)</label><input type="text" id="ssFormType" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Описание</label><textarea id="ssFormDesc" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Храм (ID)</label><input type="number" id="ssFormTemple" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Фото (имя файла)</label><input type="text" id="ssFormPhoto" style="width:100%; padding:0.4rem;"></div>
+            <button id="ssFormSaveBtn" class="btn">Сохранить</button>
+            <button id="ssFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminSSAddBtn') {
+            document.getElementById('ssFormTitle').textContent = 'Добавить школу';
+            document.getElementById('ssFormId').value = '';
+            ['Name','Type','Desc','Temple','Photo'].forEach(f => document.getElementById('ssForm'+f).value = '');
+            document.getElementById('adminSSForm').style.display = 'block';
+        }
+        if (target.id === 'ssFormCancelBtn') document.getElementById('adminSSForm').style.display = 'none';
+        if (target.id === 'ssFormSaveBtn') {
+            const id = document.getElementById('ssFormId').value;
+            const ss = {
+                name: document.getElementById('ssFormName').value.trim(),
+                type: document.getElementById('ssFormType').value.trim(),
+                description: document.getElementById('ssFormDesc').value.trim(),
+                templeId: parseInt(document.getElementById('ssFormTemple').value) || 0,
+                photo: document.getElementById('ssFormPhoto').value.trim() || 'placeholder.jpg'
+            };
+            if (!ss.name) { alert('Название обязательно'); return; }
+            if (id) {
+                const exist = data.sundaySchools.find(s => s.id == id);
+                if (exist) Object.assign(exist, ss);
+            } else {
+                ss.id = nextId.sundaySchool++;
+                data.sundaySchools.push(ss);
+            }
+            saveData();
+            document.getElementById('adminSSForm').style.display = 'none';
+            renderAdminSundaySchools(container);
+        }
+        if (target.classList.contains('admin-ss-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            data.sundaySchools = data.sundaySchools.filter(s => s.id !== id);
+            saveData();
+            renderAdminSundaySchools(container);
+        }
+        if (target.classList.contains('admin-ss-edit')) {
+            const id = parseInt(target.dataset.id);
+            const s = data.sundaySchools.find(s => s.id === id);
+            if (!s) return;
+            document.getElementById('ssFormTitle').textContent = 'Редактировать';
+            document.getElementById('ssFormId').value = id;
+            document.getElementById('ssFormName').value = s.name;
+            document.getElementById('ssFormType').value = s.type||'';
+            document.getElementById('ssFormDesc').value = s.description||'';
+            document.getElementById('ssFormTemple').value = s.templeId||'';
+            document.getElementById('ssFormPhoto').value = s.photo||'';
+            document.getElementById('adminSSForm').style.display = 'block';
+        }
+    });
+}
+
+function renderSSTable() {
+    if (!data.sundaySchools.length) return '<p>Нет воскресных школ</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Тип</th><th>Храм</th><th>Действия</th></tr></thead><tbody>`;
+    data.sundaySchools.forEach(s => {
+        const templeName = getTempleName(s.templeId);
+        table += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.type)}</td><td>${escapeHtml(templeName)}</td>
+            <td><button class="btn btn-sm admin-ss-edit" data-id="${s.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-ss-delete" data-id="${s.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ---------- УПРАВЛЕНИЕ СТРАНИЦЕЙ "О БЛАГОЧИНИИ" ----------
+function renderAdminAbout(container) {
+    let html = `<h3>Редактирование страницы "О благочинии"</h3>
+        <div class="form-group"><label>Текст (поддерживается перенос строк)</label>
+        <textarea id="adminAboutText" rows="10" style="width:100%; padding:0.6rem; border-radius:16px;">${escapeHtml(data.aboutText)}</textarea></div>
+        <button id="adminAboutSaveBtn" class="btn">Сохранить</button>
+        <div id="aboutMessage"></div>`;
+    container.innerHTML = html;
+    document.getElementById('adminAboutSaveBtn').addEventListener('click', function() {
+        const newText = document.getElementById('adminAboutText').value;
+        data.aboutText = newText;
+        saveData();
+        document.getElementById('aboutMessage').innerHTML = '<p style="color:green;">✅ Сохранено</p>';
+    });
+}
+
+// ---------- УПРАВЛЕНИЕ БОГОСЛУЖЕНИЯМИ ----------
+function renderAdminWorship(container) {
+    let html = `<h3>Управление богослужениями</h3>
+        <div class="card"><h4>Молитвослов</h4>
+            <button id="adminWorshipPrayerAdd" class="btn btn-sm">➕ Добавить молитву</button>
+            <div id="adminPrayerList">${renderPrayersTable()}</div>
+        </div>
+        <div class="card"><h4>Толкования</h4>
+            <button id="adminWorshipInterpretAdd" class="btn btn-sm">➕ Добавить толкование</button>
+            <div id="adminInterpretList">${renderInterpretationsTable()}</div>
+        </div>
+        <div class="card"><h4>Подготовка к таинствам</h4>
+            <button id="adminWorshipSacramentAdd" class="btn btn-sm">➕ Добавить</button>
+            <div id="adminSacramentList">${renderSacramentsTable()}</div>
+        </div>
+        <div id="adminWorshipForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="worshipFormTitle">Добавить</h4>
+            <input type="hidden" id="worshipFormType">
+            <input type="hidden" id="worshipFormId">
+            <div class="form-group"><label>Заголовок</label><input type="text" id="worshipFormTitleInput" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Текст</label><textarea id="worshipFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
+            <button id="worshipFormSaveBtn" class="btn">Сохранить</button>
+            <button id="worshipFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    let currentType = '';
+    function openForm(type, item) {
+        currentType = type;
+        document.getElementById('worshipFormType').value = type;
+        const title = type === 'prayer' ? 'Молитву' : type === 'interpret' ? 'Толкование' : 'Подготовку';
+        document.getElementById('worshipFormTitle').textContent = item ? `Редактировать ${title}` : `Добавить ${title}`;
+        document.getElementById('worshipFormId').value = item ? item.id : '';
+        document.getElementById('worshipFormTitleInput').value = item ? item.title : '';
+        document.getElementById('worshipFormText').value = item ? item.text : '';
+        document.getElementById('adminWorshipForm').style.display = 'block';
+    }
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminWorshipPrayerAdd') openForm('prayer', null);
+        if (target.id === 'adminWorshipInterpretAdd') openForm('interpret', null);
+        if (target.id === 'adminWorshipSacramentAdd') openForm('sacrament', null);
+        if (target.id === 'worshipFormCancelBtn') document.getElementById('adminWorshipForm').style.display = 'none';
+        if (target.id === 'worshipFormSaveBtn') {
+            const type = document.getElementById('worshipFormType').value;
+            const id = document.getElementById('worshipFormId').value;
+            const title = document.getElementById('worshipFormTitleInput').value.trim();
+            const text = document.getElementById('worshipFormText').value.trim();
+            if (!title) { alert('Заголовок обязателен'); return; }
+            const item = { title, text };
+            let targetArray;
+            if (type === 'prayer') targetArray = data.worship.prayers;
+            else if (type === 'interpret') targetArray = data.worship.interpretations;
+            else if (type === 'sacrament') targetArray = data.worship.sacraments;
+            else return;
+            if (id) {
+                const exist = targetArray.find(i => i.id == id);
+                if (exist) Object.assign(exist, item);
+            } else {
+                item.id = Date.now() + Math.random()*1000;
+                targetArray.push(item);
+            }
+            saveData();
+            document.getElementById('adminWorshipForm').style.display = 'none';
+            renderAdminWorship(container);
+        }
+        if (target.classList.contains('admin-worship-delete')) {
+            const type = target.dataset.type;
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            let targetArray;
+            if (type === 'prayer') targetArray = data.worship.prayers;
+            else if (type === 'interpret') targetArray = data.worship.interpretations;
+            else if (type === 'sacrament') targetArray = data.worship.sacraments;
+            else return;
+            data.worship[type === 'prayer' ? 'prayers' : type === 'interpret' ? 'interpretations' : 'sacraments'] = targetArray.filter(i => i.id !== id);
+            saveData();
+            renderAdminWorship(container);
+        }
+        if (target.classList.contains('admin-worship-edit')) {
+            const type = target.dataset.type;
+            const id = parseInt(target.dataset.id);
+            let targetArray;
+            if (type === 'prayer') targetArray = data.worship.prayers;
+            else if (type === 'interpret') targetArray = data.worship.interpretations;
+            else if (type === 'sacrament') targetArray = data.worship.sacraments;
+            else return;
+            const item = targetArray.find(i => i.id === id);
+            if (item) openForm(type, item);
+        }
+    });
+}
+
+function renderPrayersTable() {
+    const prayers = data.worship.prayers || [];
+    if (!prayers.length) return '<p>Молитв нет</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Действия</th></tr></thead><tbody>`;
+    prayers.forEach(p => {
+        table += `<tr><td>${escapeHtml(p.title)}</td>
+            <td><button class="btn btn-sm admin-worship-edit" data-type="prayer" data-id="${p.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-worship-delete" data-type="prayer" data-id="${p.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+function renderInterpretationsTable() {
+    const items = data.worship.interpretations || [];
+    if (!items.length) return '<p>Толкований нет</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Действия</th></tr></thead><tbody>`;
+    items.forEach(i => {
+        table += `<tr><td>${escapeHtml(i.title)}</td>
+            <td><button class="btn btn-sm admin-worship-edit" data-type="interpret" data-id="${i.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-worship-delete" data-type="interpret" data-id="${i.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+function renderSacramentsTable() {
+    const items = data.worship.sacraments || [];
+    if (!items.length) return '<p>Материалов нет</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Действия</th></tr></thead><tbody>`;
+    items.forEach(i => {
+        table += `<tr><td>${escapeHtml(i.title)}</td>
+            <td><button class="btn btn-sm admin-worship-edit" data-type="sacrament" data-id="${i.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-worship-delete" data-type="sacrament" data-id="${i.id}">🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
@@ -1123,6 +1657,7 @@ function renderAdminUsers(container) {
         }
     });
 }
+
 function renderUserTable() {
     if (!data.users.length) return `<p>${t('no-users')}</p>`;
     let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
