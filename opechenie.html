@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Окормление | Дзержинское благочиние</title>
+    <link rel="icon" href="favicon.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Uncial&display=swap" rel="stylesheet">
+</head>
+<body data-page="opechenie">
+    <div class="eparchy-banner">
+        <div class="banner-container">
+            <img src="Logotype.jpg" alt="Дзержинское благочиние" class="banner-logo-img">
+            <div class="banner-text">
+                <span class="banner-main">Дзержинское Благочиние</span>
+                <div class="banner-sub">
+                    <span class="banner-sub-item">Московский Патриархат</span>
+                    <span class="banner-sub-item">Белорусский Экзархат</span>
+                    <span class="banner-sub-item">Молодечненская Епархия</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header class="header" id="secretAdminTrigger"></header>
+
+    <div class="top-bar">
+        <nav id="mainNav">
+            <a href="index.html" data-page="main">Главная</a>
+            <a href="temples.html" data-page="temples">Храмы</a>
+            <a href="clergy.html" data-page="clergy">Духовенство</a>
+            <a href="news.html" data-page="news">Новости</a>
+            <a href="announcements.html" data-page="announcements">Объявления</a>
+            <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
+            <a href="about.html" data-page="about">О благочинии</a>
+            <a href="worship.html" data-page="worship">Богослужения</a>
+            <a href="opechenie.html" data-page="opechenie" class="active">Окормление</a>
+            <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <a href="index.html" data-page="main">Главная</a>
+                <a href="temples.html" data-page="temples">Храмы</a>
+                <a href="clergy.html" data-page="clergy">Духовенство</a>
+                <a href="news.html" data-page="news">Новости</a>
+                <a href="announcements.html" data-page="announcements">Объявления</a>
+                <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
+                <a href="about.html" data-page="about">О благочинии</a>
+                <a href="worship.html" data-page="worship">Богослужения</a>
+                <a href="opechenie.html" data-page="opechenie">Окормление</a>
+            </div>
+        </nav>
+        <div class="tools">
+            <a href="https://molod-eparchy.by" target="_blank" class="eparchy-link" title="Молодечненская епархия">☦</a>
+            <button id="visionToggle">👁️ Версия для слабовидящих</button>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent"></div>
+
+    <footer>
+        <p>© 2026 Дзержинское благочиние | <a href="https://molod-eparchy.by" target="_blank">Молодечненская епархия</a></p>
+    </footer>
+    <button class="back-to-top" id="backToTop">↑</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('opechenie.html загружен');
+            renderCurrentPage();
+            applyTranslations();
+            restoreVisionMode();
+        });
+    </script>
+</body>
+</html>
