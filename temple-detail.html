@@ -26,22 +26,32 @@
     <header class="header" id="secretAdminTrigger"></header>
 
     <div class="top-bar">
-        <nav>
-            <a href="index.html" data-page="main" data-i18n="nav-main">Главная</a>
-            <div class="dropdown">
-                <a href="temples.html" data-page="temples" data-i18n="nav-temples">Храмы</a>
-                <div class="dropdown-content"></div>
+        <nav id="mainNav">
+            <a href="index.html" data-page="main">Главная</a>
+            <a href="temples.html" data-page="temples">Храмы</a>
+            <a href="clergy.html" data-page="clergy">Духовенство</a>
+            <a href="news.html" data-page="news">Новости</a>
+            <a href="announcements.html" data-page="announcements">Объявления</a>
+            <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
+            <a href="about.html" data-page="about">О благочинии</a>
+            <a href="worship.html" data-page="worship">Богослужения</a>
+            <a href="opechenie.html" data-page="opechenie">Окормление</a>
+            <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <a href="index.html" data-page="main">Главная</a>
+                <a href="temples.html" data-page="temples">Храмы</a>
+                <a href="clergy.html" data-page="clergy">Духовенство</a>
+                <a href="news.html" data-page="news">Новости</a>
+                <a href="announcements.html" data-page="announcements">Объявления</a>
+                <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
+                <a href="about.html" data-page="about">О благочинии</a>
+                <a href="worship.html" data-page="worship">Богослужения</a>
+                <a href="opechenie.html" data-page="opechenie">Окормление</a>
             </div>
-            <a href="clergy.html" data-page="clergy" data-i18n="nav-clergy">Духовенство</a>
-            <a href="news.html" data-page="news" data-i18n="nav-news">Новости</a>
-            <a href="announcements.html" data-page="announcements" data-i18n="nav-announcements">Объявления</a>
-            <a href="sunday-school.html" data-page="sunday-school" data-i18n="nav-sunday-school">Воскресные школы</a>
-            <a href="about.html" data-page="about" data-i18n="nav-about">О благочинии</a>
-            <a href="worship.html" data-page="worship" data-i18n="nav-worship">Богослужения</a>
         </nav>
         <div class="tools">
             <a href="https://molod-eparchy.by" target="_blank" class="eparchy-link" title="Молодечненская епархия">☦</a>
-            <button id="visionToggle" data-i18n="vision-toggle">👁️ Версия для слабовидящих</button>
+            <button id="visionToggle">👁️ Версия для слабовидящих</button>
         </div>
     </div>
 
@@ -62,12 +72,17 @@
             const params = new URLSearchParams(window.location.search);
             const id = parseInt(params.get('id'));
             if (id) {
-                renderTempleDetail(container, id);
+                // Функция renderTempleDetail теперь определена в script.js
+                if (typeof renderTempleDetail === 'function') {
+                    renderTempleDetail(container, id);
+                } else {
+                    container.innerHTML = '<p>Ошибка загрузки данных. Попробуйте обновить страницу.</p>';
+                }
             } else {
                 container.innerHTML = '<p>Храм не найден</p>';
             }
             applyTranslations();
-            fillTempleDropdown();
+            restoreVisionMode();
         });
     </script>
 </body>
