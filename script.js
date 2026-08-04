@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (все функции, увеличенные фото священников)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (добавлены учителя воскресных школ)
 // ============================================================
 
 console.log('script.js загружен');
@@ -32,6 +32,7 @@ let data = {
     news: [],
     announcements: [],
     sundaySchools: [],
+    teachers: [],               // ← НОВОЕ
     aboutText: '',
     worship: {
         prayers: [],
@@ -44,7 +45,7 @@ let data = {
     users: [],
     opechenie: []
 };
-let nextId = { temple: 1, clergy: 1, schedule: 1, news: 1, announcement: 1, sundaySchool: 1, faq: 1, user: 1, opechenie: 1 };
+let nextId = { temple: 1, clergy: 1, schedule: 1, news: 1, announcement: 1, sundaySchool: 1, faq: 1, user: 1, opechenie: 1, teacher: 1 };
 let currentLang = 'ru';
 let currentUser = null;
 let dataLoaded = false;
@@ -211,7 +212,7 @@ function loadData() {
 
 function migrateData() {
     data.users.forEach(u => { if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; });
-    ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie'].forEach(k => { if (!data[k]) data[k] = []; });
+    ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
     if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
@@ -225,6 +226,7 @@ function setDefaultPhotos() {
     data.temples.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
     data.clergy.forEach(c => { if (!c.photo) c.photo = 'placeholder.jpg'; });
     data.sundaySchools.forEach(s => { if (!s.photo) s.photo = 'placeholder.jpg'; });
+    data.teachers.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
 }
 
 function initDefaultData() {
@@ -252,13 +254,14 @@ function initDefaultData() {
         news: [],
         announcements: [],
         sundaySchools: [],
+        teachers: [],
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
         faq: [],
         users: [ { id:1, username:'Makar', password:'Makar27.05.2014', role:'developer', permissions:['all'] } ],
         opechenie: []
     };
-    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:1, faq:1, user:2, opechenie:1 };
+    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:1, faq:1, user:2, opechenie:1, teacher:1 };
     setDefaultPhotos();
     saveData();
     renderCurrentPage();
@@ -472,6 +475,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -525,7 +529,7 @@ function renderTempleDetail(container, id) {
             </div>
             <div id="templeClergy" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('clergy-list')}</h3>
-                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
+                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
             </div>
             <div id="templeSchools" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">Воскресные школы</h3>
@@ -535,7 +539,6 @@ function renderTempleDetail(container, id) {
     `;
     container.innerHTML = html;
 
-    // Обработка кнопок истории
     const historyBtns = container.querySelectorAll('.history-btn');
     const historyTabs = {
         'history': document.getElementById('tab-history'),
@@ -552,7 +555,6 @@ function renderTempleDetail(container, id) {
         });
     });
 
-    // Клик по карточке священника
     container.querySelectorAll('.clergy-card').forEach(el => {
         el.addEventListener('click', function() {
             const cid = parseInt(this.dataset.id);
@@ -648,7 +650,7 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
+// ---------- ВОСКРЕСНЫЕ ШКОЛЫ (список) ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
         <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
@@ -670,20 +672,52 @@ function renderSundaySchoolsList(container) {
     container.innerHTML = html;
     container.querySelectorAll('.grid-item[data-type="sunday-school"]').forEach(el => el.addEventListener('click', function() { window.location.href = `sunday-school-detail.html?id=${this.dataset.id}`; }));
 }
+
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ВОСКРЕСНОЙ ШКОЛЫ (с учителями) ----------
 function renderSundaySchoolDetail(id) {
-    if (!data.sundaySchools || data.sundaySchools.length === 0) { setTimeout(() => renderSundaySchoolDetail(id), 300); return; }
+    if (!data.sundaySchools || data.sundaySchools.length === 0) {
+        setTimeout(() => renderSundaySchoolDetail(id), 300);
+        return;
+    }
     const school = data.sundaySchools.find(s => s.id === id);
-    if (!school) { document.getElementById('mainContent').innerHTML = '<p>Школа не найдена</p>'; return; }
+    if (!school) {
+        document.getElementById('mainContent').innerHTML = '<p>Школа не найдена</p>';
+        return;
+    }
     const container = document.getElementById('mainContent');
     const temple = data.temples.find(t => t.id === school.templeId);
-    container.innerHTML = `<div class="detail-back" onclick="window.location.href='sunday-school.html'">${t('back')}</div>
-    <div class="detail-content">
-        <img src="${escapeHtml(school.photo||'placeholder.jpg')}" alt="${escapeHtml(school.name)}">
-        <h2>${escapeHtml(school.name)}</h2>
-        <p><strong>${t('sunday-school-type')}:</strong> ${escapeHtml(school.type)}</p>
-        <p><strong>${t('temple')}:</strong> ${temple ? escapeHtml(temple.name) : 'Без привязки'}</p>
-        <p><strong>${t('sunday-school-desc')}:</strong> ${escapeHtml(school.description) || 'Описание отсутствует.'}</p>
-    </div>`;
+    const teachers = data.teachers.filter(t => t.schoolId === id);
+
+    let teachersHtml = '';
+    if (teachers.length) {
+        teachersHtml = `
+            <h3 style="margin-top: 1.5rem; margin-bottom: 1rem;">👨‍🏫 Преподаватели и сотрудники</h3>
+            <div class="clergy-list" style="display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center;">
+                ${teachers.map(t => `
+                    <div class="clergy-card" style="width: 220px; text-align: center; background: var(--card-bg); padding: 1rem; border-radius: 16px; border: 1px solid var(--border);">
+                        <img src="${escapeHtml(t.photo||'placeholder.jpg')}" alt="${escapeHtml(t.name)}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; object-position: top center; margin: 0 auto 0.5rem; display: block;">
+                        <div><strong>${escapeHtml(t.name)}</strong></div>
+                        <div style="font-size: 0.85rem; color: var(--gold);">${escapeHtml(t.role)}</div>
+                        ${t.description ? `<div style="font-size: 0.85rem; margin-top: 0.3rem; color: var(--text);">${escapeHtml(t.description)}</div>` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    container.innerHTML = `
+        <div class="detail-back" onclick="window.location.href='sunday-school.html'">${t('back')}</div>
+        <div class="detail-content">
+            <img src="${escapeHtml(school.photo||'placeholder.jpg')}" alt="${escapeHtml(school.name)}" style="max-width: 100%; border-radius: 16px; margin-bottom: 1rem;">
+            <h2>${escapeHtml(school.name)}</h2>
+            <div class="school-info">
+                <p><strong>${t('sunday-school-type')}:</strong> ${escapeHtml(school.type)}</p>
+                <p><strong>${t('temple')}:</strong> ${temple ? escapeHtml(temple.name) : 'Без привязки'}</p>
+                <p><strong>${t('sunday-school-desc')}:</strong> ${escapeHtml(school.description) || 'Описание отсутствует.'}</p>
+            </div>
+            ${teachersHtml}
+        </div>
+    `;
 }
 
 // ---------- О БЛАГОЧИНИИ ----------
@@ -1045,7 +1079,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- ВСЕ АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (CRUD) ----------
+// ---------- ВСЕ АДМИНИСТРАТИВНЫЕ ФУНКЦИИ ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1427,6 +1461,7 @@ function renderAnnounceTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ВОСКРЕСНЫМИ ШКОЛАМИ И УЧИТЕЛЯМИ ----------
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -1441,10 +1476,29 @@ function renderAdminSundaySchools(container) {
             <div class="form-group"><label>Фото (имя файла)</label><input type="text" id="ssFormPhoto" style="width:100%; padding:0.4rem;"></div>
             <button id="ssFormSaveBtn" class="btn">Сохранить</button>
             <button id="ssFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>
+        <div style="margin-top: 2rem; border-top: 2px solid var(--border); padding-top: 1.5rem;">
+            <h4>👨‍🏫 Преподаватели и сотрудники</h4>
+            <button id="adminTeacherAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить преподавателя</button>
+            <div id="adminTeacherList">${renderTeacherTable()}</div>
+            <div id="adminTeacherForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+                <h4 id="teacherFormTitle">Добавить преподавателя</h4>
+                <input type="hidden" id="teacherFormId">
+                <div class="form-group"><label>Имя</label><input type="text" id="teacherFormName" style="width:100%; padding:0.4rem;"></div>
+                <div class="form-group"><label>Роль (директор, преподаватель, воспитатель)</label><input type="text" id="teacherFormRole" style="width:100%; padding:0.4rem;" placeholder="Директор, преподаватель..."></div>
+                <div class="form-group"><label>Описание</label><textarea id="teacherFormDesc" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+                <div class="form-group"><label>Фото (имя файла)</label><input type="text" id="teacherFormPhoto" style="width:100%; padding:0.4rem;"></div>
+                <div class="form-group"><label>Воскресная школа (ID)</label><input type="number" id="teacherFormSchool" style="width:100%; padding:0.4rem;"></div>
+                <button id="teacherFormSaveBtn" class="btn">Сохранить</button>
+                <button id="teacherFormCancelBtn" class="btn btn-sm">Отмена</button>
+            </div>
         </div>`;
     container.innerHTML = html;
+
+    // Обработчики для школ
     container.addEventListener('click', function(e) {
         const target = e.target;
+        // Школы
         if (target.id === 'adminSSAddBtn') {
             document.getElementById('ssFormTitle').textContent = 'Добавить школу';
             document.getElementById('ssFormId').value = '';
@@ -1475,7 +1529,7 @@ function renderAdminSundaySchools(container) {
         }
         if (target.classList.contains('admin-ss-delete')) {
             const id = parseInt(target.dataset.id);
-            if (!confirm('Удалить?')) return;
+            if (!confirm('Удалить школу?')) return;
             data.sundaySchools = data.sundaySchools.filter(s => s.id !== id);
             saveData();
             renderAdminSundaySchools(container);
@@ -1484,7 +1538,7 @@ function renderAdminSundaySchools(container) {
             const id = parseInt(target.dataset.id);
             const s = data.sundaySchools.find(s => s.id === id);
             if (!s) return;
-            document.getElementById('ssFormTitle').textContent = 'Редактировать';
+            document.getElementById('ssFormTitle').textContent = 'Редактировать школу';
             document.getElementById('ssFormId').value = id;
             document.getElementById('ssFormName').value = s.name;
             document.getElementById('ssFormType').value = s.type||'';
@@ -1492,6 +1546,56 @@ function renderAdminSundaySchools(container) {
             document.getElementById('ssFormTemple').value = s.templeId||'';
             document.getElementById('ssFormPhoto').value = s.photo||'';
             document.getElementById('adminSSForm').style.display = 'block';
+        }
+
+        // Учителя
+        if (target.id === 'adminTeacherAddBtn') {
+            document.getElementById('teacherFormTitle').textContent = 'Добавить преподавателя';
+            document.getElementById('teacherFormId').value = '';
+            ['Name','Role','Desc','Photo','School'].forEach(f => document.getElementById('teacherForm'+f).value = '');
+            document.getElementById('adminTeacherForm').style.display = 'block';
+        }
+        if (target.id === 'teacherFormCancelBtn') document.getElementById('adminTeacherForm').style.display = 'none';
+        if (target.id === 'teacherFormSaveBtn') {
+            const id = document.getElementById('teacherFormId').value;
+            const teacher = {
+                name: document.getElementById('teacherFormName').value.trim(),
+                role: document.getElementById('teacherFormRole').value.trim(),
+                description: document.getElementById('teacherFormDesc').value.trim(),
+                photo: document.getElementById('teacherFormPhoto').value.trim() || 'placeholder.jpg',
+                schoolId: parseInt(document.getElementById('teacherFormSchool').value) || 0
+            };
+            if (!teacher.name) { alert('Имя обязательно'); return; }
+            if (id) {
+                const exist = data.teachers.find(t => t.id == id);
+                if (exist) Object.assign(exist, teacher);
+            } else {
+                teacher.id = nextId.teacher++;
+                data.teachers.push(teacher);
+            }
+            saveData();
+            document.getElementById('adminTeacherForm').style.display = 'none';
+            renderAdminSundaySchools(container);
+        }
+        if (target.classList.contains('admin-teacher-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить преподавателя?')) return;
+            data.teachers = data.teachers.filter(t => t.id !== id);
+            saveData();
+            renderAdminSundaySchools(container);
+        }
+        if (target.classList.contains('admin-teacher-edit')) {
+            const id = parseInt(target.dataset.id);
+            const t = data.teachers.find(t => t.id === id);
+            if (!t) return;
+            document.getElementById('teacherFormTitle').textContent = 'Редактировать преподавателя';
+            document.getElementById('teacherFormId').value = id;
+            document.getElementById('teacherFormName').value = t.name;
+            document.getElementById('teacherFormRole').value = t.role||'';
+            document.getElementById('teacherFormDesc').value = t.description||'';
+            document.getElementById('teacherFormPhoto').value = t.photo||'';
+            document.getElementById('teacherFormSchool').value = t.schoolId||'';
+            document.getElementById('adminTeacherForm').style.display = 'block';
         }
     });
 }
@@ -1503,6 +1607,19 @@ function renderSSTable() {
         table += `<tr><td>${escapeHtml(s.name)}</td><td>${escapeHtml(s.type)}</td><td>${escapeHtml(templeName)}</td>
             <td><button class="btn btn-sm admin-ss-edit" data-id="${s.id}">✏️</button>
             <button class="btn btn-sm btn-danger admin-ss-delete" data-id="${s.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+function renderTeacherTable() {
+    if (!data.teachers.length) return '<p>Нет преподавателей</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Имя</th><th>Роль</th><th>Школа</th><th>Действия</th></tr></thead><tbody>`;
+    data.teachers.forEach(t => {
+        const school = data.sundaySchools.find(s => s.id === t.schoolId);
+        const schoolName = school ? school.name : 'Без привязки';
+        table += `<tr><td>${escapeHtml(t.name)}</td><td>${escapeHtml(t.role)}</td><td>${escapeHtml(schoolName)}</td>
+            <td><button class="btn btn-sm admin-teacher-edit" data-id="${t.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-teacher-delete" data-id="${t.id}">🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
