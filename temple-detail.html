@@ -9,13 +9,72 @@
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Uncial&display=swap" rel="stylesheet">
 </head>
 <body data-page="temples">
-    <!-- баннер, шапка, навигация такие же, как на других страницах -->
+    <!-- ========== БАННЕР ========== -->
+    <div class="eparchy-banner">
+        <div class="banner-container">
+            <img src="Logotype.jpg" alt="Дзержинское благочиние" class="banner-logo-img">
+            <div class="banner-text">
+                <span class="banner-main">Дзержинское Благочиние</span>
+                <div class="banner-sub">
+                    <span class="banner-sub-item">Московский Патриархат</span>
+                    <span class="banner-sub-item">Белорусский Экзархат</span>
+                    <span class="banner-sub-item">Молодечненская Епархия</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== ШАПКА (триггер админки) ========== -->
+    <header class="header" id="secretAdminTrigger"></header>
+
+    <!-- ========== НАВИГАЦИЯ ========== -->
+    <div class="top-bar">
+        <nav id="mainNav">
+            <a href="index.html" data-page="main">Главная</a>
+            <a href="temples.html" data-page="temples" class="active">Храмы</a>
+            <a href="clergy.html" data-page="clergy">Духовенство</a>
+            <a href="news.html" data-page="news">Новости</a>
+            <a href="announcements.html" data-page="announcements">Объявления</a>
+            <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
+            <a href="about.html" data-page="about">О благочинии</a>
+            <a href="worship.html" data-page="worship">Богослужения</a>
+            <a href="opechenie.html" data-page="opechenie">Окормление</a>
+            <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+            <div class="mobile-menu" id="mobileMenu">
+                <button class="mobile-menu-close">✕</button>
+                <a href="index.html" data-page="main">Главная</a>
+                <a href="temples.html" data-page="temples" class="active">Храмы</a>
+                <a href="clergy.html" data-page="clergy">Духовенство</a>
+                <a href="news.html" data-page="news">Новости</a>
+                <a href="announcements.html" data-page="announcements">Объявления</a>
+                <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
+                <a href="about.html" data-page="about">О благочинии</a>
+                <a href="worship.html" data-page="worship">Богослужения</a>
+                <a href="opechenie.html" data-page="opechenie">Окормление</a>
+            </div>
+        </nav>
+        <div class="tools">
+            <a href="https://molod-eparchy.by" target="_blank" class="eparchy-link" title="Молодечненская епархия">☦</a>
+            <button id="visionToggle">👁️ Версия для слабовидящих</button>
+        </div>
+    </div>
+
+    <!-- ========== ОСНОВНОЙ КОНТЕНТ ========== -->
     <div class="container" id="mainContent"></div>
-    <footer>...</footer>
-    <script src="firebase..."></script>
+
+    <!-- ========== ФУТЕР ========== -->
+    <footer>
+        <p>© 2026 Дзержинское благочиние | <a href="https://molod-eparchy.by" target="_blank">Молодечненская епархия</a></p>
+    </footer>
+    <button class="back-to-top" id="backToTop">↑</button>
+
+    <!-- ========== СКРИПТЫ ========== -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('temple-detail.html загружен');
             renderCurrentPage();
             applyTranslations();
             restoreVisionMode();
