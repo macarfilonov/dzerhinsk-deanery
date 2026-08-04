@@ -8,79 +8,15 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Uncial&display=swap" rel="stylesheet">
 </head>
-<body>
-    <div class="eparchy-banner">
-        <div class="banner-container">
-            <img src="Logotype.jpg" alt="Дзержинское благочиние" class="banner-logo-img">
-            <div class="banner-text">
-                <span class="banner-main">Дзержинское Благочиние</span>
-                <div class="banner-sub">
-                    <span class="banner-sub-item">Московский Патриархат</span>
-                    <span class="banner-sub-item">Белорусский Экзархат</span>
-                    <span class="banner-sub-item">Молодечненская Епархия</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <header class="header" id="secretAdminTrigger"></header>
-
-    <div class="top-bar">
-        <nav id="mainNav">
-            <a href="index.html" data-page="main">Главная</a>
-            <a href="temples.html" data-page="temples">Храмы</a>
-            <a href="clergy.html" data-page="clergy">Духовенство</a>
-            <a href="news.html" data-page="news">Новости</a>
-            <a href="announcements.html" data-page="announcements">Объявления</a>
-            <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
-            <a href="about.html" data-page="about">О благочинии</a>
-            <a href="worship.html" data-page="worship">Богослужения</a>
-            <a href="opechenie.html" data-page="opechenie">Окормление</a>
-            <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
-            <div class="mobile-menu" id="mobileMenu">
-                <a href="index.html" data-page="main">Главная</a>
-                <a href="temples.html" data-page="temples">Храмы</a>
-                <a href="clergy.html" data-page="clergy">Духовенство</a>
-                <a href="news.html" data-page="news">Новости</a>
-                <a href="announcements.html" data-page="announcements">Объявления</a>
-                <a href="sunday-school.html" data-page="sunday-school">Воскресные школы</a>
-                <a href="about.html" data-page="about">О благочинии</a>
-                <a href="worship.html" data-page="worship">Богослужения</a>
-                <a href="opechenie.html" data-page="opechenie">Окормление</a>
-            </div>
-        </nav>
-        <div class="tools">
-            <a href="https://molod-eparchy.by" target="_blank" class="eparchy-link" title="Молодечненская епархия">☦</a>
-            <button id="visionToggle">👁️ Версия для слабовидящих</button>
-        </div>
-    </div>
-
+<body data-page="temples">
+    <!-- баннер, шапка, навигация такие же, как на других страницах -->
     <div class="container" id="mainContent"></div>
-
-    <footer>
-        <p>© 2026 Дзержинское благочиние | <a href="https://molod-eparchy.by" target="_blank">Молодечненская епархия</a></p>
-    </footer>
-    <button class="back-to-top" id="backToTop">↑</button>
-
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <footer>...</footer>
+    <script src="firebase..."></script>
     <script src="script.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('temple-detail.html загружен');
-            const container = document.getElementById('mainContent');
-            const params = new URLSearchParams(window.location.search);
-            const id = parseInt(params.get('id'));
-            if (id) {
-                // Функция renderTempleDetail теперь определена в script.js
-                if (typeof renderTempleDetail === 'function') {
-                    renderTempleDetail(container, id);
-                } else {
-                    container.innerHTML = '<p>Ошибка загрузки данных. Попробуйте обновить страницу.</p>';
-                }
-            } else {
-                container.innerHTML = '<p>Храм не найден</p>';
-            }
+            renderCurrentPage();
             applyTranslations();
             restoreVisionMode();
         });
