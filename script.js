@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ПЕРЕПИСАННАЯ ВЕРСИЯ (исправлены детальные страницы)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (все функции, увеличенные фото священников)
 // ============================================================
 
 console.log('script.js загружен');
@@ -379,7 +379,6 @@ function renderCurrentPage() {
         return;
     }
 
-    // Не-детальная страница
     container.innerHTML = '';
     switch (page) {
         case 'main': renderMainPage(); break;
@@ -473,9 +472,8 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с увеличенными фото священников) ----------
 function renderTempleDetail(container, id) {
-    // Если данные ещё не загружены, пробуем позже
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
         return;
@@ -489,22 +487,35 @@ function renderTempleDetail(container, id) {
     const phoneNumber = temple.phone || '+375291234567';
 
     let html = `
-        <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}'); background-size: cover; background-position: center; position: relative; padding: 2rem 1rem 1rem; min-height: 300px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.6); border-radius: 16px; margin-bottom: 1rem;">
-            <div style="position: absolute; inset: 0; background: rgba(0,0,0,0.3); border-radius: 16px;"></div>
-            <div style="position: relative; z-index: 1; text-align: center; width: 100%;">
-                <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">${escapeHtml(temple.name)}</h1>
-                <div style="font-size: 1rem; opacity: 0.9;">${escapeHtml(temple.address || '')}</div>
-                <div style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center;">
-                    <a href="javascript:void(0)" onclick="document.getElementById('templeSchedule').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchools').style.display='none';" class="temple-action-btn" style="background: rgba(255,215,0,0.85); color: #1a2f40; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: bold; text-decoration: none; font-size: 0.9rem; display: inline-block; border: none; cursor: pointer; transition: 0.3s;">📅 Расписание Богослужений</a>
-                    <a href="javascript:void(0)" onclick="document.getElementById('templeContacts').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';" class="temple-action-btn" style="background: rgba(255,215,0,0.85); color: #1a2f40; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: bold; text-decoration: none; font-size: 0.9rem; display: inline-block; border: none; cursor: pointer; transition: 0.3s;">📞 Контакты</a>
-                    <a href="javascript:void(0)" onclick="document.getElementById('templeClergy').style.display='block'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';" class="temple-action-btn" style="background: rgba(255,215,0,0.85); color: #1a2f40; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: bold; text-decoration: none; font-size: 0.9rem; display: inline-block; border: none; cursor: pointer; transition: 0.3s;">👥 Священнослужители</a>
-                    <a href="javascript:void(0)" onclick="document.getElementById('templeSchools').style.display='block'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none';" class="temple-action-btn" style="background: rgba(255,215,0,0.85); color: #1a2f40; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: bold; text-decoration: none; font-size: 0.9rem; display: inline-block; border: none; cursor: pointer; transition: 0.3s;">🏫 Воскресные школы</a>
-                    ${phoneNumber ? `<a href="tel:${escapeHtml(phoneNumber)}" class="temple-action-btn" style="background: #4caf50; color: white; padding: 0.6rem 1.2rem; border-radius: 40px; font-weight: bold; text-decoration: none; font-size: 0.9rem; display: inline-block; border: none; cursor: pointer; transition: 0.3s;">📱 Позвонить</a>` : ''}
+        <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}');">
+            <div class="overlay"></div>
+            <div class="content">
+                <h1>${escapeHtml(temple.name)}</h1>
+                <div class="address">${escapeHtml(temple.address || '')}</div>
+                <div class="action-buttons">
+                    <button class="temple-action-btn" onclick="document.getElementById('templeSchedule').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchools').style.display='none';">📅 Расписание</button>
+                    <button class="temple-action-btn" onclick="document.getElementById('templeContacts').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';">📞 Контакты</button>
+                    <button class="temple-action-btn" onclick="document.getElementById('templeClergy').style.display='block'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';">👥 Священнослужители</button>
+                    <button class="temple-action-btn" onclick="document.getElementById('templeSchools').style.display='block'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none';">🏫 Воскресные школы</button>
+                    ${phoneNumber ? `<a href="tel:${escapeHtml(phoneNumber)}" class="temple-action-btn phone">📱 Позвонить</a>` : ''}
                 </div>
             </div>
         </div>
         <div style="max-width: 800px; margin: 0 auto;">
-            <div id="templeSchedule" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
+            <!-- Кнопки истории -->
+            <div class="temple-history-buttons">
+                <button class="history-btn active" data-tab="history">📜 История храма</button>
+                <button class="history-btn" data-tab="local-history">🏛️ История местности</button>
+            </div>
+            <div id="tab-history" class="tab-content active" style="background: var(--card-bg); padding: 1rem; border-radius: 16px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 1rem;">
+                <p>${escapeHtml(temple.history) || 'История не добавлена.'}</p>
+            </div>
+            <div id="tab-local-history" class="tab-content" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 1rem;">
+                <p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p>
+            </div>
+
+            <!-- Расписание, контакты, духовенство, школы -->
+            <div id="templeSchedule" style="display: block; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('schedule-title')}</h3>
                 ${(data.schedules.filter(s => s.templeId === id)).length ? `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>${data.schedules.filter(s => s.templeId === id).map(s => `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`).join('')}</tbody></table>` : `<p>${t('no-schedule')}</p>`}
             </div>
@@ -517,40 +528,40 @@ function renderTempleDetail(container, id) {
             </div>
             <div id="templeClergy" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('clergy-list')}</h3>
-                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:300px;height:300px;border-radius:50%;object-fit:cover;"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
+                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
             </div>
             <div id="templeSchools" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">Воскресные школы</h3>
                 ${data.sundaySchools.filter(s => s.templeId === id).length ? `<div>${data.sundaySchools.filter(s => s.templeId === id).map(s => `<div style="margin-bottom:0.5rem;"><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.type)})<br>${escapeHtml(s.description||'')}</div>`).join('')}</div>` : `<p>${t('no-sunday-schools')}</p>`}
             </div>
-            <div style="background: var(--card-bg); padding: 1rem; border-radius: 16px; box-shadow: 0 2px 8px var(--shadow); margin-top: 1rem;">
-                <div class="tabs">
-                    <button class="tab-btn active" data-tab="history">${t('history')}</button>
-                    <button class="tab-btn" data-tab="local-history">${t('local-history')}</button>
-                </div>
-                <div id="tab-history" class="tab-content active"><p>${escapeHtml(temple.history) || 'История не добавлена.'}</p></div>
-                <div id="tab-local-history" class="tab-content"><p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p></div>
-            </div>
         </div>
     `;
     container.innerHTML = html;
-    container.querySelectorAll('.tab-btn').forEach(btn => {
+
+    // Обработка кнопок истории
+    const historyBtns = container.querySelectorAll('.history-btn');
+    const historyTabs = {
+        'history': document.getElementById('tab-history'),
+        'local-history': document.getElementById('tab-local-history')
+    };
+    historyBtns.forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
-            container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            historyBtns.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            const target = document.getElementById('tab-'+tab);
-            if (target) target.classList.add('active');
+            Object.keys(historyTabs).forEach(key => {
+                historyTabs[key].style.display = key === tab ? 'block' : 'none';
+            });
         });
     });
+
+    // Клик по карточке священника
     container.querySelectorAll('.clergy-card').forEach(el => {
         el.addEventListener('click', function() {
             const cid = parseInt(this.dataset.id);
             window.location.href = `clergy-detail.html?id=${cid}`;
         });
     });
-    document.getElementById('templeSchedule').style.display = 'block';
 }
 
 // ---------- ДУХОВЕНСТВО ----------
@@ -938,7 +949,7 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ---------- АДМИН-ПАНЕЛЬ ----------
+// ========== АДМИН-ПАНЕЛЬ ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -1037,7 +1048,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- ФУНКЦИИ АДМИНКИ (все, включая окормление) ----------
+// ---------- ВСЕ АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (CRUD) ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1816,11 +1827,6 @@ function renderOpechenieTable() {
     return table;
 }
 
-// ========== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ==========
-function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
-function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
-function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
-
 // ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -1828,6 +1834,11 @@ function applyTranslations() {
         el.textContent = t(key);
     });
 }
+
+// ========== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ==========
+function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
+function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
+function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
 let clickCount = 0, clickTimer = null;
