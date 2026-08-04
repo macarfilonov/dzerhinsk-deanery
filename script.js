@@ -1831,4 +1831,27 @@ function applyTranslations() {
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
 let clickCount = 0, clickTimer = null;
-function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if
+function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if (clickCount >= 5) { clickCount = 0; clearTimeout(clickTimer); openAdminModal(); } }); }
+function initVisionToggle() { document.getElementById('visionToggle')?.addEventListener('click', toggleVisionMode); }
+function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded');
+    loadData();
+    initAdminTrigger();
+    initVisionToggle();
+    initBackToTop();
+    restoreVisionMode();
+});
+
+// ========== ЭКСПОРТ ==========
+window.renderTempleDetail = renderTempleDetail;
+window.renderClergyDetail = renderClergyDetail;
+window.renderSundaySchoolDetail = renderSundaySchoolDetail;
+window.renderCurrentPage = renderCurrentPage;
+window.t = t;
+window.openAdminModal = openAdminModal;
+window.closeAdminModal = closeAdminModal;
+window.scrollCarousel = scrollCarousel;
+window.askAI = askAI;
+window.adminAskAI = adminAskAI;
