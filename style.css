@@ -428,17 +428,18 @@ img { max-width: 100%; display: block; height: auto; }
     transform: scale(1.05);
 }
 
-/* ========== УВЕЛИЧЕННЫЕ ФОТО СВЯЩЕННИКОВ В ДЕТАЛЬНОЙ СТРАНИЦЕ (в 3 раза) ========== */
+/* ========== УВЕЛИЧЕННЫЕ ФОТО СВЯЩЕННИКОВ С ОБРЕЗКОЙ ПО ВЕРХУ (ГОЛОВА ВИДНА) ========== */
 .temple-detail .clergy-card {
-    width: 360px !important;      /* было 320px, увеличили */
+    width: 360px !important;
     padding: 1.5rem !important;
     text-align: center !important;
 }
 .temple-detail .clergy-card img {
-    width: 340px !important;      /* было 300px, увеличили до 340px (почти в 3 раза от изначальных 120px) */
+    width: 340px !important;
     height: 340px !important;
     border-radius: 50% !important;
     object-fit: cover !important;
+    object-position: top center !important;  /* ← голова и головной убор не обрезаются */
     margin: 0 auto 0.5rem !important;
     display: block !important;
 }
