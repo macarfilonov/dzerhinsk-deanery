@@ -472,7 +472,6 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с увеличенными фото священников) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -502,7 +501,6 @@ function renderTempleDetail(container, id) {
             </div>
         </div>
         <div style="max-width: 800px; margin: 0 auto;">
-            <!-- Кнопки истории -->
             <div class="temple-history-buttons">
                 <button class="history-btn active" data-tab="history">📜 История храма</button>
                 <button class="history-btn" data-tab="local-history">🏛️ История местности</button>
@@ -514,7 +512,6 @@ function renderTempleDetail(container, id) {
                 <p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p>
             </div>
 
-            <!-- Расписание, контакты, духовенство, школы -->
             <div id="templeSchedule" style="display: block; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('schedule-title')}</h3>
                 ${(data.schedules.filter(s => s.templeId === id)).length ? `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>${data.schedules.filter(s => s.templeId === id).map(s => `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`).join('')}</tbody></table>` : `<p>${t('no-schedule')}</p>`}
@@ -528,7 +525,7 @@ function renderTempleDetail(container, id) {
             </div>
             <div id="templeClergy" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('clergy-list')}</h3>
-                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
+                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
             </div>
             <div id="templeSchools" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">Воскресные школы</h3>
