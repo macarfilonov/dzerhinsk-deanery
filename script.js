@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (все функции, исправлена навигация)
+//  script.js – ПОЛНАЯ ПЕРЕПИСАННАЯ ВЕРСИЯ (исправлены детальные страницы)
 // ============================================================
 
 console.log('script.js загружен');
@@ -363,7 +363,6 @@ function renderCurrentPage() {
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('id');
     const isDetail = !!id;
-    isDetailPage = isDetail;
 
     if (isDetail) {
         const numId = parseInt(id);
@@ -380,6 +379,7 @@ function renderCurrentPage() {
         return;
     }
 
+    // Не-детальная страница
     container.innerHTML = '';
     switch (page) {
         case 'main': renderMainPage(); break;
@@ -475,9 +475,16 @@ function renderTemplesList(container) {
 
 // ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
-    if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 200); return; }
+    // Если данные ещё не загружены, пробуем позже
+    if (!data.temples || data.temples.length === 0) {
+        setTimeout(() => renderTempleDetail(container, id), 300);
+        return;
+    }
     const temple = data.temples.find(t => t.id === id);
-    if (!temple) { container.innerHTML = '<p>Храм не найден</p>'; return; }
+    if (!temple) {
+        container.innerHTML = '<p>Храм не найден</p>';
+        return;
+    }
     const photoSrc = getTemplePhoto(temple);
     const phoneNumber = temple.phone || '+375291234567';
 
@@ -560,7 +567,7 @@ function renderClergyList(container) {
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
 function renderClergyDetail(id) {
-    if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 200); return; }
+    if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
     if (!c) { document.getElementById('mainContent').innerHTML = '<p>Священнослужитель не найден</p>'; return; }
     const container = document.getElementById('mainContent');
@@ -656,6 +663,7 @@ function renderSundaySchoolsList(container) {
     container.querySelectorAll('.grid-item[data-type="sunday-school"]').forEach(el => el.addEventListener('click', function() { window.location.href = `sunday-school-detail.html?id=${this.dataset.id}`; }));
 }
 function renderSundaySchoolDetail(id) {
+    if (!data.sundaySchools || data.sundaySchools.length === 0) { setTimeout(() => renderSundaySchoolDetail(id), 300); return; }
     const school = data.sundaySchools.find(s => s.id === id);
     if (!school) { document.getElementById('mainContent').innerHTML = '<p>Школа не найдена</p>'; return; }
     const container = document.getElementById('mainContent');
@@ -1029,7 +1037,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (все) ----------
+// ---------- ФУНКЦИИ АДМИНКИ (все, включая окормление) ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1823,27 +1831,4 @@ function applyTranslations() {
 
 // ========== ТРИГГЕРЫ И СТАРТ ==========
 let clickCount = 0, clickTimer = null;
-function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if (clickCount >= 5) { clickCount = 0; clearTimeout(clickTimer); openAdminModal(); } }); }
-function initVisionToggle() { document.getElementById('visionToggle')?.addEventListener('click', toggleVisionMode); }
-function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded');
-    loadData();
-    initAdminTrigger();
-    initVisionToggle();
-    initBackToTop();
-    restoreVisionMode();
-});
-
-// ========== ЭКСПОРТ ==========
-window.renderTempleDetail = renderTempleDetail;
-window.renderClergyDetail = renderClergyDetail;
-window.renderSundaySchoolDetail = renderSundaySchoolDetail;
-window.renderCurrentPage = renderCurrentPage;
-window.t = t;
-window.openAdminModal = openAdminModal;
-window.closeAdminModal = closeAdminModal;
-window.scrollCarousel = scrollCarousel;
-window.askAI = askAI;
-window.adminAskAI = adminAskAI;
+function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if
