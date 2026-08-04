@@ -727,7 +727,6 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -743,24 +742,30 @@ function renderWorshipPage(container) {
         html += `<button class="tab-btn worship-tab-btn ${idx===0?'active':''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:transparent; color:var(--primary); font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
+    // Расписание
     html += `<div class="worship-block active" id="worship-schedule">${getScheduleHTML()}</div>`;
+    // Молитвослов
     html += `<div class="worship-block" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
+    // Календарь – здесь будет статический HTML с вложенными скриптами из файла worship.html
+    // Поскольку мы поместили скрипты в HTML, контейнер оставляем пустым,
+    // но скрипты уже есть в DOM, они выполнятся при загрузке страницы.
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
-            <div><iframe src="https://days.pravoslavie.ru/" style="width:100%; height:700px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe></div>
-            <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Источник: days.pravoslavie.ru</p>
+            <div id="calendar-script-container"></div>
         </div>
     </div>`;
+    // Толкования
     html += `<div class="worship-block" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
+    // Подготовка к таинствам
     html += `<div class="worship-block" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
@@ -768,6 +773,7 @@ function renderWorshipPage(container) {
     html += `</div>`;
     html += `</div></div>`;
     container.innerHTML = html;
+
     initScheduleSelect(container);
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -784,7 +790,10 @@ function renderWorshipPage(container) {
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
         });
-        if (btn.classList.contains('active')) { btn.style.background = 'var(--gold)'; btn.style.color = 'white'; }
+        if (btn.classList.contains('active')) {
+            btn.style.background = 'var(--gold)';
+            btn.style.color = 'white';
+        }
     });
 }
 
