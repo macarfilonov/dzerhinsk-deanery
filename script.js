@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (добавлены учителя воскресных школ)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (исправлены адреса, календарь, кнопка Назад)
 // ============================================================
 
 console.log('script.js загружен');
@@ -32,7 +32,7 @@ let data = {
     news: [],
     announcements: [],
     sundaySchools: [],
-    teachers: [],               // ← НОВОЕ
+    teachers: [],
     aboutText: '',
     worship: {
         prayers: [],
@@ -232,13 +232,13 @@ function setDefaultPhotos() {
 function initDefaultData() {
     data = {
         temples: [
-            { id:1, name:'Храм Покрова Пресвятой Богородицы, г. Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г. Дзержинск.', address:'Минская область, г. Дзержинск, ул. Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:2, name:'Храм Вознесения Господня, г. Фаниполь', photo:'voznesenie-fanipol.jpg', summary:'Храм Вознесения Господня © Беларусь, Минская область, г. Фаниполь.', address:'Минская область, г. Фаниполь, ул. Школьная, 10', phone:'', email:'', history:'Храм действует с 1990-х годов.', localHistory:'Город Фаниполь – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.315962%2C53.738880&mode=search&oid=1369676511&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:3, name:'Храм святителя Николая Чудотворца, д. Станьково', photo:'nikolay-stankovo.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, д. Станьково.', address:'Минская область, Дзержинский район, д. Станьково, ул. Центральная, 5', phone:'', email:'', history:'Храм известен с XIX века.', localHistory:'Деревня Станьково – родина поэта Я. Купалы.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.224496%2C53.630899&mode=search&oid=168232275383&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:5, name:'Храм святителя Николая Чудотворца, п. Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, п. Энергетиков.', address:'Минская область, Дзержинский район, п. Энергетиков, ул. Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:6, name:'Храм Преображения Господня, д. Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, аг. Черкассы.', address:'Минская область, Дзержинский район, аг. Черкассы, ул. Центральная, 12', phone:'', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:7, name:'Храм Новомучеников Белорусских, г. Дзержинск', photo:'novomucheniki-dzerzhinsk.jpg', summary:'Храм Новомучеников Белорусских © Беларусь, Минская область, г. Дзержинск.', address:'Минская область, г. Дзержинск, ул. Советская, 45', phone:'', email:'', history:'Новый храм, освящён в 2010-х годах.', localHistory:'Город Дзержинск – центр благочиния.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.110903%2C53.668974&mode=search&oid=14672378090&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:8, name:'Храм святых бессребреников Космы и Дамиана, п. Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, п. Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, п. Негорелое, ул. Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
+            { id:1, name:'Храм Покрова Пресвятой Богородицы, г. Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г. Дзержинск.', address:'Минская область, город Дзержинск, улица Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:2, name:'Храм Вознесения Господня, г. Фаниполь', photo:'voznesenie-fanipol.jpg', summary:'Храм Вознесения Господня © Беларусь, Минская область, г. Фаниполь.', address:'Минская область, город Фаниполь, улица Школьная, 10', phone:'', email:'', history:'Храм действует с 1990-х годов.', localHistory:'Город Фаниполь – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.315962%2C53.738880&mode=search&oid=1369676511&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:3, name:'Храм святителя Николая Чудотворца, д. Станьково', photo:'nikolay-stankovo.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, д. Станьково.', address:'Минская область, Дзержинский район, деревня Станьково, улица Центральная, 5', phone:'', email:'', history:'Храм известен с XIX века.', localHistory:'Деревня Станьково – родина поэта Я. Купалы.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.224496%2C53.630899&mode=search&oid=168232275383&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:5, name:'Храм святителя Николая Чудотворца, п. Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, п. Энергетиков.', address:'Минская область, Дзержинский район, посёлок Энергетиков, улица Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:6, name:'Храм Преображения Господня, д. Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, аг. Черкассы.', address:'Минская область, Дзержинский район, агрогородок Черкассы, улица Центральная, 12', phone:'', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:7, name:'Храм Новомучеников Белорусских, г. Дзержинск', photo:'novomucheniki-dzerzhinsk.jpg', summary:'Храм Новомучеников Белорусских © Беларусь, Минская область, г. Дзержинск.', address:'Минская область, город Дзержинск, улица Советская, 45', phone:'', email:'', history:'Новый храм, освящён в 2010-х годах.', localHistory:'Город Дзержинск – центр благочиния.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.110903%2C53.668974&mode=search&oid=14672378090&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:8, name:'Храм святых бессребреников Космы и Дамиана, п. Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, п. Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, посёлок Негорелое, улица Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
         ],
         clergy: [
             { id:1, name:'Полторжицкий Борис Кубович', rank:'Протоиерей', photo:'poltorzhitsky.jpg', description:'Настоятель храма Покрова Пресвятой Богородицы г. Дзержинска...', templeIds:[1,2] },
@@ -475,7 +475,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с кнопкой Назад) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -490,6 +490,7 @@ function renderTempleDetail(container, id) {
     const phoneNumber = temple.phone || '+375291234567';
 
     let html = `
+        <div class="detail-back" onclick="history.back()">${t('back')}</div>
         <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}');">
             <div class="overlay"></div>
             <div class="content">
@@ -727,6 +728,49 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
+// ========== ЗАГРУЗКА СКРИПТОВ ПРАВОСЛАВИЕ.RU ==========
+async function loadPravoslavieScript(url, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    // Если контейнер уже заполнен, не перезагружаем
+    if (container.children.length > 0) return;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Ошибка загрузки скрипта');
+        const code = await response.text();
+
+        // Переопределяем document.write для захвата вывода
+        const oldWrite = document.write;
+        const oldWriteln = document.writeln;
+        let buffer = '';
+        document.write = function(str) { buffer += str; };
+        document.writeln = function(str) { buffer += str + '\n'; };
+
+        try {
+            eval(code); // выполняем код скрипта
+        } catch (e) {
+            console.error('Ошибка выполнения скрипта:', e);
+            container.textContent = 'Не удалось загрузить календарь.';
+        }
+
+        // Восстанавливаем оригинальные методы
+        document.write = oldWrite;
+        document.writeln = oldWriteln;
+
+        // Вставляем собранный HTML в контейнер
+        if (buffer.trim()) {
+            container.innerHTML = buffer;
+        } else {
+            container.textContent = 'Нет данных для отображения.';
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки:', e);
+        container.textContent = 'Не удалось загрузить календарь.';
+    }
+}
+
+// ---------- БОГОСЛУЖЕНИЯ (с календарём и иконой дня) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -742,30 +786,26 @@ function renderWorshipPage(container) {
         html += `<button class="tab-btn worship-tab-btn ${idx===0?'active':''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:transparent; color:var(--primary); font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
-    // Расписание
     html += `<div class="worship-block active" id="worship-schedule">${getScheduleHTML()}</div>`;
-    // Молитвослов
     html += `<div class="worship-block" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-    // Календарь – здесь будет статический HTML с вложенными скриптами из файла worship.html
-    // Поскольку мы поместили скрипты в HTML, контейнер оставляем пустым,
-    // но скрипты уже есть в DOM, они выполнятся при загрузке страницы.
+    // Блок календаря с загрузкой скриптов
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
-            <div id="calendar-script-container"></div>
+            <div id="pravoslavie-calendar" style="overflow-x:auto;"></div>
+            <div id="pravoslavie-icon" style="margin-top:1.5rem;"></div>
+            <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Календарь и икона дня с сайта Православие.Ru</p>
         </div>
     </div>`;
-    // Толкования
     html += `<div class="worship-block" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
-    // Подготовка к таинствам
     html += `<div class="worship-block" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
@@ -774,7 +814,14 @@ function renderWorshipPage(container) {
     html += `</div></div>`;
     container.innerHTML = html;
 
+    // Инициализация расписания
     initScheduleSelect(container);
+
+    // Загрузка календаря и иконы
+    loadPravoslavieScript('http://script.pravoslavie.ru/calendar.php', 'pravoslavie-calendar');
+    loadPravoslavieScript('http://script.pravoslavie.ru/icon.php', 'pravoslavie-icon');
+
+    // Обработка переключения вкладок
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.dataset.tab;
@@ -790,10 +837,7 @@ function renderWorshipPage(container) {
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
         });
-        if (btn.classList.contains('active')) {
-            btn.style.background = 'var(--gold)';
-            btn.style.color = 'white';
-        }
+        if (btn.classList.contains('active')) { btn.style.background = 'var(--gold)'; btn.style.color = 'white'; }
     });
 }
 
