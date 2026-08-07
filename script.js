@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (исправлены адреса, календарь, кнопка Назад)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (без fetch, полные названия населённых пунктов)
 // ============================================================
 
 console.log('script.js загружен');
@@ -235,13 +235,13 @@ function initDefaultData() {
             { id:1, name:'Храм Покрова Пресвятой Богородицы, город Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, город Дзержинск.', address:'Минская область, город Дзержинск, улица Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:2, name:'Храм Вознесения Господня, город Фаниполь', photo:'voznesenie-fanipol.jpg', summary:'Храм Вознесения Господня © Беларусь, Минская область, город Фаниполь.', address:'Минская область, город Фаниполь, улица Школьная, 10', phone:'', email:'', history:'Храм действует с 1990-х годов.', localHistory:'Город Фаниполь – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.315962%2C53.738880&mode=search&oid=1369676511&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:3, name:'Храм святителя Николая Чудотворца, деревня Станьково', photo:'nikolay-stankovo.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, деревня Станьково.', address:'Минская область, Дзержинский район, деревня Станьково, улица Центральная, 5', phone:'', email:'', history:'Храм известен с XIX века.', localHistory:'Деревня Станьково – родина поэта Я. Купалы.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.224496%2C53.630899&mode=search&oid=168232275383&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:5, name:'Храм святителя Николая Чудотворца, поселок Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, поселок Энергетиков.', address:'Минская область, Дзержинский район, посёлок Энергетиков, улица Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:5, name:'Храм святителя Николая Чудотворца, посёлок Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, посёлок Энергетиков.', address:'Минская область, Дзержинский район, посёлок Энергетиков, улица Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:6, name:'Храм Преображения Господня, агрогородок Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, агрогородок Черкассы.', address:'Минская область, Дзержинский район, агрогородок Черкассы, улица Центральная, 12', phone:'', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:7, name:'Храм Новомучеников Белорусских, город Дзержинск', photo:'novomucheniki-dzerzhinsk.jpg', summary:'Храм Новомучеников Белорусских © Беларусь, Минская область, город Дзержинск.', address:'Минская область, город Дзержинск, улица Советская, 45', phone:'', email:'', history:'Новый храм, освящён в 2010-х годах.', localHistory:'Город Дзержинск – центр благочиния.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.110903%2C53.668974&mode=search&oid=14672378090&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:8, name:'Храм святых бессребреников Космы и Дамиана, поселок Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, поселок Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, посёлок Негорелое, улица Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
+            { id:8, name:'Храм святых бессребреников Космы и Дамиана, посёлок Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, посёлок Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, посёлок Негорелое, улица Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
         ],
         clergy: [
-            { id:1, name:'Полторжицкий Борис Кубович', rank:'Протоиерей', photo:'poltorzhitsky.jpg', description:'Настоятель храма Покрова Пресвятой Богородицы города Дзержинска...', templeIds:[1,2] },
+            { id:1, name:'Полторжицкий Борис Кубович', rank:'Протоиерей', photo:'poltorzhitsky.jpg', description:'Настоятель храма Покрова Пресвятой Богородицы г. Дзержинска...', templeIds:[1,2] },
             { id:2, name:'Гончарук Кирилл Иванович', rank:'Иерей', photo:'goncharuk.jpg', description:'...', templeIds:[1] },
             { id:3, name:'Бусько Николай Олегович', rank:'Иерей', photo:'busko.jpg', description:'...', templeIds:[2] },
             { id:4, name:'Сенкевич Павел Александрович', rank:'Иерей', photo:'senkevich.jpg', description:'...', templeIds:[1] },
@@ -270,7 +270,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (гамбургер на весь экран) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -418,7 +418,7 @@ function renderMainPage() {
         <div class="hero-banner" onclick="window.location.href='temple-detail.html?id=1'">
             <div style="text-align:center; z-index:2; position:relative;">
                 <h1>Храм Покрова Пресвятой Богородицы</h1>
-                <div class="sub">г. Дзержинск</div>
+                <div class="sub">город Дзержинск</div>
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
@@ -428,7 +428,7 @@ function renderMainPage() {
     data.temples.forEach(t => {
         if (t.id === 1) return;
         const imgSrc = getTemplePhoto(t);
-        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
+        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</div></div>`;
     });
     html += `</div><button class="carousel-btn right" onclick="scrollCarousel(1)">›</button></div>`;
     // Новости
@@ -467,7 +467,7 @@ function renderTemplesList(container) {
     data.temples.forEach(t => {
         html += `<div class="grid-item" data-id="${t.id}" data-type="temple">
             <img src="${escapeHtml(getTemplePhoto(t))}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
-            <div class="info"><h3>${escapeHtml(t.name)}</h3>${t.isVacant ? `<div class="status vacant">${t('vacant')}</div>` : ''}</div>
+            <div class="info"><h3 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</h3>${t.isVacant ? `<div class="status vacant">${t('vacant')}</div>` : ''}</div>
         </div>`;
     });
     html += `</div>`;
@@ -475,7 +475,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с кнопкой Назад) ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -592,7 +592,7 @@ function renderClergyDetail(id) {
     </div>`;
 }
 
-// ---------- РАСПИСАНИЕ (вкладка) ----------
+// ---------- РАСПИСАНИЕ ----------
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2>
         <div class="card">
@@ -619,7 +619,7 @@ function initScheduleSelect(container) {
     });
 }
 
-// ---------- НОВОСТИ (с кнопкой Telegram) ----------
+// ---------- НОВОСТИ ----------
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2>`;
     html += `<div style="margin-bottom: 1rem;"><a href="https://t.me/dzrzh_blag" target="_blank" class="btn-telegram" style="background: #0088cc; color: white; padding: 0.5rem 1.2rem; border-radius: 40px; text-decoration: none; display: inline-block; font-weight: bold;">📢 Подписаться на Telegram-канал</a></div>`;
@@ -666,7 +666,7 @@ function renderSundaySchoolsList(container) {
         const temple = data.temples.find(t => t.id === s.templeId);
         html += `<div class="grid-item" data-id="${s.id}" data-type="sunday-school">
             <img src="${escapeHtml(s.photo||'placeholder.jpg')}" alt="${escapeHtml(s.name)}" loading="lazy" onerror="this.style.display='none'">
-            <div class="info"><h3>${escapeHtml(s.name)}</h3><div class="type">${escapeHtml(s.type)}</div><div style="font-size:0.85rem;color:#999;">${temple ? escapeHtml(temple.name) : 'Без привязки'}</div></div>
+            <div class="info"><h3 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(s.name)}</h3><div class="type">${escapeHtml(s.type)}</div><div style="font-size:0.85rem;color:#999;">${temple ? escapeHtml(temple.name) : 'Без привязки'}</div></div>
         </div>`;
     });
     html += `</div>`;
@@ -674,7 +674,7 @@ function renderSundaySchoolsList(container) {
     container.querySelectorAll('.grid-item[data-type="sunday-school"]').forEach(el => el.addEventListener('click', function() { window.location.href = `sunday-school-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ВОСКРЕСНОЙ ШКОЛЫ (с учителями) ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ВОСКРЕСНОЙ ШКОЛЫ ----------
 function renderSundaySchoolDetail(id) {
     if (!data.sundaySchools || data.sundaySchools.length === 0) {
         setTimeout(() => renderSundaySchoolDetail(id), 300);
@@ -728,49 +728,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ========== ЗАГРУЗКА СКРИПТОВ ПРАВОСЛАВИЕ.RU ==========
-async function loadPravoslavieScript(url, containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    // Если контейнер уже заполнен, не перезагружаем
-    if (container.children.length > 0) return;
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Ошибка загрузки скрипта');
-        const code = await response.text();
-
-        // Переопределяем document.write для захвата вывода
-        const oldWrite = document.write;
-        const oldWriteln = document.writeln;
-        let buffer = '';
-        document.write = function(str) { buffer += str; };
-        document.writeln = function(str) { buffer += str + '\n'; };
-
-        try {
-            eval(code); // выполняем код скрипта
-        } catch (e) {
-            console.error('Ошибка выполнения скрипта:', e);
-            container.textContent = 'Не удалось загрузить календарь.';
-        }
-
-        // Восстанавливаем оригинальные методы
-        document.write = oldWrite;
-        document.writeln = oldWriteln;
-
-        // Вставляем собранный HTML в контейнер
-        if (buffer.trim()) {
-            container.innerHTML = buffer;
-        } else {
-            container.textContent = 'Нет данных для отображения.';
-        }
-    } catch (e) {
-        console.error('Ошибка загрузки:', e);
-        container.textContent = 'Не удалось загрузить календарь.';
-    }
-}
-
-// ---------- БОГОСЛУЖЕНИЯ (с календарём и иконой дня) ----------
+// ---------- БОГОСЛУЖЕНИЯ (вкладка "Календарь" с iframe) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -792,15 +750,19 @@ function renderWorshipPage(container) {
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-    // Блок календаря с загрузкой скриптов
+
+    // Вкладка Календарь – iframe напрямую, без fetch
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
-            <div id="pravoslavie-calendar" style="overflow-x:auto;"></div>
-            <div id="pravoslavie-icon" style="margin-top:1.5rem;"></div>
+            <iframe src="https://script.pravoslavie.ru/calendar.php" style="width:100%; height:600px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe>
+            <div style="margin-top:1.5rem;">
+                <iframe src="https://script.pravoslavie.ru/icon.php" style="width:100%; height:400px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe>
+            </div>
             <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Календарь и икона дня с сайта Православие.Ru</p>
         </div>
     </div>`;
+
     html += `<div class="worship-block" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
@@ -814,14 +776,9 @@ function renderWorshipPage(container) {
     html += `</div></div>`;
     container.innerHTML = html;
 
-    // Инициализация расписания
     initScheduleSelect(container);
 
-    // Загрузка календаря и иконы
-    loadPravoslavieScript('http://script.pravoslavie.ru/calendar.php', 'pravoslavie-calendar');
-    loadPravoslavieScript('http://script.pravoslavie.ru/icon.php', 'pravoslavie-icon');
-
-    // Обработка переключения вкладок
+    // Переключение вкладок
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.dataset.tab;
@@ -1548,10 +1505,8 @@ function renderAdminSundaySchools(container) {
         </div>`;
     container.innerHTML = html;
 
-    // Обработчики для школ
     container.addEventListener('click', function(e) {
         const target = e.target;
-        // Школы
         if (target.id === 'adminSSAddBtn') {
             document.getElementById('ssFormTitle').textContent = 'Добавить школу';
             document.getElementById('ssFormId').value = '';
@@ -1601,7 +1556,6 @@ function renderAdminSundaySchools(container) {
             document.getElementById('adminSSForm').style.display = 'block';
         }
 
-        // Учителя
         if (target.id === 'adminTeacherAddBtn') {
             document.getElementById('teacherFormTitle').textContent = 'Добавить преподавателя';
             document.getElementById('teacherFormId').value = '';
