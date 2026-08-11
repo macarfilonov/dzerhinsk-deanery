@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (усиленная синхронизация Firebase, неразрывные пробелы)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (исправлено сбрасывание вкладок на детальной странице храма)
 // ============================================================
 
 console.log('script.js загружен');
@@ -52,6 +52,9 @@ let dataLoaded = false;
 let visionMode = false;
 let isDetailPage = false;
 let syncInterval = null;
+
+// Переменная для сохранения активной вкладки на детальной странице храма
+let currentTempleTab = 'schedule';
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -229,7 +232,6 @@ function loadData() {
             if (val) {
                 const newData = val.data;
                 const newNextId = val.nextId;
-                // Сравниваем с текущими данными, чтобы не перерисовывать без изменений
                 const currentDataStr = JSON.stringify(data);
                 const newDataStr = JSON.stringify(newData);
                 if (currentDataStr !== newDataStr) {
@@ -551,7 +553,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с неразрывными пробелами) ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с сохранением активной вкладки) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -564,8 +566,10 @@ function renderTempleDetail(container, id) {
     }
     const photoSrc = getTemplePhoto(temple);
     const phoneNumber = temple.phone || '+375291234567';
-    // Заменяем обычные пробелы после "ул.", "г.", "д.", "п.", "аг." на неразрывные для красоты (но данные уже содержат \u00A0)
     const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
+
+    // Используем сохранённую вкладку, если она есть, иначе 'schedule'
+    let activeTab = currentTempleTab || 'schedule';
 
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
@@ -575,10 +579,10 @@ function renderTempleDetail(container, id) {
                 <h1>${escapeHtml(temple.name)}</h1>
                 <div class="address">${escapeHtml(address)}</div>
                 <div class="action-buttons">
-                    <button class="temple-action-btn" onclick="document.getElementById('templeSchedule').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchools').style.display='none';">📅 Расписание</button>
-                    <button class="temple-action-btn" onclick="document.getElementById('templeContacts').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';">📞 Контакты</button>
-                    <button class="temple-action-btn" onclick="document.getElementById('templeClergy').style.display='block'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';">👥 Священнослужители</button>
-                    <button class="temple-action-btn" onclick="document.getElementById('templeSchools').style.display='block'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none';">🏫 Воскресные школы</button>
+                    <button class="temple-action-btn" data-tab="schedule">📅 Расписание</button>
+                    <button class="temple-action-btn" data-tab="contacts">📞 Контакты</button>
+                    <button class="temple-action-btn" data-tab="clergy">👥 Священнослужители</button>
+                    <button class="temple-action-btn" data-tab="schools">🏫 Воскресные школы</button>
                     ${phoneNumber ? `<a href="tel:${escapeHtml(phoneNumber)}" class="temple-action-btn phone">📱 Позвонить</a>` : ''}
                 </div>
             </div>
@@ -595,22 +599,22 @@ function renderTempleDetail(container, id) {
                 <p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p>
             </div>
 
-            <div id="templeSchedule" style="display: block; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
+            <div id="templeSchedule" style="display: ${activeTab === 'schedule' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('schedule-title')}</h3>
                 ${(data.schedules.filter(s => s.templeId === id)).length ? `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>${data.schedules.filter(s => s.templeId === id).map(s => `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`).join('')}</tbody></table>` : `<p>${t('no-schedule')}</p>`}
             </div>
-            <div id="templeContacts" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
+            <div id="templeContacts" style="display: ${activeTab === 'contacts' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">Контакты</h3>
                 ${temple.phone ? `<div><strong>📞 Телефон:</strong> <a href="tel:${escapeHtml(temple.phone)}">${escapeHtml(temple.phone)}</a></div>` : ''}
                 ${temple.email ? `<div><strong>📧 Email:</strong> <a href="mailto:${escapeHtml(temple.email)}">${escapeHtml(temple.email)}</a></div>` : ''}
                 ${address ? `<div><strong>📍 Адрес:</strong> ${escapeHtml(address)}</div>` : ''}
                 <div style="margin-top: 0.5rem;">${temple.mapCode || '<p>Карта не добавлена.</p>'}</div>
             </div>
-            <div id="templeClergy" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
+            <div id="templeClergy" style="display: ${activeTab === 'clergy' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">${t('clergy-list')}</h3>
                 ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
             </div>
-            <div id="templeSchools" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
+            <div id="templeSchools" style="display: ${activeTab === 'schools' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
                 <h3 style="margin-bottom: 0.5rem;">Воскресные школы</h3>
                 ${data.sundaySchools.filter(s => s.templeId === id).length ? `<div>${data.sundaySchools.filter(s => s.templeId === id).map(s => `<div style="margin-bottom:0.5rem;"><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.type)})<br>${escapeHtml(s.description||'')}</div>`).join('')}</div>` : `<p>${t('no-sunday-schools')}</p>`}
             </div>
@@ -618,6 +622,32 @@ function renderTempleDetail(container, id) {
     `;
     container.innerHTML = html;
 
+    // Обработчики для кнопок вкладок
+    container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            currentTempleTab = tab; // сохраняем активную вкладку
+            // Скрываем все блоки
+            ['templeSchedule', 'templeContacts', 'templeClergy', 'templeSchools'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+            // Показываем нужный
+            const targetMap = {
+                'schedule': 'templeSchedule',
+                'contacts': 'templeContacts',
+                'clergy': 'templeClergy',
+                'schools': 'templeSchools'
+            };
+            const targetId = targetMap[tab];
+            if (targetId) {
+                const el = document.getElementById(targetId);
+                if (el) el.style.display = 'block';
+            }
+        });
+    });
+
+    // Обработчики для кнопок истории
     const historyBtns = container.querySelectorAll('.history-btn');
     const historyTabs = {
         'history': document.getElementById('tab-history'),
@@ -634,6 +664,7 @@ function renderTempleDetail(container, id) {
         });
     });
 
+    // Клик по карточке священника
     container.querySelectorAll('.clergy-card').forEach(el => {
         el.addEventListener('click', function() {
             const cid = parseInt(this.dataset.id);
@@ -732,7 +763,7 @@ function renderAnnouncementsList(container) {
 // ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
-        <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве Республики Беларусь в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
+        <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
         <p><strong>В ВШ входят:</strong></p>
         <ul style="margin-left:1.5rem;margin-top:0.5rem;">
             <li><strong>Воскресная религиозная школа (ВРШ)</strong> - форма организации религиозного просвещения детей, подразумевающая разделение воспитанников на несколько групп по возрастному или иному критерию.</li>
