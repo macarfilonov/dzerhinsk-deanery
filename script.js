@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (все функции, сохранение вкладок)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (обновлено Окормление по документам)
 // ============================================================
 
 console.log('script.js загружен');
@@ -52,8 +52,14 @@ let dataLoaded = false;
 let visionMode = false;
 let isDetailPage = false;
 let syncInterval = null;
-let currentTempleTab = 'schedule';
-let currentWorshipTab = 'schedule';
+
+// ========== СОХРАНЕНИЕ СОСТОЯНИЯ ВКЛАДОК В sessionStorage ==========
+function getStoredTab(key, defaultTab) {
+    return sessionStorage.getItem(key) || defaultTab;
+}
+function setStoredTab(key, tab) {
+    sessionStorage.setItem(key, tab);
+}
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -178,7 +184,7 @@ function getTempleNames(ids) { if (!ids || !ids.length) return 'не привя�
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 
-// ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
+// ========== ЗАГРУЗКА / СОХРАНЕНИЕ (с синхронизацией) ==========
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
@@ -313,21 +319,31 @@ function initDefaultData() {
         faq: [],
         users: [ { id:1, username:'Makar', password:'Makar27.05.2014', role:'developer', permissions:['all'] } ],
         opechenie: [
-            { id: 1, name: 'Паллиативный хоспис, д.\u00A0Волковичи', responsible: '', description: '', templeId: 0 },
-            { id: 2, name: 'Дзержинская районная центральная библиотека', responsible: '', description: '', templeId: 0 },
-            { id: 3, name: 'ГУО Средняя школа №1 г.\u00A0Фаниполь', responsible: '', description: '', templeId: 0 },
-            { id: 4, name: 'Гимназия №1 г.\u00A0Дзержинска', responsible: '', description: '', templeId: 0 },
-            { id: 5, name: 'Станьковская средняя школа имени М.\u00A0Казея', responsible: '', description: '', templeId: 0 },
-            { id: 6, name: 'ГУО Гричинская базовая школа', responsible: '', description: '', templeId: 0 },
-            { id: 7, name: 'ГУО Заболотский учебно-педагогический комплекс детский сад – базовая школа', responsible: '', description: '', templeId: 0 },
-            { id: 8, name: 'Средняя школа №4 г.\u00A0Дзержинска', responsible: '', description: '', templeId: 0 },
-            { id: 9, name: 'Гимназия имени А.\u00A0И.\u00A0Гурина, г.\u00A0Фаниполь', responsible: '', description: '', templeId: 0 },
-            { id: 10, name: 'Учебный центр специального назначения внутренних войск 5528', responsible: '', description: '', templeId: 0 },
-            { id: 11, name: 'Войсковая часть 1463, г.\u00A0Дзержинск', responsible: '', description: '', templeId: 0 },
-            { id: 12, name: 'Войсковая часть 30151, г.\u00A0Фаниполь', responsible: '', description: '', templeId: 0 }
+            { id: 1, name: 'Паллиативный хоспис, д.\u00A0Волковичи', responsible: 'настоятель', description: '', templeId: 0 },
+            { id: 2, name: 'Дзержинская районная центральная библиотека', responsible: 'настоятель', description: '', templeId: 0 },
+            { id: 3, name: 'ГУО «Гимназия № 1 г.\u00A0Дзержинска»', responsible: 'протоиерей Сергий Линкевич', description: '', templeId: 0 },
+            { id: 4, name: 'УО «Дзержинский государственный колледж»', responsible: 'протоиерей Сергий Линкевич', description: '', templeId: 0 },
+            { id: 5, name: 'ГУО «Демидовичская базовая школа»', responsible: 'протоиерей Сергий Линкевич', description: '', templeId: 0 },
+            { id: 6, name: 'ГУО «Петковичская средняя школа»', responsible: 'протоиерей Сергий Линкевич', description: '', templeId: 0 },
+            { id: 7, name: 'ГУО «Боровская средняя школа имени Л.\u00A0В.\u00A0Володько»', responsible: 'протоиерей Сергий Линкевич', description: '', templeId: 0 },
+            { id: 8, name: 'ГУО «Гимназия г.\u00A0Дзержинска»', responsible: 'иерей Павел Сенкевич', description: '', templeId: 0 },
+            { id: 9, name: 'ГУО «Гимназия им.\u00A0А.\u00A0И.\u00A0Гурина г.\u00A0Фаниполя»', responsible: 'иерей Николай Кололо', description: '', templeId: 0 },
+            { id: 10, name: 'ГУО «Средняя школа № 1 г.\u00A0Фаниполя»', responsible: 'иерей Николай Бусько', description: '', templeId: 0 },
+            { id: 11, name: 'ГУО «Гричинская базовая школа»', responsible: 'иерей Николай Бусько', description: '', templeId: 0 },
+            { id: 12, name: 'ГУО «Средняя школа № 2 г.\u00A0Фаниполя»', responsible: 'иерей Николай Бусько', description: '', templeId: 0 },
+            { id: 13, name: 'ГУО «Негорельская средняя школа № 1»', responsible: 'иеромонах Иоанн (Новиков)', description: '', templeId: 0 },
+            { id: 14, name: 'ГУО «Негорельская базовая школа № 2»', responsible: 'иеромонах Иоанн (Новиков)', description: '', templeId: 0 },
+            { id: 15, name: 'ГУО «Станьковская средняя школа имени Марата Казея»', responsible: 'протоиерей Александр Микицкий', description: '', templeId: 0 },
+            { id: 16, name: 'ГУО «Заболотская базовая школа»', responsible: 'протоиерей Александр Микицкий', description: '', templeId: 0 },
+            { id: 17, name: 'ГУО «Дзержинский районный социально-педагогический центр»', responsible: 'протоиерей Александр Микицкий', description: '', templeId: 0 },
+            { id: 18, name: 'ГУО «Средняя школа № 2 г.\u00A0Дзержинска»', responsible: 'иерей Кирилл Гончарук', description: '', templeId: 0 },
+            { id: 19, name: 'ГУО «Средняя школа № 4 г.\u00A0Дзержинска»', responsible: 'иерей Кирилл Гончарук', description: '', templeId: 0 },
+            { id: 20, name: 'Учебный центр специального назначения внутренних войск 5528', responsible: 'командир', description: '', templeId: 0 },
+            { id: 21, name: 'Войсковая часть 1463, г.\u00A0Дзержинск', responsible: 'командир', description: '', templeId: 0 },
+            { id: 22, name: 'Войсковая часть 30151, г.\u00A0Фаниполь', responsible: 'командир', description: '', templeId: 0 }
         ]
     };
-    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:1, faq:1, user:2, opechenie:13, teacher:1 };
+    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:1, faq:1, user:2, opechenie:23, teacher:1 };
     setDefaultPhotos();
     saveData();
     renderCurrentPage();
@@ -556,7 +572,8 @@ function renderTempleDetail(container, id) {
     const phoneNumber = temple.phone || '+375291234567';
     const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
 
-    let activeTab = currentTempleTab || 'schedule';
+    const storageKey = 'templeTab_' + id;
+    let activeTab = getStoredTab(storageKey, 'schedule');
 
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
@@ -612,7 +629,7 @@ function renderTempleDetail(container, id) {
     container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
-            currentTempleTab = tab;
+            setStoredTab(storageKey, tab);
             ['templeSchedule', 'templeContacts', 'templeClergy', 'templeSchools'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
@@ -817,7 +834,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// ---------- БОГОСЛУЖЕНИЯ (с сохранением вкладки) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -826,22 +843,25 @@ function renderWorshipPage(container) {
         { id: 'interpretations', label: 'Толкования' },
         { id: 'sacraments', label: 'Подготовка к таинствам' }
     ];
+    const storageKey = 'worshipTab';
+    let activeTab = getStoredTab(storageKey, 'schedule');
+
     let html = `<h2>${t('nav-worship')}</h2>
         <div class="card">
             <div class="tabs worship-tabs" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">`;
-    tabs.forEach((tab, idx) => {
-        const isActive = (currentWorshipTab === tab.id) || (idx === 0 && !currentWorshipTab);
+    tabs.forEach((tab) => {
+        const isActive = (activeTab === tab.id);
         html += `<button class="tab-btn worship-tab-btn ${isActive ? 'active' : ''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:${isActive ? 'var(--gold)' : 'transparent'}; color:${isActive ? 'white' : 'var(--primary)'}; font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
-    html += `<div class="worship-block ${currentWorshipTab === 'schedule' || !currentWorshipTab ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
-    html += `<div class="worship-block ${currentWorshipTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
+    html += `<div class="worship-block ${activeTab === 'schedule' ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
+    html += `<div class="worship-block ${activeTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
-    html += `<div class="worship-block ${currentWorshipTab === 'calendar' ? 'active' : ''}" id="worship-calendar">
+    html += `<div class="worship-block ${activeTab === 'calendar' ? 'active' : ''}" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
             <iframe src="https://script.pravoslavie.ru/calendar.php" style="width:100%; height:600px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe>
@@ -852,12 +872,12 @@ function renderWorshipPage(container) {
         </div>
     </div>`;
 
-    html += `<div class="worship-block ${currentWorshipTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
+    html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
-    html += `<div class="worship-block ${currentWorshipTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
+    html += `<div class="worship-block ${activeTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
     else sacraments.forEach(s => html += `<div class="sacrament-item"><strong>${escapeHtml(s.title)}</strong><p>${escapeHtml(s.text)}</p></div>`);
@@ -870,7 +890,9 @@ function renderWorshipPage(container) {
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.dataset.tab;
-            currentWorshipTab = tabId;
+            setStoredTab(storageKey, tabId);
+            activeTab = tabId;
+
             container.querySelectorAll('.worship-tab-btn').forEach(b => {
                 b.classList.remove('active');
                 b.style.background = 'transparent';
@@ -879,13 +901,14 @@ function renderWorshipPage(container) {
             this.classList.add('active');
             this.style.background = 'var(--gold)';
             this.style.color = 'white';
+
             container.querySelectorAll('.worship-block').forEach(block => block.classList.remove('active'));
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
         });
     });
 
-    const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${currentWorshipTab}"]`);
+    const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
         activeBtn.style.background = 'var(--gold)';
@@ -895,8 +918,9 @@ function renderWorshipPage(container) {
         firstBtn.classList.add('active');
         firstBtn.style.background = 'var(--gold)';
         firstBtn.style.color = 'white';
-        currentWorshipTab = firstBtn.dataset.tab;
-        const firstBlock = document.getElementById('worship-'+currentWorshipTab);
+        const firstTab = firstBtn.dataset.tab;
+        setStoredTab(storageKey, firstTab);
+        const firstBlock = document.getElementById('worship-'+firstTab);
         if (firstBlock) firstBlock.classList.add('active');
     }
 }
@@ -1093,7 +1117,7 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ========== АДМИН-ПАНЕЛЬ ==========
+// ========== АДМИН-ПАНЕЛЬ (ПОЛНАЯ) ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -1192,7 +1216,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- ВСЕ АДМИНИСТРАТИВНЫЕ ФУНКЦИИ ----------
+// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
