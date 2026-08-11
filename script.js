@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (без fetch, полные названия населённых пунктов)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (усиленная синхронизация Firebase, неразрывные пробелы)
 // ============================================================
 
 console.log('script.js загружен');
@@ -51,6 +51,7 @@ let currentUser = null;
 let dataLoaded = false;
 let visionMode = false;
 let isDetailPage = false;
+let syncInterval = null;
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -175,10 +176,12 @@ function getTempleNames(ids) { if (!ids || !ids.length) return 'не привя�
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 
-// ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
+// ========== ЗАГРУЗКА / СОХРАНЕНИЕ (с усиленной синхронизацией) ==========
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
+
+    // Загружаем из localStorage, если есть
     const stored = localStorage.getItem('blago_data');
     if (stored) {
         try {
@@ -191,11 +194,15 @@ function loadData() {
             restoreVisionMode();
             rebuildNav();
         } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
-    } else { initDefaultData(); }
+    } else {
+        initDefaultData();
+    }
 
+    // Подписка на реальные обновления из Firebase
     db.ref('data').on('value', (snapshot) => {
         const val = snapshot.val();
         if (val) {
+            console.log('Получены обновления из Firebase');
             data = val.data || data;
             nextId = val.nextId || nextId;
             migrateData();
@@ -205,8 +212,64 @@ function loadData() {
             rebuildNav();
         }
     });
+
+    // Если в Firebase нет данных, инициализируем (защита от пустого хранилища)
     db.ref('data').once('value', (snapshot) => {
-        if (!snapshot.val()) { initDefaultData(); }
+        if (!snapshot.val()) {
+            console.log('Firebase пуста, инициализируем');
+            initDefaultData();
+        }
+    });
+
+    // Периодический опрос для принудительной синхронизации (каждые 5 секунд)
+    if (syncInterval) clearInterval(syncInterval);
+    syncInterval = setInterval(() => {
+        db.ref('data').once('value', (snapshot) => {
+            const val = snapshot.val();
+            if (val) {
+                const newData = val.data;
+                const newNextId = val.nextId;
+                // Сравниваем с текущими данными, чтобы не перерисовывать без изменений
+                const currentDataStr = JSON.stringify(data);
+                const newDataStr = JSON.stringify(newData);
+                if (currentDataStr !== newDataStr) {
+                    console.log('Обнаружены изменения через опрос, синхронизируем');
+                    data = newData || data;
+                    nextId = newNextId || nextId;
+                    migrateData();
+                    saveToLocalStorage();
+                    renderCurrentPage();
+                    applyTranslations();
+                    rebuildNav();
+                }
+            }
+        });
+    }, 5000);
+
+    // Синхронизация при возвращении на вкладку
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            console.log('Вкладка активна, проверяем синхронизацию');
+            db.ref('data').once('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    const newData = val.data;
+                    const newNextId = val.nextId;
+                    const currentDataStr = JSON.stringify(data);
+                    const newDataStr = JSON.stringify(newData);
+                    if (currentDataStr !== newDataStr) {
+                        console.log('Обновление из Firebase при возвращении');
+                        data = newData || data;
+                        nextId = newNextId || nextId;
+                        migrateData();
+                        saveToLocalStorage();
+                        renderCurrentPage();
+                        applyTranslations();
+                        rebuildNav();
+                    }
+                }
+            });
+        }
     });
 }
 
@@ -219,9 +282,22 @@ function migrateData() {
     setDefaultPhotos();
 }
 
-function saveData() { saveToLocalStorage(); saveToFirebase(); }
-function saveToLocalStorage() { localStorage.setItem('blago_data', JSON.stringify({ data, nextId })); localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); }
-function saveToFirebase() { db.ref('data').set({ data, nextId }).catch(err => console.error('Ошибка сохранения в Firebase:', err)); }
+function saveData() {
+    saveToLocalStorage();
+    saveToFirebase();
+}
+
+function saveToLocalStorage() {
+    localStorage.setItem('blago_data', JSON.stringify({ data, nextId }));
+    localStorage.setItem('vision_mode', visionMode ? 'on' : 'off');
+}
+
+function saveToFirebase() {
+    db.ref('data').set({ data, nextId })
+        .then(() => console.log('Данные успешно сохранены в Firebase'))
+        .catch(err => console.error('Ошибка сохранения в Firebase:', err));
+}
+
 function setDefaultPhotos() {
     data.temples.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
     data.clergy.forEach(c => { if (!c.photo) c.photo = 'placeholder.jpg'; });
@@ -232,13 +308,13 @@ function setDefaultPhotos() {
 function initDefaultData() {
     data = {
         temples: [
-            { id:1, name:'Храм Покрова Пресвятой Богородицы, город Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, город Дзержинск.', address:'Минская область, город Дзержинск, улица Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:2, name:'Храм Вознесения Господня, город Фаниполь', photo:'voznesenie-fanipol.jpg', summary:'Храм Вознесения Господня © Беларусь, Минская область, город Фаниполь.', address:'Минская область, город Фаниполь, улица Школьная, 10', phone:'', email:'', history:'Храм действует с 1990-х годов.', localHistory:'Город Фаниполь – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.315962%2C53.738880&mode=search&oid=1369676511&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:3, name:'Храм святителя Николая Чудотворца, деревня Станьково', photo:'nikolay-stankovo.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, деревня Станьково.', address:'Минская область, Дзержинский район, деревня Станьково, улица Центральная, 5', phone:'', email:'', history:'Храм известен с XIX века.', localHistory:'Деревня Станьково – родина поэта Я. Купалы.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.224496%2C53.630899&mode=search&oid=168232275383&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:5, name:'Храм святителя Николая Чудотворца, посёлок Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, посёлок Энергетиков.', address:'Минская область, Дзержинский район, посёлок Энергетиков, улица Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:6, name:'Храм Преображения Господня, агрогородок Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, агрогородок Черкассы.', address:'Минская область, Дзержинский район, агрогородок Черкассы, улица Центральная, 12', phone:'', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:7, name:'Храм Новомучеников Белорусских, город Дзержинск', photo:'novomucheniki-dzerzhinsk.jpg', summary:'Храм Новомучеников Белорусских © Беларусь, Минская область, город Дзержинск.', address:'Минская область, город Дзержинск, улица Советская, 45', phone:'', email:'', history:'Новый храм, освящён в 2010-х годах.', localHistory:'Город Дзержинск – центр благочиния.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.110903%2C53.668974&mode=search&oid=14672378090&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:8, name:'Храм святых бессребреников Космы и Дамиана, посёлок Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, посёлок Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, посёлок Негорелое, улица Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
+            { id:1, name:'Храм Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г.\u00A0Дзержинск.', address:'Минская область, г.\u00A0Дзержинск, ул.\u00A0Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:2, name:'Храм Вознесения Господня, г.\u00A0Фаниполь', photo:'voznesenie-fanipol.jpg', summary:'Храм Вознесения Господня © Беларусь, Минская область, г.\u00A0Фаниполь.', address:'Минская область, г.\u00A0Фаниполь, ул.\u00A0Школьная, 10', phone:'', email:'', history:'Храм действует с 1990-х годов.', localHistory:'Город Фаниполь – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.315962%2C53.738880&mode=search&oid=1369676511&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:3, name:'Храм святителя Николая Чудотворца, д.\u00A0Станьково', photo:'nikolay-stankovo.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, д.\u00A0Станьково.', address:'Минская область, Дзержинский район, д.\u00A0Станьково, ул.\u00A0Центральная, 5', phone:'', email:'', history:'Храм известен с XIX века.', localHistory:'Деревня Станьково – родина поэта Я. Купалы.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.224496%2C53.630899&mode=search&oid=168232275383&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:5, name:'Храм святителя Николая Чудотворца, п.\u00A0Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, п.\u00A0Энергетиков.', address:'Минская область, Дзержинский район, п.\u00A0Энергетиков, ул.\u00A0Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:6, name:'Храм Преображения Господня, аг.\u00A0Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, аг.\u00A0Черкассы.', address:'Минская область, Дзержинский район, аг.\u00A0Черкассы, ул.\u00A0Центральная, 12', phone:'', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:7, name:'Храм Новомучеников Белорусских, г.\u00A0Дзержинск', photo:'novomucheniki-dzerzhinsk.jpg', summary:'Храм Новомучеников Белорусских © Беларусь, Минская область, г.\u00A0Дзержинск.', address:'Минская область, г.\u00A0Дзержинск, ул.\u00A0Советская, 45', phone:'', email:'', history:'Новый храм, освящён в 2010-х годах.', localHistory:'Город Дзержинск – центр благочиния.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.110903%2C53.668974&mode=search&oid=14672378090&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:8, name:'Храм святых бессребреников Космы и Дамиана, п.\u00A0Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, п.\u00A0Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, п.\u00A0Негорелое, ул.\u00A0Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
         ],
         clergy: [
             { id:1, name:'Полторжицкий Борис Кубович', rank:'Протоиерей', photo:'poltorzhitsky.jpg', description:'Настоятель храма Покрова Пресвятой Богородицы г. Дзержинска...', templeIds:[1,2] },
@@ -418,7 +494,7 @@ function renderMainPage() {
         <div class="hero-banner" onclick="window.location.href='temple-detail.html?id=1'">
             <div style="text-align:center; z-index:2; position:relative;">
                 <h1>Храм Покрова Пресвятой Богородицы</h1>
-                <div class="sub">город Дзержинск</div>
+                <div class="sub">г.\u00A0Дзержинск</div>
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
@@ -475,7 +551,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с неразрывными пробелами) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -488,6 +564,8 @@ function renderTempleDetail(container, id) {
     }
     const photoSrc = getTemplePhoto(temple);
     const phoneNumber = temple.phone || '+375291234567';
+    // Заменяем обычные пробелы после "ул.", "г.", "д.", "п.", "аг." на неразрывные для красоты (но данные уже содержат \u00A0)
+    const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
 
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
@@ -495,7 +573,7 @@ function renderTempleDetail(container, id) {
             <div class="overlay"></div>
             <div class="content">
                 <h1>${escapeHtml(temple.name)}</h1>
-                <div class="address">${escapeHtml(temple.address || '')}</div>
+                <div class="address">${escapeHtml(address)}</div>
                 <div class="action-buttons">
                     <button class="temple-action-btn" onclick="document.getElementById('templeSchedule').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeContacts').style.display='none'; document.getElementById('templeSchools').style.display='none';">📅 Расписание</button>
                     <button class="temple-action-btn" onclick="document.getElementById('templeContacts').style.display='block'; document.getElementById('templeClergy').style.display='none'; document.getElementById('templeSchedule').style.display='none'; document.getElementById('templeSchools').style.display='none';">📞 Контакты</button>
@@ -525,7 +603,7 @@ function renderTempleDetail(container, id) {
                 <h3 style="margin-bottom: 0.5rem;">Контакты</h3>
                 ${temple.phone ? `<div><strong>📞 Телефон:</strong> <a href="tel:${escapeHtml(temple.phone)}">${escapeHtml(temple.phone)}</a></div>` : ''}
                 ${temple.email ? `<div><strong>📧 Email:</strong> <a href="mailto:${escapeHtml(temple.email)}">${escapeHtml(temple.email)}</a></div>` : ''}
-                ${temple.address ? `<div><strong>📍 Адрес:</strong> ${escapeHtml(temple.address)}</div>` : ''}
+                ${address ? `<div><strong>📍 Адрес:</strong> ${escapeHtml(address)}</div>` : ''}
                 <div style="margin-top: 0.5rem;">${temple.mapCode || '<p>Карта не добавлена.</p>'}</div>
             </div>
             <div id="templeClergy" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
@@ -651,10 +729,10 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ВОСКРЕСНЫЕ ШКОЛЫ (список) ----------
+// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
-        <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве Республики Беларусь в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
+        <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
         <p><strong>В ВШ входят:</strong></p>
         <ul style="margin-left:1.5rem;margin-top:0.5rem;">
             <li><strong>Воскресная религиозная школа (ВРШ)</strong> - форма организации религиозного просвещения детей, подразумевающая разделение воспитанников на несколько групп по возрастному или иному критерию.</li>
@@ -674,7 +752,6 @@ function renderSundaySchoolsList(container) {
     container.querySelectorAll('.grid-item[data-type="sunday-school"]').forEach(el => el.addEventListener('click', function() { window.location.href = `sunday-school-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ВОСКРЕСНОЙ ШКОЛЫ ----------
 function renderSundaySchoolDetail(id) {
     if (!data.sundaySchools || data.sundaySchools.length === 0) {
         setTimeout(() => renderSundaySchoolDetail(id), 300);
@@ -728,7 +805,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (вкладка "Календарь" с iframe) ----------
+// ---------- БОГОСЛУЖЕНИЯ (календарь через iframe) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -751,7 +828,7 @@ function renderWorshipPage(container) {
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
-    // Вкладка Календарь – iframe напрямую, без fetch
+    // Календарь через iframe
     html += `<div class="worship-block" id="worship-calendar">
         <div class="worship-calendar-container">
             <h3>${t('calendar-title')}</h3>
@@ -778,7 +855,6 @@ function renderWorshipPage(container) {
 
     initScheduleSelect(container);
 
-    // Переключение вкладок
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.dataset.tab;
@@ -798,7 +874,7 @@ function renderWorshipPage(container) {
     });
 }
 
-// ---------- FAQ ----------
+// ---------- FAQ (сокращённо, но полностью функционально) ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card"><h3>${t('ask-question')}</h3>
@@ -965,7 +1041,7 @@ function renderAdminAI(container) {
     document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
 }
 
-// ---------- СТРАНИЦА ОКОРМЛЕНИЯ ----------
+// ---------- ОКОРМЛЕНИЕ ----------
 function renderOpecheniePage(container) {
     let html = `<h2>Окормление</h2>`;
     if (!data.opechenie || data.opechenie.length === 0) {
@@ -990,7 +1066,7 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ========== АДМИН-ПАНЕЛЬ ==========
+// ========== АДМИН-ПАНЕЛЬ (сокращённо, но рабочая) ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -1089,7 +1165,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- ВСЕ АДМИНИСТРАТИВНЫЕ ФУНКЦИИ ----------
+// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (сокращённо) ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1471,7 +1547,6 @@ function renderAnnounceTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ВОСКРЕСНЫМИ ШКОЛАМИ И УЧИТЕЛЯМИ ----------
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
