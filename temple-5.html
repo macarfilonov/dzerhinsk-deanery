@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Храм святителя Николая Чудотворца, п.&nbsp;Энергетиков | Дзержинское благочиние</title>
+    <link rel="icon" href="favicon.jpg" type="image/jpeg">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Uncial&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="eparchy-banner">
+        <div class="banner-container">
+            <img src="Logotype.jpg" alt="Дзержинское благочиние" class="banner-logo-img">
+            <div class="banner-text">
+                <span class="banner-main">Дзержинское Благочиние</span>
+                <div class="banner-sub">
+                    <span class="banner-sub-item">Московский Патриархат</span>
+                    <span class="banner-sub-item">Белорусский Экзархат</span>
+                    <span class="banner-sub-item">Молодечненская Епархия</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <header class="header" id="secretAdminTrigger"></header>
+
+    <div class="top-bar">
+        <nav>
+            <a href="index.html" data-page="main" data-i18n="nav-main">Главная</a>
+            <div class="dropdown">
+                <a href="temples.html" data-page="temples" data-i18n="nav-temples">Храмы</a>
+                <div class="dropdown-content"></div>
+            </div>
+            <a href="clergy.html" data-page="clergy" data-i18n="nav-clergy">Духовенство</a>
+            <a href="news.html" data-page="news" data-i18n="nav-news">Новости</a>
+            <a href="announcements.html" data-page="announcements" data-i18n="nav-announcements">Объявления</a>
+            <a href="sunday-school.html" data-page="sunday-school" data-i18n="nav-sunday-school">Воскресные школы</a>
+            <a href="about.html" data-page="about" data-i18n="nav-about">О благочинии</a>
+            <a href="worship.html" data-page="worship" data-i18n="nav-worship">Богослужения</a>
+            <a href="opechenie.html" data-page="opechenie" data-i18n="nav-opechenie">Окормление</a>
+        </nav>
+        <div class="tools">
+            <a href="https://molod-eparchy.by" target="_blank" class="eparchy-link" title="Молодечненская епархия">☦</a>
+            <button id="visionToggle" data-i18n="vision-toggle">👁️ Версия для слабовидящих</button>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent"></div>
+
+    <footer>
+        <p>© 2026 Дзержинское благочиние | <a href="https://molod-eparchy.by" target="_blank">Молодечненская епархия</a></p>
+    </footer>
+    <button class="back-to-top" id="backToTop">↑</button>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="script.js"></script>
+    <script>
+        window.templeId = 5;
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('temple-5.html загружен');
+            const container = document.getElementById('mainContent');
+            if (window.templeId) {
+                renderTempleDetail(container, window.templeId);
+            } else {
+                container.innerHTML = '<p>Храм не найден</p>';
+            }
+            applyTranslations();
+            fillTempleDropdown();
+        });
+    </script>
+</body>
+</html>
