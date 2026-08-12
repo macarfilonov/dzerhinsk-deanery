@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (со всеми последними изменениями)
+//  script.js – ИТОГОВАЯ ВЕРСИЯ (увеличены фото, исправлены вкладки)
 // ============================================================
 
 console.log('script.js загружен');
@@ -566,7 +566,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с сохранением вкладки) ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (увеличены фото, исправлены вкладки) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -586,24 +586,24 @@ function renderTempleDetail(container, id) {
 
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
-        <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}');">
-            <div class="overlay"></div>
-            <div class="content">
-                <h1>${escapeHtml(temple.name)}</h1>
-                <div class="address">${escapeHtml(address)}</div>
-                <div class="action-buttons">
-                    <button class="temple-action-btn" data-tab="schedule">📅 Расписание</button>
-                    <button class="temple-action-btn" data-tab="contacts">📞 Контакты</button>
-                    <button class="temple-action-btn" data-tab="clergy">👥 Священнослужители</button>
-                    <button class="temple-action-btn" data-tab="schools">🏫 Воскресные школы</button>
-                    ${phoneNumber ? `<a href="tel:${escapeHtml(phoneNumber)}" class="temple-action-btn phone">📱 Позвонить</a>` : ''}
+        <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}'); min-height: 70vh; height: 500px; background-size: cover; background-position: center; border-radius: 24px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative;">
+            <div class="overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.4); border-radius:24px;"></div>
+            <div class="content" style="position:relative; z-index:2; color:white; text-align:center; padding:2rem; text-shadow: 0 2px 8px rgba(0,0,0,0.6);">
+                <h1 style="font-size:2.5rem; font-family:'Cormorant Uncial', serif; margin-bottom:0.5rem;">${escapeHtml(temple.name)}</h1>
+                <div class="address" style="font-size:1.2rem; opacity:0.9; margin-bottom:1.5rem;">${escapeHtml(address)}</div>
+                <div class="action-buttons" style="display:flex; flex-wrap:wrap; gap:0.8rem; justify-content:center;">
+                    <button class="temple-action-btn" data-tab="schedule" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); border:2px solid rgba(255,255,255,0.4); border-radius:40px; padding:0.6rem 1.5rem; font-family:inherit; font-size:1rem; cursor:pointer; transition:0.2s; color:white; font-weight:500;">📅 Расписание</button>
+                    <button class="temple-action-btn" data-tab="contacts" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); border:2px solid rgba(255,255,255,0.4); border-radius:40px; padding:0.6rem 1.5rem; font-family:inherit; font-size:1rem; cursor:pointer; transition:0.2s; color:white; font-weight:500;">📞 Контакты</button>
+                    <button class="temple-action-btn" data-tab="clergy" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); border:2px solid rgba(255,255,255,0.4); border-radius:40px; padding:0.6rem 1.5rem; font-family:inherit; font-size:1rem; cursor:pointer; transition:0.2s; color:white; font-weight:500;">👥 Священнослужители</button>
+                    <button class="temple-action-btn" data-tab="schools" style="background:rgba(255,255,255,0.15); backdrop-filter:blur(8px); border:2px solid rgba(255,255,255,0.4); border-radius:40px; padding:0.6rem 1.5rem; font-family:inherit; font-size:1rem; cursor:pointer; transition:0.2s; color:white; font-weight:500;">🏫 Воскресные школы</button>
+                    ${phoneNumber ? `<a href="tel:${escapeHtml(phoneNumber)}" class="temple-action-btn phone" style="background:#4caf50; border-color:#4caf50; border-radius:40px; padding:0.6rem 1.5rem; font-family:inherit; font-size:1rem; cursor:pointer; transition:0.2s; color:white; font-weight:500; text-decoration:none;">📱 Позвонить</a>` : ''}
                 </div>
             </div>
         </div>
         <div style="max-width: 800px; margin: 0 auto;">
-            <div class="temple-history-buttons">
-                <button class="history-btn active" data-tab="history">📜 История храма</button>
-                <button class="history-btn" data-tab="local-history">🏛️ История местности</button>
+            <div class="temple-history-buttons" style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+                <button class="history-btn active" data-tab="history" style="background:var(--gold); color:white; border:1px solid var(--gold); border-radius:30px; padding:0.3rem 1.2rem; cursor:pointer; font-family:inherit; font-size:0.9rem; transition:0.2s;">📜 История храма</button>
+                <button class="history-btn" data-tab="local-history" style="background:var(--bg); border:1px solid var(--border); border-radius:30px; padding:0.3rem 1.2rem; cursor:pointer; font-family:inherit; font-size:0.9rem; transition:0.2s;">🏛️ История местности</button>
             </div>
             <div id="tab-history" class="tab-content active" style="background: var(--card-bg); padding: 1rem; border-radius: 16px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 1rem;">
                 <p>${escapeHtml(temple.history) || 'История не добавлена.'}</p>
@@ -635,14 +635,17 @@ function renderTempleDetail(container, id) {
     `;
     container.innerHTML = html;
 
+    // Обработчики для кнопок вкладок (сохраняем состояние)
     container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
             setStoredTab(storageKey, tab);
+            // Скрываем все блоки
             ['templeSchedule', 'templeContacts', 'templeClergy', 'templeSchools'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = 'none';
             });
+            // Показываем нужный
             const targetMap = {
                 'schedule': 'templeSchedule',
                 'contacts': 'templeContacts',
@@ -657,6 +660,7 @@ function renderTempleDetail(container, id) {
         });
     });
 
+    // Обработчики для кнопок истории
     const historyBtns = container.querySelectorAll('.history-btn');
     const historyTabs = {
         'history': document.getElementById('tab-history'),
@@ -673,6 +677,7 @@ function renderTempleDetail(container, id) {
         });
     });
 
+    // Клик по карточке священника
     container.querySelectorAll('.clergy-card').forEach(el => {
         el.addEventListener('click', function() {
             const cid = parseInt(this.dataset.id);
