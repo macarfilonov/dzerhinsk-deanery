@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ (вкладки работают)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (добавлена вкладка "Святые дня")
 // ============================================================
 
 console.log('script.js загружен');
@@ -449,12 +449,11 @@ function rebuildNav() {
     });
 }
 
-// ========== РЕНДЕРИНГ СТРАНИЦ (С ПРОВЕРКОЙ НА window.templeId) ==========
+// ========== РЕНДЕРИНГ СТРАНИЦ ==========
 function renderCurrentPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
 
-    // Если это детальная страница храма (используется window.templeId)
     if (typeof window.templeId !== 'undefined' && window.templeId !== null) {
         renderTempleDetail(container, window.templeId);
         updateNavActive('temples');
@@ -529,7 +528,7 @@ function renderMainPage() {
     data.temples.forEach(t => {
         if (t.id === 1) return;
         const imgSrc = getTemplePhoto(t);
-        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</div></div>`;
+        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
     });
     html += `</div><button class="carousel-btn right" onclick="scrollCarousel(1)">›</button></div>`;
     // Новости
@@ -576,7 +575,98 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с увеличенным фото и сохранением вкладки) ----------
+// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ----------
+function openTempleModal(tab, templeId) {
+    let modal = document.getElementById('templeModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'templeModal';
+        modal.className = 'temple-modal';
+        modal.innerHTML = `
+            <div class="temple-modal-content">
+                <button class="temple-modal-close">&times;</button>
+                <div id="templeModalBody"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.querySelector('.temple-modal-close').addEventListener('click', closeTempleModal);
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) closeTempleModal();
+        });
+    }
+
+    const body = document.getElementById('templeModalBody');
+    const temple = data.temples.find(t => t.id === templeId);
+    if (!temple) { body.innerHTML = '<p>Храм не найден</p>'; return; }
+
+    let content = '';
+    switch (tab) {
+        case 'schedule':
+            content = `<h3>${t('schedule-title')}</h3>`;
+            const schedules = data.schedules.filter(s => s.templeId === templeId);
+            if (schedules.length) {
+                content += `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>`;
+                schedules.forEach(s => {
+                    content += `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`;
+                });
+                content += `</tbody></table>`;
+            } else {
+                content += `<p>${t('no-schedule')}</p>`;
+            }
+            break;
+        case 'contacts':
+            content = `<h3>Контакты</h3>`;
+            if (temple.phone) content += `<div><strong>📞 Телефон:</strong> <a href="tel:${escapeHtml(temple.phone)}">${escapeHtml(temple.phone)}</a></div>`;
+            if (temple.email) content += `<div><strong>📧 Email:</strong> <a href="mailto:${escapeHtml(temple.email)}">${escapeHtml(temple.email)}</a></div>`;
+            const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
+            if (address) content += `<div><strong>📍 Адрес:</strong> ${escapeHtml(address)}</div>`;
+            content += `<div style="margin-top: 0.5rem;">${temple.mapCode || '<p>Карта не добавлена.</p>'}</div>`;
+            break;
+        case 'clergy':
+            content = `<h3>${t('clergy-list')}</h3>`;
+            const clergy = data.clergy.filter(c => c.templeIds && c.templeIds.includes(templeId));
+            if (clergy.length) {
+                content += `<div class="clergy-list">`;
+                clergy.forEach(c => {
+                    content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`;
+                });
+                content += `</div>`;
+            } else {
+                content += `<p>${t('no-clergy')}</p>`;
+            }
+            break;
+        case 'schools':
+            content = `<h3>Воскресные школы</h3>`;
+            const schools = data.sundaySchools.filter(s => s.templeId === templeId);
+            if (schools.length) {
+                schools.forEach(s => {
+                    content += `<div style="margin-bottom:0.5rem;"><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.type)})<br>${escapeHtml(s.description||'')}</div>`;
+                });
+            } else {
+                content += `<p>${t('no-sunday-schools')}</p>`;
+            }
+            break;
+        default:
+            content = '<p>Нет данных</p>';
+    }
+    body.innerHTML = content;
+
+    body.querySelectorAll('.clergy-card').forEach(el => {
+        el.addEventListener('click', function() {
+            const cid = parseInt(this.dataset.id);
+            window.location.href = `clergy-detail.html?id=${cid}`;
+        });
+    });
+
+    modal.classList.add('visible');
+}
+
+function closeTempleModal() {
+    const modal = document.getElementById('templeModal');
+    if (modal) modal.classList.remove('visible');
+}
+
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -590,9 +680,6 @@ function renderTempleDetail(container, id) {
     const photoSrc = getTemplePhoto(temple);
     const phoneNumber = temple.phone || '+375291234567';
     const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
-
-    const storageKey = 'templeTab_' + id;
-    let activeTab = getStoredTab(storageKey, 'schedule');
 
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
@@ -621,56 +708,17 @@ function renderTempleDetail(container, id) {
             <div id="tab-local-history" class="tab-content" style="display: none; background: var(--card-bg); padding: 1rem; border-radius: 16px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 1rem;">
                 <p>${escapeHtml(temple.localHistory) || 'История местности не добавлена.'}</p>
             </div>
-
-            <div id="templeSchedule" style="display: ${activeTab === 'schedule' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
-                <h3 style="margin-bottom: 0.5rem;">${t('schedule-title')}</h3>
-                ${(data.schedules.filter(s => s.templeId === id)).length ? `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>${data.schedules.filter(s => s.templeId === id).map(s => `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`).join('')}</tbody></table>` : `<p>${t('no-schedule')}</p>`}
-            </div>
-            <div id="templeContacts" style="display: ${activeTab === 'contacts' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
-                <h3 style="margin-bottom: 0.5rem;">Контакты</h3>
-                ${temple.phone ? `<div><strong>📞 Телефон:</strong> <a href="tel:${escapeHtml(temple.phone)}">${escapeHtml(temple.phone)}</a></div>` : ''}
-                ${temple.email ? `<div><strong>📧 Email:</strong> <a href="mailto:${escapeHtml(temple.email)}">${escapeHtml(temple.email)}</a></div>` : ''}
-                ${address ? `<div><strong>📍 Адрес:</strong> ${escapeHtml(address)}</div>` : ''}
-                <div style="margin-top: 0.5rem;">${temple.mapCode || '<p>Карта не добавлена.</p>'}</div>
-            </div>
-            <div id="templeClergy" style="display: ${activeTab === 'clergy' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
-                <h3 style="margin-bottom: 0.5rem;">${t('clergy-list')}</h3>
-                ${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).length ? `<div class="clergy-list">${data.clergy.filter(c => c.templeIds && c.templeIds.includes(id)).map(c => `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`).join('')}</div>` : `<p>${t('no-clergy')}</p>`}
-            </div>
-            <div id="templeSchools" style="display: ${activeTab === 'schools' ? 'block' : 'none'}; background: var(--card-bg); padding: 1rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 2px 8px var(--shadow);">
-                <h3 style="margin-bottom: 0.5rem;">Воскресные школы</h3>
-                ${data.sundaySchools.filter(s => s.templeId === id).length ? `<div>${data.sundaySchools.filter(s => s.templeId === id).map(s => `<div style="margin-bottom:0.5rem;"><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.type)})<br>${escapeHtml(s.description||'')}</div>`).join('')}</div>` : `<p>${t('no-sunday-schools')}</p>`}
-            </div>
         </div>
     `;
     container.innerHTML = html;
 
-    // Обработчики для кнопок вкладок (сохраняем состояние)
     container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
-            setStoredTab(storageKey, tab);
-            // Скрываем все блоки
-            ['templeSchedule', 'templeContacts', 'templeClergy', 'templeSchools'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.display = 'none';
-            });
-            // Показываем нужный
-            const targetMap = {
-                'schedule': 'templeSchedule',
-                'contacts': 'templeContacts',
-                'clergy': 'templeClergy',
-                'schools': 'templeSchools'
-            };
-            const targetId = targetMap[tab];
-            if (targetId) {
-                const el = document.getElementById(targetId);
-                if (el) el.style.display = 'block';
-            }
+            openTempleModal(tab, id);
         });
     });
 
-    // Обработчики для кнопок истории
     const historyBtns = container.querySelectorAll('.history-btn');
     const historyTabs = {
         'history': document.getElementById('tab-history'),
@@ -684,14 +732,6 @@ function renderTempleDetail(container, id) {
             Object.keys(historyTabs).forEach(key => {
                 historyTabs[key].style.display = key === tab ? 'block' : 'none';
             });
-        });
-    });
-
-    // Клик по карточке священника
-    container.querySelectorAll('.clergy-card').forEach(el => {
-        el.addEventListener('click', function() {
-            const cid = parseInt(this.dataset.id);
-            window.location.href = `clergy-detail.html?id=${cid}`;
         });
     });
 }
@@ -858,12 +898,13 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// ---------- БОГОСЛУЖЕНИЯ (с вкладкой "Святые дня") ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
         { id: 'prayers', label: 'Молитвослов' },
         { id: 'calendar', label: 'Календарь' },
+        { id: 'saints', label: 'Святые дня' },
         { id: 'interpretations', label: 'Толкования' },
         { id: 'sacraments', label: 'Подготовка к таинствам' }
     ];
@@ -893,6 +934,31 @@ function renderWorshipPage(container) {
                 <iframe src="https://script.pravoslavie.ru/icon.php" style="width:100%; height:400px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe>
             </div>
             <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Календарь и икона дня с сайта Православие.Ru</p>
+        </div>
+    </div>`;
+
+    // Вкладка "Святые дня" с виджетом от Азбука.ру
+    html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">
+        <div class="saints-widget-container">
+            <h3>Святые дня</h3>
+            <div class="azbyka-saints"></div>
+            <script>
+                window.___azcfg = {
+                    api: 'https://azbyka.ru/days/widgets',
+                    css: 'https://azbyka.ru/days/css/api.min.css',
+                    image: '1',
+                    prevNextLinks: '1'
+                };
+                (function() {
+                    var el = document.createElement('script');
+                    el.type = 'text/javascript';
+                    el.async = true;
+                    el.src = 'https://azbyka.ru/days/js/api.min.js';
+                    var s = document.getElementsByTagName('script')[0];
+                    s.parentNode.insertBefore(el, s);
+                })();
+            </script>
+            <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Список святых на сегодня по церковному календарю (Азбука.ру)</p>
         </div>
     </div>`;
 
@@ -929,8 +995,37 @@ function renderWorshipPage(container) {
             container.querySelectorAll('.worship-block').forEach(block => block.classList.remove('active'));
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
+
+            // При переключении на вкладку "saints" повторно инициализируем виджет
+            if (tabId === 'saints') {
+                if (!window.___azbyka_loaded) {
+                    if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
+                        var el = document.createElement('script');
+                        el.type = 'text/javascript';
+                        el.async = true;
+                        el.src = 'https://azbyka.ru/days/js/api.min.js';
+                        document.head.appendChild(el);
+                    }
+                    window.___azbyka_loaded = true;
+                }
+            }
         });
     });
+
+    if (activeTab === 'saints') {
+        setTimeout(() => {
+            if (!window.___azbyka_loaded) {
+                if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
+                    var el = document.createElement('script');
+                    el.type = 'text/javascript';
+                    el.async = true;
+                    el.src = 'https://azbyka.ru/days/js/api.min.js';
+                    document.head.appendChild(el);
+                }
+                window.___azbyka_loaded = true;
+            }
+        }, 100);
+    }
 
     const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
     if (activeBtn) {
