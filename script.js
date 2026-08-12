@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (добавлена вкладка "Святые дня")
+//  script.js – ПОЛНАЯ ВЕРСИЯ (с обновлённым меню и удалёнными вкладками)
 // ============================================================
 
 console.log('script.js загружен');
@@ -361,7 +361,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (FULL-SCREEN MENU) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -391,62 +391,215 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
+    // Гамбургер
     const hamburger = document.createElement('div');
     hamburger.className = 'hamburger';
     hamburger.id = 'hamburger';
     hamburger.innerHTML = '<span></span><span></span><span></span>';
+    hamburger.setAttribute('aria-label', 'Открыть меню');
     nav.appendChild(hamburger);
 
-    const mobileMenu = document.createElement('div');
-    mobileMenu.className = 'mobile-menu';
-    mobileMenu.id = 'mobileMenu';
+    // Полноэкранное меню (overlay)
+    const overlay = document.createElement('div');
+    overlay.className = 'fullscreen-menu';
+    overlay.id = 'fullscreenMenu';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.95);
+        z-index: 1000;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        box-sizing: border-box;
+    `;
+    // Крестик закрытия
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'mobile-menu-close';
+    closeBtn.className = 'fullscreen-close';
     closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 2.5rem;
+        color: white;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem 1rem;
+        font-family: sans-serif;
+    `;
     closeBtn.setAttribute('aria-label', 'Закрыть меню');
-    mobileMenu.appendChild(closeBtn);
+    overlay.appendChild(closeBtn);
+
+    // Ссылки внутри overlay
+    const linksContainer = document.createElement('div');
+    linksContainer.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        align-items: center;
+        width: 100%;
+        max-width: 400px;
+    `;
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
         a.dataset.page = l.page;
         a.textContent = l.text;
-        mobileMenu.appendChild(a);
+        a.style.cssText = `
+            color: white;
+            font-size: 1.8rem;
+            font-family: var(--font, Georgia, serif);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.3s, opacity 0.3s;
+            width: 100%;
+            text-align: center;
+            letter-spacing: 0.5px;
+        `;
+        a.addEventListener('mouseenter', () => a.style.borderBottomColor = '#c9aa5f');
+        a.addEventListener('mouseleave', () => a.style.borderBottomColor = 'transparent');
+        linksContainer.appendChild(a);
     });
-    nav.appendChild(mobileMenu);
+    overlay.appendChild(linksContainer);
 
-    topBar.insertBefore(nav, tools);
+    // Добавляем overlay в body (вне nav)
+    document.body.appendChild(overlay);
 
+    // Обработчики для гамбургера
     const hamburgerBtn = document.getElementById('hamburger');
-    const mobileMenuEl = document.getElementById('mobileMenu');
-    const closeBtnEl = mobileMenuEl.querySelector('.mobile-menu-close');
-    if (hamburgerBtn && mobileMenuEl) {
-        const toggleMenu = () => {
-            hamburgerBtn.classList.toggle('active');
-            mobileMenuEl.classList.toggle('active');
-            document.body.classList.toggle('menu-open');
-        };
-        hamburgerBtn.addEventListener('click', toggleMenu);
-        closeBtnEl.addEventListener('click', toggleMenu);
-        mobileMenuEl.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', function() {
-                hamburgerBtn.classList.remove('active');
-                mobileMenuEl.classList.remove('active');
-                document.body.classList.remove('menu-open');
-            });
-        });
-        document.addEventListener('click', function(e) {
-            if (!mobileMenuEl.contains(e.target) && !hamburgerBtn.contains(e.target)) {
-                hamburgerBtn.classList.remove('active');
-                mobileMenuEl.classList.remove('active');
-                document.body.classList.remove('menu-open');
-            }
-        });
+    const overlayEl = document.getElementById('fullscreenMenu');
+    const closeBtnEl = overlayEl.querySelector('.fullscreen-close');
+
+    function toggleMenu(e) {
+        e.preventDefault();
+        const isOpen = overlayEl.style.display === 'flex';
+        overlayEl.style.display = isOpen ? 'none' : 'flex';
+        hamburgerBtn.classList.toggle('active', !isOpen);
+        document.body.style.overflow = isOpen ? '' : 'hidden';
     }
 
+    // Поддержка click и touchstart
+    hamburgerBtn.addEventListener('click', toggleMenu);
+    hamburgerBtn.addEventListener('touchstart', function(e) {
+        e.preventDefault(); // чтобы не было дублирования
+        toggleMenu(e);
+    }, { passive: false });
+
+    closeBtnEl.addEventListener('click', function(e) {
+        e.preventDefault();
+        overlayEl.style.display = 'none';
+        hamburgerBtn.classList.remove('active');
+        document.body.style.overflow = '';
+    });
+    closeBtnEl.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        overlayEl.style.display = 'none';
+        hamburgerBtn.classList.remove('active');
+        document.body.style.overflow = '';
+    }, { passive: false });
+
+    // Закрытие при клике на фон (на сам overlay, но не на ссылки)
+    overlayEl.addEventListener('click', function(e) {
+        if (e.target === this) {
+            overlayEl.style.display = 'none';
+            hamburgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Закрытие при клике на ссылку
+    overlayEl.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', function() {
+            overlayEl.style.display = 'none';
+            hamburgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+    });
+
+    // При ресайзе окна – если меню открыто, закрываем (опционально)
+    window.addEventListener('resize', function() {
+        if (window.innerWidth > 768 && overlayEl.style.display === 'flex') {
+            overlayEl.style.display = 'none';
+            hamburgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Вставляем nav перед tools
+    topBar.insertBefore(nav, tools);
+
+    // Активная страница
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
+
+    // Добавляем базовый CSS для гамбургера (если его нет в style.css, продублируем здесь)
+    // Так как мы не можем изменять style.css в этом скрипте, добавим стили динамически
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        .hamburger {
+            display: block;
+            cursor: pointer;
+            width: 30px;
+            height: 24px;
+            position: relative;
+            z-index: 1001;
+            margin-left: auto;
+        }
+        .hamburger span {
+            display: block;
+            position: absolute;
+            height: 3px;
+            width: 100%;
+            background: var(--text, #2c2a24);
+            border-radius: 2px;
+            opacity: 1;
+            left: 0;
+            transition: 0.25s ease-in-out;
+        }
+        .hamburger span:nth-child(1) { top: 0px; }
+        .hamburger span:nth-child(2) { top: 10px; }
+        .hamburger span:nth-child(3) { top: 20px; }
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg);
+            top: 10px;
+            background: white;
+        }
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+            width: 0;
+        }
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg);
+            top: 10px;
+            background: white;
+        }
+        .fullscreen-menu {
+            display: none;
+        }
+        .fullscreen-menu a {
+            color: white !important;
+            font-size: 1.8rem;
+        }
+        @media (min-width: 769px) {
+            .hamburger {
+                display: none !important;
+            }
+            .fullscreen-menu {
+                display: none !important;
+            }
+        }
+    `;
+    document.head.appendChild(styleEl);
 }
 
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
@@ -575,7 +728,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ----------
+// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (с увеличенными фото) ----------
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -628,7 +781,12 @@ function openTempleModal(tab, templeId) {
             if (clergy.length) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
-                    content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer;"><img src="${escapeHtml(c.photo||'placeholder.jpg')}"><div><strong>${escapeHtml(c.name)}</strong></div><div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div></div>`;
+                    // Увеличиваем фото до 200x200
+                    content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer; text-align:center;">
+                        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:200px; height:200px; border-radius:50%; object-fit:cover; margin-bottom:0.5rem;">
+                        <div><strong>${escapeHtml(c.name)}</strong></div>
+                        <div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div>
+                    </div>`;
                 });
                 content += `</div>`;
             } else {
@@ -823,7 +981,7 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ВОСКРЕСНЫЕ ШКОЛЫ (БЕЗ ФОТО) ----------
+// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
         <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
@@ -898,13 +1056,11 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (с вкладкой "Святые дня") ----------
+// ---------- БОГОСЛУЖЕНИЯ (без вкладок "Календарь" и "Святые дня") ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
         { id: 'prayers', label: 'Молитвослов' },
-        { id: 'calendar', label: 'Календарь' },
-        { id: 'saints', label: 'Святые дня' },
         { id: 'interpretations', label: 'Толкования' },
         { id: 'sacraments', label: 'Подготовка к таинствам' }
     ];
@@ -925,43 +1081,6 @@ function renderWorshipPage(container) {
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-
-    html += `<div class="worship-block ${activeTab === 'calendar' ? 'active' : ''}" id="worship-calendar">
-        <div class="worship-calendar-container">
-            <h3>${t('calendar-title')}</h3>
-            <iframe src="https://script.pravoslavie.ru/calendar.php" style="width:100%; height:600px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe>
-            <div style="margin-top:1.5rem;">
-                <iframe src="https://script.pravoslavie.ru/icon.php" style="width:100%; height:400px; border:none; border-radius:16px; box-shadow:0 4px 12px var(--shadow);"></iframe>
-            </div>
-            <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Календарь и икона дня с сайта Православие.Ru</p>
-        </div>
-    </div>`;
-
-    // Вкладка "Святые дня" с виджетом от Азбука.ру
-    html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">
-        <div class="saints-widget-container">
-            <h3>Святые дня</h3>
-            <div class="azbyka-saints"></div>
-            <script>
-                window.___azcfg = {
-                    api: 'https://azbyka.ru/days/widgets',
-                    css: 'https://azbyka.ru/days/css/api.min.css',
-                    image: '1',
-                    prevNextLinks: '1'
-                };
-                (function() {
-                    var el = document.createElement('script');
-                    el.type = 'text/javascript';
-                    el.async = true;
-                    el.src = 'https://azbyka.ru/days/js/api.min.js';
-                    var s = document.getElementsByTagName('script')[0];
-                    s.parentNode.insertBefore(el, s);
-                })();
-            </script>
-            <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Список святых на сегодня по церковному календарю (Азбука.ру)</p>
-        </div>
-    </div>`;
-
     html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
@@ -995,37 +1114,8 @@ function renderWorshipPage(container) {
             container.querySelectorAll('.worship-block').forEach(block => block.classList.remove('active'));
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
-
-            // При переключении на вкладку "saints" повторно инициализируем виджет
-            if (tabId === 'saints') {
-                if (!window.___azbyka_loaded) {
-                    if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
-                        var el = document.createElement('script');
-                        el.type = 'text/javascript';
-                        el.async = true;
-                        el.src = 'https://azbyka.ru/days/js/api.min.js';
-                        document.head.appendChild(el);
-                    }
-                    window.___azbyka_loaded = true;
-                }
-            }
         });
     });
-
-    if (activeTab === 'saints') {
-        setTimeout(() => {
-            if (!window.___azbyka_loaded) {
-                if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
-                    var el = document.createElement('script');
-                    el.type = 'text/javascript';
-                    el.async = true;
-                    el.src = 'https://azbyka.ru/days/js/api.min.js';
-                    document.head.appendChild(el);
-                }
-                window.___azbyka_loaded = true;
-            }
-        }, 100);
-    }
 
     const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
     if (activeBtn) {
