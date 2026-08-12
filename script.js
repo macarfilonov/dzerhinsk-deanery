@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (навигация исправлена, ИИ заглушен)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (ИСПРАВЛЕННАЯ НАВИГАЦИЯ, ИИ ЗАГЛУШЕН)
 // ============================================================
 
 console.log('script.js загружен');
@@ -22,7 +22,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const db = firebase.database();
 
 // ========== НАСТРОЙКИ ИИ (заглушка) ==========
-// Теперь ИИ всегда возвращает фиксированный ответ
 const AI_API_URL = null; // отключаем реальный вызов
 
 // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
@@ -362,14 +361,18 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ИСПРАВЛЕННАЯ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
-    // Удаляем старую навигацию, если есть
+    // Удаляем старую навигацию
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
+
+    // Удаляем старый overlay, если есть
+    const oldOverlay = document.getElementById('fullscreenMenu');
+    if (oldOverlay) oldOverlay.remove();
 
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
@@ -408,7 +411,10 @@ function rebuildNav() {
     hamburger.setAttribute('aria-label', 'Открыть меню');
     nav.appendChild(hamburger);
 
-    // Полноэкранное меню (overlay)
+    // Вставляем nav перед tools
+    topBar.insertBefore(nav, tools);
+
+    // Создаём overlay и добавляем в body
     const overlay = document.createElement('div');
     overlay.className = 'fullscreen-menu';
     overlay.id = 'fullscreenMenu';
@@ -480,10 +486,15 @@ function rebuildNav() {
 
     document.body.appendChild(overlay);
 
-    // Обработчики для гамбургера
+    // Теперь все элементы в DOM – можно получить их и назначить обработчики
     const hamburgerBtn = document.getElementById('hamburger');
     const overlayEl = document.getElementById('fullscreenMenu');
     const closeBtnEl = overlayEl.querySelector('.fullscreen-close');
+
+    if (!hamburgerBtn || !overlayEl || !closeBtnEl) {
+        console.error('Не удалось найти элементы навигации');
+        return;
+    }
 
     function toggleMenu(e) {
         e.preventDefault();
@@ -528,9 +539,6 @@ function rebuildNav() {
         });
     });
 
-    // Вставляем nav перед tools
-    topBar.insertBefore(nav, tools);
-
     // Устанавливаем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
@@ -541,13 +549,10 @@ function rebuildNav() {
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
-        // Ссылки (кроме гамбургера) – показываем на десктопе, скрываем на мобильных
         nav.querySelectorAll('a.nav-link').forEach(a => {
             a.style.display = isMobile ? 'none' : 'inline-block';
         });
-        // Гамбургер – показываем только на мобильных
         hamburgerBtn.style.display = isMobile ? 'block' : 'none';
-        // Если меню открыто на десктопе – закрываем
         if (!isMobile && overlayEl.style.display === 'flex') {
             overlayEl.style.display = 'none';
             hamburgerBtn.classList.remove('active');
@@ -555,7 +560,6 @@ function rebuildNav() {
         }
     }
 
-    // Вызываем при загрузке и при изменении размера
     updateNavVisibility();
     window.addEventListener('resize', updateNavVisibility);
 }
@@ -1115,7 +1119,6 @@ function renderFaqPage(container) {
         });
     }
     html += `</div>`;
-    // AI-блок (заглушен) – показываем только если есть права, но с фиктивным ответом
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
@@ -1184,7 +1187,7 @@ async function askAI() {
     answerDiv.style.display = 'block';
     contentDiv.textContent = '⏳ ИИ думает...';
     
-    // Заглушка – возвращаем фиктивный ответ через 1 секунду
+    // Заглушка
     setTimeout(() => {
         contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
     }, 1000);
