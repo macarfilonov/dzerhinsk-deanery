@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (ИСПРАВЛЕННАЯ НАВИГАЦИЯ, ИИ ЗАГЛУШЕН)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (фото священников 300x300, учителя заглушены)
 // ============================================================
 
 console.log('script.js загружен');
@@ -277,6 +277,13 @@ function migrateData() {
     if (!data.aboutText) data.aboutText = '';
     if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
     setDefaultPhotos();
+
+    // === ДОБАВЛЕНО: принудительно заменяем фото учителей на placeholder, чтобы избежать 404 ===
+    data.teachers.forEach(t => {
+        if (t.photo && t.photo !== 'placeholder.jpg' && !t.photo.startsWith('http')) {
+            t.photo = 'placeholder.jpg';
+        }
+    });
 }
 
 function saveData() { saveToLocalStorage(); saveToFirebase(); }
@@ -318,10 +325,11 @@ function initDefaultData() {
             { id: 1, name: 'Воскресная школа при храме Преображения Господня, аг.\u00A0Черкассы', type: 'ВРШ', description: 'Директор: Кололо Анна Григорьевна, тел. +375 (29) 681-23-27', templeId: 6, photo: 'placeholder.jpg' },
             { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна', templeId: 1, photo: 'placeholder.jpg' }
         ],
+        // === ИЗМЕНЕНИЕ: фото учителей заменены на placeholder.jpg ===
         teachers: [
-            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
-            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
-            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 }
+            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'placeholder.jpg', schoolId: 1 },
+            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'placeholder.jpg', schoolId: 2 },
+            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'placeholder.jpg', schoolId: 2 }
         ],
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
@@ -361,23 +369,20 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ИСПРАВЛЕННАЯ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
-    // Удаляем старую навигацию
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
 
-    // Удаляем старый overlay, если есть
     const oldOverlay = document.getElementById('fullscreenMenu');
     if (oldOverlay) oldOverlay.remove();
 
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
-    // Создаём новый nav
     const nav = document.createElement('nav');
     nav.id = 'mainNav';
 
@@ -393,7 +398,6 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
-    // Обычные ссылки (десктоп)
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
@@ -403,7 +407,6 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
-    // Гамбургер (мобильный)
     const hamburger = document.createElement('div');
     hamburger.className = 'hamburger';
     hamburger.id = 'hamburger';
@@ -411,10 +414,8 @@ function rebuildNav() {
     hamburger.setAttribute('aria-label', 'Открыть меню');
     nav.appendChild(hamburger);
 
-    // Вставляем nav перед tools
     topBar.insertBefore(nav, tools);
 
-    // Создаём overlay и добавляем в body
     const overlay = document.createElement('div');
     overlay.className = 'fullscreen-menu';
     overlay.id = 'fullscreenMenu';
@@ -433,7 +434,6 @@ function rebuildNav() {
         padding: 2rem;
         box-sizing: border-box;
     `;
-    // Крестик закрытия
     const closeBtn = document.createElement('button');
     closeBtn.className = 'fullscreen-close';
     closeBtn.innerHTML = '✕';
@@ -452,7 +452,6 @@ function rebuildNav() {
     closeBtn.setAttribute('aria-label', 'Закрыть меню');
     overlay.appendChild(closeBtn);
 
-    // Ссылки внутри overlay
     const linksContainer = document.createElement('div');
     linksContainer.style.cssText = `
         display: flex;
@@ -486,7 +485,6 @@ function rebuildNav() {
 
     document.body.appendChild(overlay);
 
-    // Теперь все элементы в DOM – можно получить их и назначить обработчики
     const hamburgerBtn = document.getElementById('hamburger');
     const overlayEl = document.getElementById('fullscreenMenu');
     const closeBtnEl = overlayEl.querySelector('.fullscreen-close');
@@ -539,13 +537,11 @@ function rebuildNav() {
         });
     });
 
-    // Устанавливаем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
-    // Управление видимостью в зависимости от ширины окна
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
@@ -690,7 +686,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (с увеличенными фото) ----------
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -743,9 +739,9 @@ function openTempleModal(tab, templeId) {
             if (clergy.length) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
-                    // Увеличиваем фото до 200x200
+                    // === ИЗМЕНЕНИЕ: фото увеличены до 300x300 ===
                     content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer; text-align:center;">
-                        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:200px; height:200px; border-radius:50%; object-fit:cover; margin-bottom:0.5rem;">
+                        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:300px; height:300px; border-radius:50%; object-fit:cover; margin-bottom:0.5rem;">
                         <div><strong>${escapeHtml(c.name)}</strong></div>
                         <div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div>
                     </div>`;
