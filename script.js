@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ИТОГОВАЯ ВЕРСИЯ (увеличены фото, исправлены вкладки)
+//  script.js – ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ (вкладки работают)
 // ============================================================
 
 console.log('script.js загружен');
@@ -449,10 +449,20 @@ function rebuildNav() {
     });
 }
 
-// ========== РЕНДЕРИНГ СТРАНИЦ ==========
+// ========== РЕНДЕРИНГ СТРАНИЦ (С ПРОВЕРКОЙ НА window.templeId) ==========
 function renderCurrentPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
+
+    // Если это детальная страница храма (используется window.templeId)
+    if (typeof window.templeId !== 'undefined' && window.templeId !== null) {
+        renderTempleDetail(container, window.templeId);
+        updateNavActive('temples');
+        applyTranslations();
+        updateVisionUI();
+        return;
+    }
+
     const page = document.body.dataset.page || 'main';
     const urlParams = new URLSearchParams(window.location.search);
     const id = urlParams.get('id');
@@ -566,7 +576,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (увеличены фото, исправлены вкладки) ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с увеличенным фото и сохранением вкладки) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
