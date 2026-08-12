@@ -404,7 +404,8 @@ img {
 
 .temple-detail-hero {
     position: relative;
-    min-height: 300px;
+    min-height: 70vh;
+    height: 500px;
     background-size: cover;
     background-position: center;
     border-radius: 24px;
@@ -429,7 +430,7 @@ img {
 }
 .temple-detail-hero .content h1 { font-size: 2.5rem; font-family: 'Cormorant Uncial', serif; margin-bottom: 0.5rem; }
 .temple-detail-hero .content .address { font-size: 1.2rem; opacity: 0.9; margin-bottom: 1.5rem; }
-.temple-detail-hero .action-buttons {
+.temple-detail-hero .content .action-buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 0.8rem;
@@ -565,7 +566,7 @@ img {
 /* ========== ВОСКРЕСНЫЕ ШКОЛЫ ========== */
 .type { font-size: 0.85rem; color: var(--gold); margin-top: 0.2rem; }
 
-/* ========== ГЛАВНАЯ ========== */
+/* ========== ГЛАВНАЯ (карусель – полные названия) ========== */
 .hero-banner {
     position: relative;
     height: 100vh;
@@ -634,7 +635,17 @@ img {
 }
 .carousel-item:hover { transform: scale(1.02); }
 .carousel-item img { width: 100%; height: 160px; object-fit: cover; }
-.carousel-item .info { padding: 0.8rem; text-align: center; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* !!! ПОЛНЫЕ НАЗВАНИЯ – убираем обрезку !!! */
+.carousel-item .info {
+    padding: 0.8rem;
+    text-align: center;
+    font-size: 0.95rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-wrap: break-word;
+    max-height: 80px;
+}
 .carousel-btn {
     position: absolute;
     top: 50%;
