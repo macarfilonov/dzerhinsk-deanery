@@ -1,3 +1,4 @@
+// netlify/functions/groq-ai.js
 exports.handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
@@ -14,18 +15,24 @@ exports.handler = async (event) => {
             return { statusCode: 400, headers, body: JSON.stringify({ error: 'Вопрос не задан' }) };
         }
 
-        const GROQ_API_KEY = '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';
+        // Ваш ключ OpenRouter
+        const OPENROUTER_API_KEY = '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';
 
-        //Можно использовать разные модели:
-        // 'llama-3.3-70b-versatile' - самая мощная (но лимит 1000 запросов/день)
-        // 'mixtral-8x7b-32768' - хорошая, быстрая
-        // 'gemma2-9b-it' - лёгкая, быстрая
-        const MODEL = 'llama-3.3-70b-versatile';
-        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        // Модели Groq через OpenRouter:
+        // 'groq/mixtral-8x7b-32768' — хорошая, быстрая
+        // 'groq/llama-3.3-70b-versatile' — мощная
+        // 'groq/gemma2-9b-it' — лёгкая
+        // Также можно использовать другие модели: 'openai/gpt-3.5-turbo', 'anthropic/claude-3-haiku' и т.д.
+        const MODEL = 'groq/mixtral-8x7b-32768';
+
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${GROQ_API_KEY}`,
-                'Content-Type': 'application/json'
+                'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+                'Content-Type': 'application/json',
+                // Опционально: идентификатор вашего сайта для OpenRouter
+                'HTTP-Referer': 'https://ваш-сайт.netlify.app',
+                'X-Title': 'Дзержинское благочиние'
             },
             body: JSON.stringify({
                 model: MODEL,
@@ -37,7 +44,7 @@ exports.handler = async (event) => {
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(`Groq API error: ${response.status} - ${errorText}`);
+            throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
@@ -51,7 +58,7 @@ exports.handler = async (event) => {
             })
         };
     } catch (error) {
-        console.error('Groq error:', error);
+        console.error('OpenRouter error:', error);
         return {
             statusCode: 500,
             headers,
