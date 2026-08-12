@@ -383,7 +383,6 @@ function rebuildNav() {
         { page: 'worship', text: 'Богослужения' },
         { page: 'opechenie', text: 'Окормление' }
     ];
-    // Обычные ссылки (видны на десктопе)
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
@@ -392,7 +391,7 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
-    // Гамбургер (будет виден только на мобильных)
+    // Гамбургер
     const hamburger = document.createElement('div');
     hamburger.className = 'hamburger';
     hamburger.id = 'hamburger';
@@ -534,7 +533,6 @@ function rebuildNav() {
     // Динамические стили: гамбургер и overlay видны только на экранах меньше 769px
     const styleEl = document.createElement('style');
     styleEl.textContent = `
-        /* Гамбургер и overlay по умолчанию скрыты на больших экранах */
         .hamburger {
             display: none;
             cursor: pointer;
@@ -579,11 +577,8 @@ function rebuildNav() {
             .hamburger {
                 display: block !important;
             }
-            .fullscreen-menu {
-                display: none; /* по умолчанию скрыт, открывается по клику */
-            }
             .top-bar nav a:not(.hamburger):not(.fullscreen-menu a) {
-                display: none; /* скрываем обычные ссылки на мобильных */
+                display: none;
             }
         }
         @media (min-width: 769px) {
@@ -594,7 +589,7 @@ function rebuildNav() {
                 display: none !important;
             }
             .top-bar nav a:not(.hamburger) {
-                display: inline-block !important; /* показываем обычные ссылки на десктопе */
+                display: inline-block !important;
             }
         }
     `;
@@ -2031,4 +2026,293 @@ function renderAdminWorship(container) {
             const item = { title, text };
             let targetArray;
             if (type === 'prayer') targetArray = data.worship.prayers;
-            else if (type === 'interpret') targetArray = data
+            else if (type === 'interpret') targetArray = data.worship.interpretations;
+            else if (type === 'sacrament') targetArray = data.worship.sacraments;
+            else return;
+            if (id) {
+                const exist = targetArray.find(i => i.id == id);
+                if (exist) Object.assign(exist, item);
+            } else {
+                item.id = Date.now() + Math.random()*1000;
+                targetArray.push(item);
+            }
+            saveData();
+            document.getElementById('adminWorshipForm').style.display = 'none';
+            renderAdminWorship(container);
+        }
+        if (target.classList.contains('admin-worship-delete')) {
+            const type = target.dataset.type;
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            let targetArray;
+            if (type === 'prayer') targetArray = data.worship.prayers;
+            else if (type === 'interpret') targetArray = data.worship.interpretations;
+            else if (type === 'sacrament') targetArray = data.worship.sacraments;
+            else return;
+            data.worship[type === 'prayer' ? 'prayers' : type === 'interpret' ? 'interpretations' : 'sacraments'] = targetArray.filter(i => i.id !== id);
+            saveData();
+            renderAdminWorship(container);
+        }
+        if (target.classList.contains('admin-worship-edit')) {
+            const type = target.dataset.type;
+            const id = parseInt(target.dataset.id);
+            let targetArray;
+            if (type === 'prayer') targetArray = data.worship.prayers;
+            else if (type === 'interpret') targetArray = data.worship.interpretations;
+            else if (type === 'sacrament') targetArray = data.worship.sacraments;
+            else return;
+            const item = targetArray.find(i => i.id === id);
+            if (item) openForm(type, item);
+        }
+    });
+}
+function renderPrayersTable() {
+    const prayers = data.worship.prayers || [];
+    if (!prayers.length) return '<p>Молитв нет</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Действия</th></tr></thead><tbody>`;
+    prayers.forEach(p => {
+        table += `<tr><td>${escapeHtml(p.title)}</td>
+            <td><button class="btn btn-sm admin-worship-edit" data-type="prayer" data-id="${p.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-worship-delete" data-type="prayer" data-id="${p.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+function renderInterpretationsTable() {
+    const items = data.worship.interpretations || [];
+    if (!items.length) return '<p>Толкований нет</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Действия</th></tr></thead><tbody>`;
+    items.forEach(i => {
+        table += `<tr><td>${escapeHtml(i.title)}</td>
+            <td><button class="btn btn-sm admin-worship-edit" data-type="interpret" data-id="${i.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-worship-delete" data-type="interpret" data-id="${i.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+function renderSacramentsTable() {
+    const items = data.worship.sacraments || [];
+    if (!items.length) return '<p>Материалов нет</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Действия</th></tr></thead><tbody>`;
+    items.forEach(i => {
+        table += `<tr><td>${escapeHtml(i.title)}</td>
+            <td><button class="btn btn-sm admin-worship-edit" data-type="sacrament" data-id="${i.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-worship-delete" data-type="sacrament" data-id="${i.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+function renderAdminUsers(container) {
+    let html = `<h3>${t('admin-users')}</h3>
+        <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
+        <div id="adminUserList">${renderUserTable()}</div>
+        <div id="adminUserForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="userFormTitle">${t('add-user')}</h4>
+            <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>${t('password')}</label><input type="password" id="userFormPassword" style="width:100%; padding:0.4rem;" placeholder="${t('password')}"></div>
+            <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
+            <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
+            <input type="hidden" id="userFormEditId" value="">
+            <button id="userFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="userFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    document.getElementById('userFormRole').addEventListener('change', function() {
+        const role = this.value;
+        const perms = rolePermissions[role] || [];
+        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+    });
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddUserBtn') {
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('add-user');
+            document.getElementById('userFormUsername').value = '';
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = 'junior';
+            document.getElementById('userFormEditId').value = '';
+            const perms = rolePermissions['junior'] || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+        if (target.id === 'userFormCancelBtn') document.getElementById('adminUserForm').style.display = 'none';
+        if (target.id === 'userFormSaveBtn') {
+            const editId = document.getElementById('userFormEditId').value;
+            const username = document.getElementById('userFormUsername').value.trim();
+            const password = document.getElementById('userFormPassword').value.trim();
+            const role = document.getElementById('userFormRole').value;
+            const checkedPerms = [];
+            document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
+            if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
+            if (!username) { alert('Введите логин'); return; }
+            if (data.users.find(u => u.username === username && u.id != editId)) { alert('Пользователь с таким логином уже существует'); return; }
+            if (editId) {
+                const u = data.users.find(u => u.id == editId);
+                if (u) { u.username = username; if (password) u.password = password; u.role = role; u.permissions = checkedPerms; }
+            } else {
+                if (!password) { alert('Введите пароль'); return; }
+                data.users.push({ id: nextId.user++, username, password, role, permissions: checkedPerms });
+            }
+            saveData();
+            document.getElementById('adminUserForm').style.display = 'none';
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-delete-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            if (u.id === currentUser.id) { alert('Нельзя удалить себя'); return; }
+            if (!confirm(t('confirm-delete'))) return;
+            data.users = data.users.filter(u => u.id !== id);
+            saveData();
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-edit-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('edit-user');
+            document.getElementById('userFormUsername').value = u.username;
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = u.role;
+            document.getElementById('userFormEditId').value = u.id;
+            const perms = u.permissions || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+    });
+}
+function renderUserTable() {
+    if (!data.users.length) return `<p>${t('no-users')}</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
+    data.users.forEach(u => {
+        const roleLabel = t('role-'+u.role) || u.role;
+        const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
+        const isSelf = u.id === currentUser?.id;
+        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+function renderAdminOpechenie(container) {
+    let html = `<h3>Управление окормлением</h3>
+        <button id="adminOpechenieAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объект</button>
+        <div id="adminOpechenieList">${renderOpechenieTable()}</div>
+        <div id="adminOpechenieForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="opechenieFormTitle">Добавить объект</h4>
+            <input type="hidden" id="opechenieFormId">
+            <div class="form-group"><label>Название</label><input type="text" id="opechenieFormName" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Ответственный</label><input type="text" id="opechenieFormResponsible" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Описание</label><textarea id="opechenieFormDesc" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Храм (ID)</label><input type="number" id="opechenieFormTemple" style="width:100%; padding:0.4rem;"></div>
+            <button id="opechenieFormSaveBtn" class="btn">Сохранить</button>
+            <button id="opechenieFormCancelBtn" class="btn btn-sm">Отмена</button>
+        </div>`;
+    container.innerHTML = html;
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminOpechenieAddBtn') {
+            document.getElementById('opechenieFormTitle').textContent = 'Добавить объект';
+            document.getElementById('opechenieFormId').value = '';
+            ['Name','Responsible','Desc','Temple'].forEach(f => document.getElementById('opechenieForm'+f).value = '');
+            document.getElementById('adminOpechenieForm').style.display = 'block';
+        }
+        if (target.id === 'opechenieFormCancelBtn') document.getElementById('adminOpechenieForm').style.display = 'none';
+        if (target.id === 'opechenieFormSaveBtn') {
+            const id = document.getElementById('opechenieFormId').value;
+            const item = {
+                name: document.getElementById('opechenieFormName').value.trim(),
+                responsible: document.getElementById('opechenieFormResponsible').value.trim(),
+                description: document.getElementById('opechenieFormDesc').value.trim(),
+                templeId: parseInt(document.getElementById('opechenieFormTemple').value) || 0
+            };
+            if (!item.name) { alert('Название обязательно'); return; }
+            if (id) {
+                const exist = data.opechenie.find(o => o.id == id);
+                if (exist) Object.assign(exist, item);
+            } else {
+                item.id = nextId.opechenie++;
+                data.opechenie.push(item);
+            }
+            saveData();
+            document.getElementById('adminOpechenieForm').style.display = 'none';
+            renderAdminOpechenie(container);
+        }
+        if (target.classList.contains('admin-opechenie-delete')) {
+            const id = parseInt(target.dataset.id);
+            if (!confirm('Удалить?')) return;
+            data.opechenie = data.opechenie.filter(o => o.id !== id);
+            saveData();
+            renderAdminOpechenie(container);
+        }
+        if (target.classList.contains('admin-opechenie-edit')) {
+            const id = parseInt(target.dataset.id);
+            const o = data.opechenie.find(o => o.id === id);
+            if (!o) return;
+            document.getElementById('opechenieFormTitle').textContent = 'Редактировать';
+            document.getElementById('opechenieFormId').value = id;
+            document.getElementById('opechenieFormName').value = o.name;
+            document.getElementById('opechenieFormResponsible').value = o.responsible||'';
+            document.getElementById('opechenieFormDesc').value = o.description||'';
+            document.getElementById('opechenieFormTemple').value = o.templeId||'';
+            document.getElementById('adminOpechenieForm').style.display = 'block';
+        }
+    });
+}
+function renderOpechenieTable() {
+    if (!data.opechenie.length) return '<p>Нет данных</p>';
+    let table = `<table class="schedule-table"><thead><tr><th>Название</th><th>Ответственный</th><th>Храм</th><th>Действия</th></tr></thead><tbody>`;
+    data.opechenie.forEach(o => {
+        const templeName = getTempleName(o.templeId);
+        table += `<tr><td>${escapeHtml(o.name)}</td><td>${escapeHtml(o.responsible)}</td><td>${escapeHtml(templeName)}</td>
+            <td><button class="btn btn-sm admin-opechenie-edit" data-id="${o.id}">✏️</button>
+            <button class="btn btn-sm btn-danger admin-opechenie-delete" data-id="${o.id}">🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        el.textContent = t(key);
+    });
+}
+
+// ========== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ==========
+function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
+function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
+function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
+
+// ========== ТРИГГЕРЫ И СТАРТ ==========
+let clickCount = 0, clickTimer = null;
+function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if (clickCount >= 5) { clickCount = 0; clearTimeout(clickTimer); openAdminModal(); } }); }
+function initVisionToggle() { document.getElementById('visionToggle')?.addEventListener('click', toggleVisionMode); }
+function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded');
+    loadData();
+    initAdminTrigger();
+    initVisionToggle();
+    initBackToTop();
+    restoreVisionMode();
+});
+
+// ========== ЭКСПОРТ ==========
+window.renderTempleDetail = renderTempleDetail;
+window.renderClergyDetail = renderClergyDetail;
+window.renderSundaySchoolDetail = renderSundaySchoolDetail;
+window.renderCurrentPage = renderCurrentPage;
+window.t = t;
+window.openAdminModal = openAdminModal;
+window.closeAdminModal = closeAdminModal;
+window.scrollCarousel = scrollCarousel;
+window.askAI = askAI;
+window.adminAskAI = adminAskAI;
