@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (обновлено Окормление по документам)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (со всеми последними изменениями)
 // ============================================================
 
 console.log('script.js загружен');
@@ -53,7 +53,7 @@ let visionMode = false;
 let isDetailPage = false;
 let syncInterval = null;
 
-// ========== СОХРАНЕНИЕ СОСТОЯНИЯ ВКЛАДОК В sessionStorage ==========
+// ========== СОХРАНЕНИЕ СОСТОЯНИЯ ВКЛАДОК ==========
 function getStoredTab(key, defaultTab) {
     return sessionStorage.getItem(key) || defaultTab;
 }
@@ -183,8 +183,9 @@ function getTempleName(id) { const t = data.temples.find(t => t.id === id); retu
 function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
+function fillTempleDropdown() { /* заглушка */ }
 
-// ========== ЗАГРУЗКА / СОХРАНЕНИЕ (с синхронизацией) ==========
+// ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
 function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
@@ -288,14 +289,15 @@ function setDefaultPhotos() {
     data.teachers.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
 }
 
+// ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
 function initDefaultData() {
     data = {
         temples: [
             { id:1, name:'Храм Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г.\u00A0Дзержинск.', address:'Минская область, г.\u00A0Дзержинск, ул.\u00A0Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:2, name:'Храм Вознесения Господня, г.\u00A0Фаниполь', photo:'voznesenie-fanipol.jpg', summary:'Храм Вознесения Господня © Беларусь, Минская область, г.\u00A0Фаниполь.', address:'Минская область, г.\u00A0Фаниполь, ул.\u00A0Школьная, 10', phone:'', email:'', history:'Храм действует с 1990-х годов.', localHistory:'Город Фаниполь – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.315962%2C53.738880&mode=search&oid=1369676511&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:3, name:'Храм святителя Николая Чудотворца, д.\u00A0Станьково', photo:'nikolay-stankovo.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, д.\u00A0Станьково.', address:'Минская область, Дзержинский район, д.\u00A0Станьково, ул.\u00A0Центральная, 5', phone:'', email:'', history:'Храм известен с XIX века.', localHistory:'Деревня Станьково – родина поэта Я. Купалы.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.224496%2C53.630899&mode=search&oid=168232275383&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:5, name:'Храм святителя Николая Чудотворца, п.\u00A0Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, п.\u00A0Энергетиков.', address:'Минская область, Дзержинский район, п.\u00A0Энергетиков, ул.\u00A0Школьная, 3', phone:'', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
-            { id:6, name:'Храм Преображения Господня, аг.\u00A0Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, аг.\u00A0Черкассы.', address:'Минская область, Дзержинский район, аг.\u00A0Черкассы, ул.\u00A0Центральная, 12', phone:'', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:5, name:'Храм святителя Николая Чудотворца, п.\u00A0Энергетиков', photo:'nikolay-energetikov.jpg', summary:'Храм святителя Николая Чудотворца © Беларусь, Минская область, п.\u00A0Энергетиков.', address:'Минская область, Дзержинский район, п.\u00A0Энергетиков, ул.\u00A0Школьная, 3', phone:'+375 (44) 703-10-12', email:'', history:'Храм построен в 1990-е годы.', localHistory:'Посёлок Энергетиков возник при строительстве Минской ТЭЦ-4.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.051849%2C53.583704&mode=search&oid=131806639679&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
+            { id:6, name:'Храм Преображения Господня, аг.\u00A0Черкассы', photo:'preobrazhenie-cherkassy.jpg', summary:'Храм Преображения Господня © Беларусь, Минская область, аг.\u00A0Черкассы.', address:'Минская область, Дзержинский район, аг.\u00A0Черкассы, ул.\u00A0Центральная, 12', phone:'+375 (29) 340-79-67', email:'', history:'Храм построен в начале XX века.', localHistory:'Деревня Черкассы – старинное поселение.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.326526%2C53.758650&mode=search&oid=22143657705&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:7, name:'Храм Новомучеников Белорусских, г.\u00A0Дзержинск', photo:'novomucheniki-dzerzhinsk.jpg', summary:'Храм Новомучеников Белорусских © Беларусь, Минская область, г.\u00A0Дзержинск.', address:'Минская область, г.\u00A0Дзержинск, ул.\u00A0Советская, 45', phone:'', email:'', history:'Новый храм, освящён в 2010-х годах.', localHistory:'Город Дзержинск – центр благочиния.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.110903%2C53.668974&mode=search&oid=14672378090&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
             { id:8, name:'Храм святых бессребреников Космы и Дамиана, п.\u00A0Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, п.\u00A0Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, п.\u00A0Негорелое, ул.\u00A0Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
         ],
@@ -312,8 +314,15 @@ function initDefaultData() {
         schedules: [],
         news: [],
         announcements: [],
-        sundaySchools: [],
-        teachers: [],
+        sundaySchools: [
+            { id: 1, name: 'Воскресная школа при храме Преображения Господня, аг.\u00A0Черкассы', type: 'ВРШ', description: 'Директор: Кололо Анна Григорьевна, тел. +375 (29) 681-23-27', templeId: 6, photo: 'placeholder.jpg' },
+            { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна', templeId: 1, photo: 'placeholder.jpg' }
+        ],
+        teachers: [
+            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
+            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
+            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 }
+        ],
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
         faq: [],
@@ -343,7 +352,7 @@ function initDefaultData() {
             { id: 22, name: 'Войсковая часть 30151, г.\u00A0Фаниполь', responsible: 'командир', description: '', templeId: 0 }
         ]
     };
-    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:1, faq:1, user:2, opechenie:23, teacher:1 };
+    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:2, opechenie:23, teacher:4 };
     setDefaultPhotos();
     saveData();
     renderCurrentPage();
@@ -557,7 +566,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (с сохранением вкладки) ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -834,7 +843,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (с сохранением вкладки) ----------
+// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
