@@ -4,7 +4,7 @@
 
 console.log('script.js загружен');
 
-// ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
+// ========== ПОДКЛЮЧЕНИЕ FIREBASE =========
 const firebaseConfig = {
     apiKey: "AIzaSyA2b1AvOjIdI3iPCF3WAYMO10K4ZpFct7E",
     authDomain: "makar-b244c.firebaseapp.com",
