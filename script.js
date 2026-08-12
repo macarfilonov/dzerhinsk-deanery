@@ -1,10 +1,10 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (фото священников 300x300, учителя заглушены)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (фото священников 300x300, имена файлов сохранены)
 // ============================================================
 
 console.log('script.js загружен');
 
-// ========== ПОДКЛЮЧЕНИЕ FIREBASE =========
+// ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
     apiKey: "AIzaSyA2b1AvOjIdI3iPCF3WAYMO10K4ZpFct7E",
     authDomain: "makar-b244c.firebaseapp.com",
@@ -277,13 +277,7 @@ function migrateData() {
     if (!data.aboutText) data.aboutText = '';
     if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
     setDefaultPhotos();
-
-    // === ДОБАВЛЕНО: принудительно заменяем фото учителей на placeholder, чтобы избежать 404 ===
-    data.teachers.forEach(t => {
-        if (t.photo && t.photo !== 'placeholder.jpg' && !t.photo.startsWith('http')) {
-            t.photo = 'placeholder.jpg';
-        }
-    });
+    // НЕ заменяем фото учителей на placeholder
 }
 
 function saveData() { saveToLocalStorage(); saveToFirebase(); }
@@ -325,7 +319,7 @@ function initDefaultData() {
             { id: 1, name: 'Воскресная школа при храме Преображения Господня, аг.\u00A0Черкассы', type: 'ВРШ', description: 'Директор: Кололо Анна Григорьевна, тел. +375 (29) 681-23-27', templeId: 6, photo: 'placeholder.jpg' },
             { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна', templeId: 1, photo: 'placeholder.jpg' }
         ],
-        // === ИЗМЕНЕНИЕ: фото учителей заменены на placeholder.jpg ===
+        // === ОРИГИНАЛЬНЫЕ ИМЕНА ФАЙЛОВ ОСТАВЛЕНЫ ===
         teachers: [
             { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
             { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
@@ -739,7 +733,7 @@ function openTempleModal(tab, templeId) {
             if (clergy.length) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
-                    // === ИЗМЕНЕНИЕ: фото увеличены до 300x300 ===
+                    // === ФОТО УВЕЛИЧЕНЫ ДО 300x300 ===
                     content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer; text-align:center;">
                         <img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:300px; height:300px; border-radius:50%; object-fit:cover; margin-bottom:0.5rem;">
                         <div><strong>${escapeHtml(c.name)}</strong></div>
@@ -942,7 +936,7 @@ function renderAnnouncementsList(container) {
 // ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
-        <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве Республики Беларусь в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
+        <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
         <p><strong>В ВШ входят:</strong></p>
         <ul style="margin-left:1.5rem;margin-top:0.5rem;">
             <li><strong>Воскресная религиозная школа (ВРШ)</strong> - форма организации религиозного просвещения детей, подразумевающая разделение воспитанников на несколько групп по возрастному или иному критерию.</li>
