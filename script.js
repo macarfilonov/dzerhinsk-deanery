@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (гамбургер только на телефонах)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (навигация исправлена, ИИ заглушен)
 // ============================================================
 
 console.log('script.js загружен');
@@ -21,8 +21,9 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 }
 const db = firebase.database();
 
-// ========== НАСТРОЙКИ ИИ ==========
-const AI_API_URL = '/.netlify/functions/groq-ai';
+// ========== НАСТРОЙКИ ИИ (заглушка) ==========
+// Теперь ИИ всегда возвращает фиксированный ответ
+const AI_API_URL = null; // отключаем реальный вызов
 
 // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
 let data = {
@@ -361,17 +362,22 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ГАМБУРГЕР ТОЛЬКО НА ТЕЛЕФОНАХ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
+
+    // Удаляем старую навигацию, если есть
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
+
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
+    // Создаём новый nav
     const nav = document.createElement('nav');
     nav.id = 'mainNav';
+
     const links = [
         { page: 'main', text: 'Главная' },
         { page: 'temples', text: 'Храмы' },
@@ -383,15 +389,18 @@ function rebuildNav() {
         { page: 'worship', text: 'Богослужения' },
         { page: 'opechenie', text: 'Окормление' }
     ];
+
+    // Обычные ссылки (десктоп)
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
         a.dataset.page = l.page;
         a.textContent = l.text;
+        a.className = 'nav-link';
         nav.appendChild(a);
     });
 
-    // Гамбургер
+    // Гамбургер (мобильный)
     const hamburger = document.createElement('div');
     hamburger.className = 'hamburger';
     hamburger.id = 'hamburger';
@@ -459,10 +468,9 @@ function rebuildNav() {
             text-decoration: none;
             padding: 0.5rem 1rem;
             border-bottom: 2px solid transparent;
-            transition: border-color 0.3s, opacity 0.3s;
+            transition: border-color 0.3s;
             width: 100%;
             text-align: center;
-            letter-spacing: 0.5px;
         `;
         a.addEventListener('mouseenter', () => a.style.borderBottomColor = '#c9aa5f');
         a.addEventListener('mouseleave', () => a.style.borderBottomColor = 'transparent');
@@ -485,7 +493,6 @@ function rebuildNav() {
         document.body.style.overflow = isOpen ? '' : 'hidden';
     }
 
-    // Обработчики click и touchstart
     hamburgerBtn.addEventListener('click', toggleMenu);
     hamburgerBtn.addEventListener('touchstart', function(e) {
         e.preventDefault();
@@ -524,76 +531,33 @@ function rebuildNav() {
     // Вставляем nav перед tools
     topBar.insertBefore(nav, tools);
 
-    // Активная страница
+    // Устанавливаем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
-    // Динамические стили: гамбургер и overlay видны только на экранах меньше 769px
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-        .hamburger {
-            display: none;
-            cursor: pointer;
-            width: 30px;
-            height: 24px;
-            position: relative;
-            z-index: 1001;
-            margin-left: auto;
+    // Управление видимостью в зависимости от ширины окна
+    function updateNavVisibility() {
+        const width = window.innerWidth;
+        const isMobile = width <= 768;
+        // Ссылки (кроме гамбургера) – показываем на десктопе, скрываем на мобильных
+        nav.querySelectorAll('a.nav-link').forEach(a => {
+            a.style.display = isMobile ? 'none' : 'inline-block';
+        });
+        // Гамбургер – показываем только на мобильных
+        hamburgerBtn.style.display = isMobile ? 'block' : 'none';
+        // Если меню открыто на десктопе – закрываем
+        if (!isMobile && overlayEl.style.display === 'flex') {
+            overlayEl.style.display = 'none';
+            hamburgerBtn.classList.remove('active');
+            document.body.style.overflow = '';
         }
-        .hamburger span {
-            display: block;
-            position: absolute;
-            height: 3px;
-            width: 100%;
-            background: var(--text, #2c2a24);
-            border-radius: 2px;
-            opacity: 1;
-            left: 0;
-            transition: 0.25s ease-in-out;
-        }
-        .hamburger span:nth-child(1) { top: 0px; }
-        .hamburger span:nth-child(2) { top: 10px; }
-        .hamburger span:nth-child(3) { top: 20px; }
-        .hamburger.active span:nth-child(1) {
-            transform: rotate(45deg);
-            top: 10px;
-            background: white;
-        }
-        .hamburger.active span:nth-child(2) {
-            opacity: 0;
-            width: 0;
-        }
-        .hamburger.active span:nth-child(3) {
-            transform: rotate(-45deg);
-            top: 10px;
-            background: white;
-        }
-        .fullscreen-menu {
-            display: none;
-        }
-        @media (max-width: 768px) {
-            .hamburger {
-                display: block !important;
-            }
-            .top-bar nav a:not(.hamburger):not(.fullscreen-menu a) {
-                display: none;
-            }
-        }
-        @media (min-width: 769px) {
-            .hamburger {
-                display: none !important;
-            }
-            .fullscreen-menu {
-                display: none !important;
-            }
-            .top-bar nav a:not(.hamburger) {
-                display: inline-block !important;
-            }
-        }
-    `;
-    document.head.appendChild(styleEl);
+    }
+
+    // Вызываем при загрузке и при изменении размера
+    updateNavVisibility();
+    window.addEventListener('resize', updateNavVisibility);
 }
 
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
@@ -1128,7 +1092,7 @@ function renderWorshipPage(container) {
     }
 }
 
-// ---------- FAQ ----------
+// ---------- FAQ (с заглушкой ИИ) ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card"><h3>${t('ask-question')}</h3>
@@ -1151,6 +1115,7 @@ function renderFaqPage(container) {
         });
     }
     html += `</div>`;
+    // AI-блок (заглушен) – показываем только если есть права, но с фиктивным ответом
     if (hasPermission(currentUser, 'manage_ai')) {
         html += `
             <div class="card" id="aiBlock">
@@ -1207,7 +1172,7 @@ function renderFaqPage(container) {
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ---------- ИИ ----------
+// ---------- ИИ (ЗАГЛУШКА) ----------
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -1217,31 +1182,12 @@ async function askAI() {
     const contentDiv = document.getElementById('aiResponseContent');
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
-    contentDiv.textContent = t('ai-thinking');
-    try {
-        const response = await fetch(AI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
-        });
-        if (!response.ok) {
-            let errorMsg = `Ошибка сервера: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                if (errorData.error) errorMsg = errorData.error;
-            } catch(e) {}
-            throw new Error(errorMsg);
-        }
-        const text = await response.text();
-        if (!text) throw new Error('Пустой ответ от сервера');
-        let data;
-        try { data = JSON.parse(text); } catch(e) { throw new Error('Некорректный JSON-ответ'); }
-        const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
-        contentDiv.textContent = answer;
-    } catch (error) {
-        console.error('Ошибка ИИ:', error);
-        contentDiv.textContent = t('ai-error') + ': ' + error.message;
-    }
+    contentDiv.textContent = '⏳ ИИ думает...';
+    
+    // Заглушка – возвращаем фиктивный ответ через 1 секунду
+    setTimeout(() => {
+        contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
+    }, 1000);
 }
 
 async function adminAskAI() {
@@ -1253,36 +1199,16 @@ async function adminAskAI() {
     const contentDiv = document.getElementById('adminAIResponseContent');
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
-    contentDiv.textContent = t('ai-thinking');
-    try {
-        const response = await fetch(AI_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question })
-        });
-        if (!response.ok) {
-            let errorMsg = `Ошибка сервера: ${response.status}`;
-            try {
-                const errorData = await response.json();
-                if (errorData.error) errorMsg = errorData.error;
-            } catch(e) {}
-            throw new Error(errorMsg);
-        }
-        const text = await response.text();
-        if (!text) throw new Error('Пустой ответ от сервера');
-        let data;
-        try { data = JSON.parse(text); } catch(e) { throw new Error('Некорректный JSON-ответ'); }
-        const answer = data.result?.alternatives?.[0]?.message?.text || t('ai-error');
-        contentDiv.textContent = answer;
-    } catch (error) {
-        console.error('Ошибка ИИ:', error);
-        contentDiv.textContent = t('ai-error') + ': ' + error.message;
-    }
+    contentDiv.textContent = '⏳ ИИ думает...';
+    
+    setTimeout(() => {
+        contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
+    }, 1000);
 }
 
 function renderAdminAI(container) {
     container.innerHTML = `
-        <h3>🤖 ИИ-помощник</h3>
+        <h3>🤖 ИИ-помощник (заглушка)</h3>
         <div class="card">
             <div class="form-group"><label>${t('ai-question')}</label><textarea id="adminAIQuestion" rows="4" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea></div>
             <button id="adminAskAIBtn" class="btn" style="padding:0.6rem 1.5rem; background:var(--gold); color:white; border:none; border-radius:40px; cursor:pointer; font-family:inherit; font-size:1rem;">${t('send')}</button>
