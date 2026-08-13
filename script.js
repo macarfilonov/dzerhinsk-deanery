@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (модальное меню, логи, права на русском, фото 300×300, вкладка «Святые дня»)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (с исправленными «Святыми дня»)
 // ============================================================
 
 console.log('script.js загружен');
@@ -187,6 +187,7 @@ function getTempleName(id) { const t = data.temples.find(t => t.id === id); retu
 function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
+function fillTempleDropdown() { /* заглушка */ }
 
 // ========== ЛОГИРОВАНИЕ ==========
 function addLog(action, details) {
@@ -1058,7 +1059,7 @@ function renderAboutPage(container) {
 }
 
 // ============================================================
-//  БОГОСЛУЖЕНИЯ (с вкладкой "Святые дня" через JavaScript-виджет)
+//  БОГОСЛУЖЕНИЯ – с исправленными «Святыми дня» (перезагрузка виджета)
 // ============================================================
 function renderWorshipPage(container) {
     const tabs = [
@@ -1090,29 +1091,13 @@ function renderWorshipPage(container) {
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
-    // Святые дня
+    // Святые дня – блок с контейнером, который будет пересоздаваться
     html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
     html += `<div class="saints-widget-container">
         <h3>Святые дня</h3>
-        <div class="azbyka-saints"></div>
+        <div id="saintsContainer"></div>
         <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Список святых на сегодня по церковному календарю (Азбука.ру)</p>
     </div>`;
-    if (!window.___azcfg) {
-        window.___azcfg = {
-            api: 'https://azbyka.ru/days/widgets',
-            css: 'https://azbyka.ru/days/css/api.min.css',
-            image: '1',
-            prevNextLinks: '1'
-        };
-    }
-    if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
-        var el = document.createElement('script');
-        el.type = 'text/javascript';
-        el.async = true;
-        el.src = 'https://azbyka.ru/days/js/api.min.js';
-        document.head.appendChild(el);
-        window.___azbyka_loaded = true;
-    }
     html += `</div>`;
 
     // Толкования
@@ -1134,6 +1119,37 @@ function renderWorshipPage(container) {
 
     initScheduleSelect(container);
 
+    // Функция загрузки виджета святых
+    function loadSaintsWidget() {
+        const containerEl = document.getElementById('saintsContainer');
+        if (!containerEl) return;
+        // Очищаем контейнер
+        containerEl.innerHTML = '';
+        // Создаём новый элемент для виджета
+        const widgetDiv = document.createElement('div');
+        widgetDiv.className = 'azbyka-saints';
+        containerEl.appendChild(widgetDiv);
+
+        // Удаляем старый скрипт, если он есть
+        const oldScript = document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]');
+        if (oldScript) oldScript.remove();
+
+        // Настройки виджета
+        window.___azcfg = {
+            api: 'https://azbyka.ru/days/widgets',
+            css: 'https://azbyka.ru/days/css/api.min.css',
+            image: '1',
+            prevNextLinks: '1'
+        };
+        // Загружаем скрипт
+        var el = document.createElement('script');
+        el.type = 'text/javascript';
+        el.async = true;
+        el.src = 'https://azbyka.ru/days/js/api.min.js';
+        document.head.appendChild(el);
+    }
+
+    // Переключение вкладок
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.dataset.tab;
@@ -1153,30 +1169,20 @@ function renderWorshipPage(container) {
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
 
+            // Если переключились на вкладку «Святые дня» – перезагружаем виджет
             if (tabId === 'saints') {
-                if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
-                    var el = document.createElement('script');
-                    el.type = 'text/javascript';
-                    el.async = true;
-                    el.src = 'https://azbyka.ru/days/js/api.min.js';
-                    document.head.appendChild(el);
-                }
+                // Небольшая задержка, чтобы DOM успел обновиться
+                setTimeout(loadSaintsWidget, 100);
             }
         });
     });
 
+    // Если активная вкладка уже «Святые дня» – загружаем виджет сразу
     if (activeTab === 'saints') {
-        setTimeout(() => {
-            if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
-                var el = document.createElement('script');
-                el.type = 'text/javascript';
-                el.async = true;
-                el.src = 'https://azbyka.ru/days/js/api.min.js';
-                document.head.appendChild(el);
-            }
-        }, 100);
+        setTimeout(loadSaintsWidget, 200);
     }
 
+    // Устанавливаем активную кнопку
     const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -1447,8 +1453,6 @@ function renderAdminSection(section) {
 }
 
 // ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ----------
-
-// РАСПИСАНИЕ
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1507,7 +1511,6 @@ function renderScheduleTable() {
     return table;
 }
 
-// ХРАМЫ
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -1598,7 +1601,6 @@ function renderTemplesTable() {
     return table;
 }
 
-// ДУХОВЕНСТВО
 function renderAdminClergy(container) {
     let html = `<h3>Управление духовенством</h3>
         <button id="adminClergyAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
@@ -1680,7 +1682,6 @@ function renderClergyTable() {
     return table;
 }
 
-// НОВОСТИ
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1761,7 +1762,6 @@ function renderNewsTable() {
     return table;
 }
 
-// ОБЪЯВЛЕНИЯ
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1834,7 +1834,6 @@ function renderAnnounceTable() {
     return table;
 }
 
-// ВОСКРЕСНЫЕ ШКОЛЫ
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -1993,7 +1992,6 @@ function renderTeacherTable() {
     return table;
 }
 
-// О БЛАГОЧИНИИ
 function renderAdminAbout(container) {
     let html = `<h3>Редактирование страницы "О благочинии"</h3>
         <div class="form-group"><label>Текст (поддерживается перенос строк)</label>
@@ -2009,7 +2007,6 @@ function renderAdminAbout(container) {
     });
 }
 
-// БОГОСЛУЖЕНИЯ
 function renderAdminWorship(container) {
     let html = `<h3>Управление богослужениями</h3>
         <div class="card"><h4>Молитвослов</h4>
@@ -2137,7 +2134,6 @@ function renderSacramentsTable() {
     return table;
 }
 
-// ОКОРМЛЕНИЕ
 function renderAdminOpechenie(container) {
     let html = `<h3>Управление окормлением</h3>
         <button id="adminOpechenieAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объект</button>
