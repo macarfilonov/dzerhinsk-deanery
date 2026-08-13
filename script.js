@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (фото священников 300x300, имена файлов сохранены)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (гамбургер с анимацией, закрытие по клику на фон)
 // ============================================================
 
 console.log('script.js загружен');
@@ -22,7 +22,7 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
 const db = firebase.database();
 
 // ========== НАСТРОЙКИ ИИ (заглушка) ==========
-const AI_API_URL = null; // отключаем реальный вызов
+const AI_API_URL = null;
 
 // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
 let data = {
@@ -277,7 +277,6 @@ function migrateData() {
     if (!data.aboutText) data.aboutText = '';
     if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
     setDefaultPhotos();
-    // НЕ заменяем фото учителей на placeholder
 }
 
 function saveData() { saveToLocalStorage(); saveToFirebase(); }
@@ -319,7 +318,6 @@ function initDefaultData() {
             { id: 1, name: 'Воскресная школа при храме Преображения Господня, аг.\u00A0Черкассы', type: 'ВРШ', description: 'Директор: Кололо Анна Григорьевна, тел. +375 (29) 681-23-27', templeId: 6, photo: 'placeholder.jpg' },
             { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна', templeId: 1, photo: 'placeholder.jpg' }
         ],
-        // === ОРИГИНАЛЬНЫЕ ИМЕНА ФАЙЛОВ ОСТАВЛЕНЫ ===
         teachers: [
             { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
             { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
@@ -363,7 +361,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ГАМБУРГЕР С АНИМАЦИЕЙ, ЗАКРЫТИЕ ПО КЛИКУ НА ФОН) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -392,6 +390,7 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
+    // Обычные ссылки (десктоп)
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
@@ -401,15 +400,17 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
+    // === ГАМБУРГЕР (три полоски с анимацией) ===
     const hamburger = document.createElement('div');
     hamburger.className = 'hamburger';
     hamburger.id = 'hamburger';
-    hamburger.innerHTML = '<span></span><span></span><span></span>';
     hamburger.setAttribute('aria-label', 'Открыть меню');
+    hamburger.innerHTML = '<span></span><span></span><span></span>';
     nav.appendChild(hamburger);
 
     topBar.insertBefore(nav, tools);
 
+    // === ПОЛНОЭКРАННОЕ МЕНЮ (OVERLAY) ===
     const overlay = document.createElement('div');
     overlay.className = 'fullscreen-menu';
     overlay.id = 'fullscreenMenu';
@@ -428,6 +429,7 @@ function rebuildNav() {
         padding: 2rem;
         box-sizing: border-box;
     `;
+    // Крестик закрытия (скрыт, т.к. закрываем по клику на фон или по гамбургеру)
     const closeBtn = document.createElement('button');
     closeBtn.className = 'fullscreen-close';
     closeBtn.innerHTML = '✕';
@@ -442,10 +444,12 @@ function rebuildNav() {
         cursor: pointer;
         padding: 0.5rem 1rem;
         font-family: sans-serif;
+        display: none; /* скрываем, т.к. закрываем по клику на фон или по гамбургеру */
     `;
     closeBtn.setAttribute('aria-label', 'Закрыть меню');
     overlay.appendChild(closeBtn);
 
+    // Ссылки внутри overlay
     const linksContainer = document.createElement('div');
     linksContainer.style.cssText = `
         display: flex;
@@ -462,7 +466,7 @@ function rebuildNav() {
         a.textContent = l.text;
         a.style.cssText = `
             color: white;
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-family: var(--font, Georgia, serif);
             text-decoration: none;
             padding: 0.5rem 1rem;
@@ -470,6 +474,7 @@ function rebuildNav() {
             transition: border-color 0.3s;
             width: 100%;
             text-align: center;
+            letter-spacing: 0.5px;
         `;
         a.addEventListener('mouseenter', () => a.style.borderBottomColor = '#c9aa5f');
         a.addEventListener('mouseleave', () => a.style.borderBottomColor = 'transparent');
@@ -479,12 +484,12 @@ function rebuildNav() {
 
     document.body.appendChild(overlay);
 
+    // Получаем элементы
     const hamburgerBtn = document.getElementById('hamburger');
     const overlayEl = document.getElementById('fullscreenMenu');
-    const closeBtnEl = overlayEl.querySelector('.fullscreen-close');
 
-    if (!hamburgerBtn || !overlayEl || !closeBtnEl) {
-        console.error('Не удалось найти элементы навигации');
+    if (!hamburgerBtn || !overlayEl) {
+        console.error('Не удалось найти элементы гамбургера');
         return;
     }
 
@@ -496,25 +501,14 @@ function rebuildNav() {
         document.body.style.overflow = isOpen ? '' : 'hidden';
     }
 
+    // Открытие/закрытие по клику на гамбургер
     hamburgerBtn.addEventListener('click', toggleMenu);
     hamburgerBtn.addEventListener('touchstart', function(e) {
         e.preventDefault();
         toggleMenu(e);
     }, { passive: false });
 
-    closeBtnEl.addEventListener('click', function(e) {
-        e.preventDefault();
-        overlayEl.style.display = 'none';
-        hamburgerBtn.classList.remove('active');
-        document.body.style.overflow = '';
-    });
-    closeBtnEl.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        overlayEl.style.display = 'none';
-        hamburgerBtn.classList.remove('active');
-        document.body.style.overflow = '';
-    }, { passive: false });
-
+    // Закрытие при клике на фон (overlay)
     overlayEl.addEventListener('click', function(e) {
         if (e.target === this) {
             overlayEl.style.display = 'none';
@@ -523,6 +517,7 @@ function rebuildNav() {
         }
     });
 
+    // Закрытие при клике на ссылку в меню
     overlayEl.querySelectorAll('a').forEach(a => {
         a.addEventListener('click', function() {
             overlayEl.style.display = 'none';
@@ -531,11 +526,13 @@ function rebuildNav() {
         });
     });
 
+    // Устанавливаем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
+    // Управление видимостью в зависимости от ширины окна
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
@@ -551,7 +548,73 @@ function rebuildNav() {
     }
 
     updateNavVisibility();
-    window.addEventListener('resize', updateNavVisibility);
+    // Убираем авто-закрытие при ресайзе
+    // window.addEventListener('resize', updateNavVisibility);
+
+    // === СТИЛИ ДЛЯ ГАМБУРГЕРА (анимация) ===
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            width: 30px;
+            height: 24px;
+            position: relative;
+            z-index: 1001;
+            margin-left: auto;
+        }
+        .hamburger span {
+            display: block;
+            position: absolute;
+            height: 3px;
+            width: 100%;
+            background: var(--text, #2c2a24);
+            border-radius: 2px;
+            opacity: 1;
+            left: 0;
+            transition: 0.25s ease-in-out;
+        }
+        .hamburger span:nth-child(1) { top: 0px; }
+        .hamburger span:nth-child(2) { top: 10px; }
+        .hamburger span:nth-child(3) { top: 20px; }
+        .hamburger.active span:nth-child(1) {
+            transform: rotate(45deg);
+            top: 10px;
+            background: white;
+        }
+        .hamburger.active span:nth-child(2) {
+            opacity: 0;
+            width: 0;
+        }
+        .hamburger.active span:nth-child(3) {
+            transform: rotate(-45deg);
+            top: 10px;
+            background: white;
+        }
+        .fullscreen-menu {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block !important;
+            }
+            .fullscreen-menu {
+                display: none;
+            }
+        }
+        @media (min-width: 769px) {
+            .hamburger {
+                display: none !important;
+            }
+            .fullscreen-menu {
+                display: none !important;
+            }
+            .top-bar nav a:not(.hamburger) {
+                display: inline-block !important;
+            }
+        }
+    `;
+    document.head.appendChild(styleEl);
 }
 
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
@@ -733,7 +796,6 @@ function openTempleModal(tab, templeId) {
             if (clergy.length) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
-                    // === ФОТО УВЕЛИЧЕНЫ ДО 300x300 ===
                     content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer; text-align:center;">
                         <img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:300px; height:300px; border-radius:50%; object-fit:cover; margin-bottom:0.5rem;">
                         <div><strong>${escapeHtml(c.name)}</strong></div>
@@ -1176,8 +1238,6 @@ async function askAI() {
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = '⏳ ИИ думает...';
-    
-    // Заглушка
     setTimeout(() => {
         contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
     }, 1000);
@@ -1193,7 +1253,6 @@ async function adminAskAI() {
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = '⏳ ИИ думает...';
-    
     setTimeout(() => {
         contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
     }, 1000);
