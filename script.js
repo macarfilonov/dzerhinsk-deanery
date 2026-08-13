@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (логирование, права на русском, фото 300×300, модальное меню)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (модальное меню, логи, права на русском, фото 300×300, вкладка «Святые дня»)
 // ============================================================
 
 console.log('script.js загружен');
@@ -62,7 +62,7 @@ function setStoredTab(key, tab) {
     sessionStorage.setItem(key, tab);
 }
 
-// ========== ПЕРЕВОДЫ (с добавлением прав на русском) ==========
+// ========== ПЕРЕВОДЫ ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -187,7 +187,6 @@ function getTempleName(id) { const t = data.temples.find(t => t.id === id); retu
 function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
-function fillTempleDropdown() { /* заглушка */ }
 
 // ========== ЛОГИРОВАНИЕ ==========
 function addLog(action, details) {
@@ -1058,11 +1057,14 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// ============================================================
+//  БОГОСЛУЖЕНИЯ (с вкладкой "Святые дня" через JavaScript-виджет)
+// ============================================================
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
         { id: 'prayers', label: 'Молитвослов' },
+        { id: 'saints', label: 'Святые дня' },
         { id: 'interpretations', label: 'Толкования' },
         { id: 'sacraments', label: 'Подготовка к таинствам' }
     ];
@@ -1077,22 +1079,56 @@ function renderWorshipPage(container) {
         html += `<button class="tab-btn worship-tab-btn ${isActive ? 'active' : ''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:${isActive ? 'var(--gold)' : 'transparent'}; color:${isActive ? 'white' : 'var(--primary)'}; font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
+
+    // Расписание
     html += `<div class="worship-block ${activeTab === 'schedule' ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
+
+    // Молитвослов
     html += `<div class="worship-block ${activeTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
+
+    // Святые дня
+    html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
+    html += `<div class="saints-widget-container">
+        <h3>Святые дня</h3>
+        <div class="azbyka-saints"></div>
+        <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Список святых на сегодня по церковному календарю (Азбука.ру)</p>
+    </div>`;
+    if (!window.___azcfg) {
+        window.___azcfg = {
+            api: 'https://azbyka.ru/days/widgets',
+            css: 'https://azbyka.ru/days/css/api.min.css',
+            image: '1',
+            prevNextLinks: '1'
+        };
+    }
+    if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
+        var el = document.createElement('script');
+        el.type = 'text/javascript';
+        el.async = true;
+        el.src = 'https://azbyka.ru/days/js/api.min.js';
+        document.head.appendChild(el);
+        window.___azbyka_loaded = true;
+    }
+    html += `</div>`;
+
+    // Толкования
     html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
+
+    // Подготовка к таинствам
     html += `<div class="worship-block ${activeTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
     else sacraments.forEach(s => html += `<div class="sacrament-item"><strong>${escapeHtml(s.title)}</strong><p>${escapeHtml(s.text)}</p></div>`);
     html += `</div>`;
+
     html += `</div></div>`;
     container.innerHTML = html;
 
@@ -1116,8 +1152,30 @@ function renderWorshipPage(container) {
             container.querySelectorAll('.worship-block').forEach(block => block.classList.remove('active'));
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
+
+            if (tabId === 'saints') {
+                if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
+                    var el = document.createElement('script');
+                    el.type = 'text/javascript';
+                    el.async = true;
+                    el.src = 'https://azbyka.ru/days/js/api.min.js';
+                    document.head.appendChild(el);
+                }
+            }
         });
     });
+
+    if (activeTab === 'saints') {
+        setTimeout(() => {
+            if (!document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]')) {
+                var el = document.createElement('script');
+                el.type = 'text/javascript';
+                el.async = true;
+                el.src = 'https://azbyka.ru/days/js/api.min.js';
+                document.head.appendChild(el);
+            }
+        }, 100);
+    }
 
     const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
     if (activeBtn) {
