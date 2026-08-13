@@ -10,10 +10,16 @@
     --font: 'Georgia', 'Times New Roman', 'Palatino', serif;
 }
 
+/* ========== СБРОС ========== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -21,7 +27,7 @@ body {
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
-    font-size: 16px;
+    font-size: 1rem;
     overflow-x: hidden;
 }
 
@@ -39,7 +45,7 @@ img {
 /* ========== БАННЕР ========== */
 .eparchy-banner {
     background: #1a1a1a;
-    padding: 0.8rem 1rem;
+    padding: 0.5rem 1rem;
     border-bottom: 2px solid #c9aa5f;
     text-align: center;
 }
@@ -49,7 +55,7 @@ img {
     align-items: center;
     justify-content: center;
     flex-wrap: wrap;
-    gap: 0.5rem 1.5rem;
+    gap: 0.3rem 1rem;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -67,7 +73,7 @@ img {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.1rem;
 }
 
 .banner-main {
@@ -102,45 +108,67 @@ img {
     opacity: 0.6;
 }
 
+/* ========== АДАПТИВ БАННЕРА ========== */
 @media (max-width: 700px) {
-    .banner-container { flex-direction: column; gap: 0.3rem; }
-    .banner-logo-img { max-height: 60px; }
-    .banner-main { font-size: 1.8rem; }
-    .banner-sub-item { font-size: 0.85rem; }
-}
-@media (max-width: 480px) {
-    .banner-logo-img { max-height: 50px; }
-    .banner-main { font-size: 1.5rem; }
-    .banner-sub-item { font-size: 0.75rem; }
+    .banner-container {
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    .banner-logo-img {
+        max-height: 60px;
+    }
+    .banner-main {
+        font-size: 1.8rem;
+    }
+    .banner-sub-item {
+        font-size: 0.85rem;
+    }
 }
 
-/* ========== ШАПКА (триггер админки) ========== */
+@media (max-width: 480px) {
+    .banner-logo-img {
+        max-height: 50px;
+    }
+    .banner-main {
+        font-size: 1.4rem;
+        letter-spacing: 0.5px;
+    }
+    .banner-sub-item {
+        font-size: 0.7rem;
+    }
+    .eparchy-banner {
+        padding: 0.3rem 0.5rem;
+    }
+}
+
+/* ========== ШАПКА (пустой триггер) ========== */
 .header {
     background: #1a1a1a;
-    padding: 0.5rem 0;
-    min-height: 10px;
-    border-bottom: 4px solid var(--gold);
+    padding: 0.3rem 0;
+    min-height: 5px;
+    border-bottom: 3px solid var(--gold);
     cursor: pointer;
 }
 
-/* ========== НАВИГАЦИЯ (верхняя панель) ========== */
+/* ========== ВЕРХНЯЯ ПАНЕЛЬ (топ-бар) ========== */
 .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
     background: white;
-    padding: 0.4rem 1rem;
+    padding: 0.3rem 0.8rem;
     border-bottom: 1px solid var(--border);
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.3rem;
     position: sticky;
     top: 0;
     z-index: 99;
+    min-height: 50px;
 }
 
 .top-bar nav {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.3rem;
     flex-wrap: wrap;
     align-items: center;
 }
@@ -171,8 +199,9 @@ img {
 
 .top-bar .tools {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .top-bar .tools button,
@@ -197,7 +226,7 @@ img {
 
 #visionToggle {
     font-size: 1.2rem;
-    padding: 0.5rem 1.2rem;
+    padding: 0.4rem 1rem;
     background: var(--gold);
     color: #fff;
     border: 2px solid var(--gold);
@@ -208,145 +237,123 @@ img {
     box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     white-space: nowrap;
 }
-#visionToggle:hover { background: #b89a4a; border-color: #b89a4a; }
 
-@media (max-width: 480px) {
-    #visionToggle { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-width: 1px; box-shadow: none; white-space: normal; line-height: 1.2; }
-    .top-bar .tools { gap: 0.3rem; }
+#visionToggle:hover {
+    background: #b89a4a;
+    border-color: #b89a4a;
 }
 
-/* ========== ГАМБУРГЕР (только на мобильных, на весь экран) ========== */
+/* ========== АДАПТИВ ТОП-БАРА ========== */
+@media (max-width: 768px) {
+    .top-bar nav a:not(.hamburger):not(.fullscreen-menu a) {
+        display: none;
+    }
+    .hamburger {
+        display: block !important;
+    }
+    .top-bar {
+        padding: 0.2rem 0.5rem;
+        gap: 0.2rem;
+        min-height: 44px;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-bar .tools button,
+    .top-bar .tools a {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.4rem;
+    }
+    #visionToggle {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.6rem;
+        border-width: 1px;
+        box-shadow: none;
+        white-space: normal;
+        line-height: 1.2;
+    }
+    .top-bar .tools a.eparchy-link {
+        font-size: 1rem;
+        padding: 0.1rem 0.3rem;
+    }
+}
+
+/* ========== ГАМБУРГЕР (стили для JS) ========== */
 .hamburger {
     display: none;
-    flex-direction: column;
-    gap: 5px;
     cursor: pointer;
-    padding: 0.5rem;
-    background: none;
-    border: none;
-    z-index: 1001;
+    width: 30px;
+    height: 24px;
     position: relative;
+    z-index: 1001;
+    margin-left: auto;
 }
 .hamburger span {
     display: block;
-    width: 28px;
+    position: absolute;
     height: 3px;
-    background: var(--text);
-    transition: 0.3s;
+    width: 100%;
+    background: var(--text, #2c2a24);
     border-radius: 2px;
-}
-.hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px, 6px); }
-.hamburger.active span:nth-child(2) { opacity: 0; }
-.hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px, -6px); }
-
-/* Мобильное меню – на весь экран */
-.mobile-menu {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--card-bg);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem 1rem;
-    overflow-y: auto;
-    visibility: hidden;
-    opacity: 0;
-    transition: opacity 0.3s, visibility 0.3s;
-}
-
-.mobile-menu.active {
-    visibility: visible;
     opacity: 1;
+    left: 0;
+    transition: 0.25s ease-in-out;
 }
-
-.mobile-menu a {
-    font-size: 1.8rem;
-    padding: 0.8rem 1.5rem;
-    color: var(--text);
-    text-decoration: none;
-    border-bottom: 1px solid var(--border);
-    width: 100%;
-    text-align: center;
-    font-weight: 500;
-    transition: background 0.2s;
-}
-.mobile-menu a:hover,
-.mobile-menu a:active {
-    background: var(--gold);
-    color: white;
-}
-.mobile-menu a.active {
-    color: var(--gold);
-    font-weight: bold;
-}
-
-/* Крестик закрытия – один, в правом верхнем углу */
-.mobile-menu-close {
-    position: absolute;
-    top: 1.2rem;
-    right: 1.2rem;
-    font-size: 2.5rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text);
-    z-index: 2001;
-    padding: 0.5rem;
-    line-height: 1;
-}
-.mobile-menu-close:hover {
-    color: #b45a3b;
-}
-
-@media (max-width: 700px) {
-    .hamburger { display: flex; }
-    .top-bar nav a:not(.hamburger) { display: none; }
-    .top-bar nav .dropdown { display: none; }
-    .mobile-menu a { font-size: 1.4rem; padding: 0.6rem 1rem; }
-}
-@media (max-width: 480px) {
-    .mobile-menu a { font-size: 1.2rem; padding: 0.5rem 0.8rem; }
-    .mobile-menu-close { font-size: 2rem; top: 1rem; right: 1rem; }
-}
-
-/* ========== ВЫПАДАЮЩЕЕ МЕНЮ (для десктопа) ========== */
-.dropdown { position: relative; display: inline-block; }
-.dropdown-content {
-    display: none;
-    position: absolute;
+.hamburger span:nth-child(1) { top: 0px; }
+.hamburger span:nth-child(2) { top: 10px; }
+.hamburger span:nth-child(3) { top: 20px; }
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg);
+    top: 10px;
     background: white;
-    min-width: 220px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-    border-radius: 16px;
-    padding: 0.5rem 0;
-    z-index: 100;
-    border: 1px solid var(--border);
-    max-height: 60vh;
-    overflow-y: auto;
 }
-.dropdown:hover .dropdown-content,
-.dropdown-content.show { display: block; }
-.dropdown-content a {
-    display: block;
-    padding: 0.4rem 1rem;
-    color: var(--text);
-    font-size: 0.9rem;
-    border-bottom: 1px solid #f3ede3;
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+    width: 0;
 }
-.dropdown-content a:hover { background: var(--gold); color: white; }
-@media (max-width: 480px) {
-    .dropdown-content { min-width: 160px; right: 0; left: auto; font-size: 0.8rem; }
-    .dropdown-content a { padding: 0.3rem 0.8rem; font-size: 0.8rem; }
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg);
+    top: 10px;
+    background: white;
+}
+
+.fullscreen-menu {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .hamburger {
+        display: block !important;
+    }
+    .fullscreen-menu {
+        display: none;
+    }
+}
+
+@media (min-width: 769px) {
+    .hamburger {
+        display: none !important;
+    }
+    .fullscreen-menu {
+        display: none !important;
+    }
+    .top-bar nav a:not(.hamburger) {
+        display: inline-block !important;
+    }
 }
 
 /* ========== КОНТЕЙНЕР ========== */
-.container { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem; }
-@media (max-width: 480px) { .container { padding: 0.8rem 0.5rem; } }
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0.8rem 0.5rem;
+    }
+}
 
 /* ========== КАРТОЧКИ ========== */
 .card {
@@ -357,7 +364,15 @@ img {
     margin-bottom: 1.5rem;
     border: 1px solid var(--border);
 }
-@media (max-width: 480px) { .card { padding: 0.8rem; margin-bottom: 0.8rem; border-radius: 16px; } }
+
+@media (max-width: 480px) {
+    .card {
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
+        border-radius: 16px;
+    }
+}
+
 .card h2 {
     color: var(--primary);
     border-left: 5px solid var(--gold);
@@ -365,17 +380,51 @@ img {
     margin-bottom: 1rem;
     font-size: 1.6rem;
 }
-@media (max-width: 480px) { .card h2 { font-size: 1.2rem; padding-left: 0.7rem; margin-bottom: 0.7rem; } }
-.card h2::before { content: "☦ "; }
 
-/* ========== ГАЛЕРЕЯ ========== */
+.card h2::before {
+    content: "☦ ";
+}
+
+@media (max-width: 480px) {
+    .card h2 {
+        font-size: 1.2rem;
+        padding-left: 0.7rem;
+        margin-bottom: 0.7rem;
+        border-left-width: 4px;
+    }
+    .card h2::before {
+        content: "☦";
+        margin-right: 0.3rem;
+    }
+}
+
+/* ========== СЕТКА ========== */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 1.5rem;
 }
-@media (max-width: 700px) { .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; } }
-@media (max-width: 480px) { .grid { grid-template-columns: 1fr; gap: 0.8rem; } }
+
+@media (max-width: 700px) {
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+}
 
 .grid-item {
     background: var(--card-bg);
@@ -386,27 +435,62 @@ img {
     transition: transform 0.3s, box-shadow 0.3s;
     border: 1px solid var(--border);
 }
-.grid-item:hover { transform: translateY(-4px); box-shadow: 0 10px 20px var(--shadow); }
+
+.grid-item:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px var(--shadow);
+}
+
 .grid-item img {
     width: 100%;
     height: 200px;
     object-fit: cover;
     background: #e9e1d4;
 }
-@media (max-width: 480px) { .grid-item img { height: 180px; } }
-.grid-item .info { padding: 1rem; text-align: center; }
-.grid-item .info h3 { font-size: 1rem; }
-.grid-item .info .status.vacant { color: #b45a3b; }
 
-/* ========== ДУХОВЕНСТВО – увеличенные фото ========== */
-#clergyList .grid-item img { height: 400px; }
-@media (max-width: 700px) { #clergyList .grid-item img { height: 320px; } }
 @media (max-width: 480px) {
-    #clergyList .grid-item img { height: 400px; width: 100%; object-fit: cover; object-position: top center; }
-    #clergyList .grid-item .info { padding: 0.6rem; }
-    #clergyList .grid-item .info h3 { font-size: 0.95rem; }
-    #clergyList .grid-item .info .status { font-size: 0.85rem; }
-    #clergyList .grid-item .info div[style*="color:#999"] { font-size: 0.75rem !important; }
+    .grid-item img {
+        height: 150px;
+    }
+}
+
+.grid-item .info {
+    padding: 0.8rem;
+    text-align: center;
+}
+
+.grid-item .info h3 {
+    font-size: 1rem;
+    margin-bottom: 0.2rem;
+}
+.grid-item .info .status.vacant {
+    color: #b45a3b;
+}
+
+@media (max-width: 480px) {
+    .grid-item .info {
+        padding: 0.5rem;
+    }
+    .grid-item .info h3 {
+        font-size: 0.85rem;
+    }
+}
+
+/* ========== ДУХОВЕНСТВО (фото) ========== */
+#clergyList .grid-item img {
+    height: 400px;
+}
+
+@media (max-width: 700px) {
+    #clergyList .grid-item img {
+        height: 320px;
+    }
+}
+
+@media (max-width: 480px) {
+    #clergyList .grid-item img {
+        height: 280px;
+    }
 }
 
 /* ========== ДЕТАЛЬНАЯ СТРАНИЦА ========== */
@@ -417,7 +501,10 @@ img {
     cursor: pointer;
     font-weight: 500;
 }
-.detail-back:hover { text-decoration: underline; }
+
+.detail-back:hover {
+    text-decoration: underline;
+}
 
 .detail-content {
     background: var(--card-bg);
@@ -425,137 +512,212 @@ img {
     padding: 1.5rem;
     border: 1px solid var(--border);
 }
-@media (max-width: 480px) { .detail-content { padding: 0.8rem; border-radius: 16px; } }
 
-.temple-detail-hero {
-    position: relative;
-    min-height: 70vh;
-    height: 500px;
-    background-size: cover;
-    background-position: center;
-    border-radius: 24px;
-    overflow: hidden;
+@media (max-width: 480px) {
+    .detail-content {
+        padding: 0.8rem;
+        border-radius: 16px;
+    }
+}
+
+.detail-content .main-photo {
+    width: 100%;
+    max-height: 500px;
+    object-fit: cover;
+    border-radius: 16px;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 480px) {
+    .detail-content .main-photo {
+        max-height: 300px;
+        border-radius: 12px;
+    }
+}
+
+.detail-content .temple-title {
+    font-size: 2rem;
+    color: var(--primary);
+    border-left: 5px solid var(--gold);
+    padding-left: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .detail-content .temple-title {
+        font-size: 1.4rem;
+        padding-left: 0.7rem;
+        border-left-width: 4px;
+    }
+}
+
+.detail-content .temple-summary {
+    background: var(--bg);
+    padding: 1rem;
+    border-radius: 16px;
     margin-bottom: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    border-left: 4px solid var(--gold);
+    font-size: 1rem;
+    line-height: 1.6;
 }
-.temple-detail-hero .overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
+
+@media (max-width: 480px) {
+    .detail-content .temple-summary {
+        padding: 0.8rem;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
 }
-.temple-detail-hero .content {
-    position: relative;
-    z-index: 2;
-    color: white;
-    text-align: center;
-    padding: 2rem;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.6);
-}
-.temple-detail-hero .content h1 { font-size: 2.5rem; font-family: 'Cormorant Uncial', serif; margin-bottom: 0.5rem; }
-.temple-detail-hero .content .address { font-size: 1.2rem; opacity: 0.9; margin-bottom: 1.5rem; }
-.temple-detail-hero .content .action-buttons {
+
+.detail-content .temple-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.8rem;
-    justify-content: center;
+    margin-bottom: 1.5rem;
 }
-.temple-action-btn {
-    background: rgba(255,255,255,0.15);
-    backdrop-filter: blur(8px);
-    border: 2px solid rgba(255,255,255,0.4);
+
+@media (max-width: 480px) {
+    .detail-content .temple-actions {
+        gap: 0.5rem;
+    }
+}
+
+.detail-content .temple-actions .action-btn {
+    background: var(--card-bg);
+    border: 2px solid var(--gold);
     border-radius: 40px;
-    padding: 0.6rem 1.5rem;
+    padding: 0.5rem 1.2rem;
     font-family: inherit;
     font-size: 1rem;
     cursor: pointer;
     transition: 0.2s;
-    color: white;
+    color: var(--primary);
     font-weight: 500;
-}
-.temple-action-btn:hover { background: var(--gold); border-color: var(--gold); }
-.temple-action-btn.phone { background: #4caf50; border-color: #4caf50; }
-.temple-action-btn.phone:hover { background: #45a049; }
-@media (max-width: 480px) {
-    .temple-detail-hero .content h1 { font-size: 1.8rem; }
-    .temple-action-btn { font-size: 0.8rem; padding: 0.4rem 1rem; }
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
-.temple-history-buttons {
+@media (max-width: 480px) {
+    .detail-content .temple-actions .action-btn {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.8rem;
+        border-width: 1px;
+    }
+}
+
+.detail-content .temple-actions .action-btn:hover {
+    background: var(--gold);
+    color: white;
+}
+
+.detail-content .temple-actions .action-btn.phone-btn {
+    background: #4caf50;
+    color: white;
+    border-color: #4caf50;
+}
+
+.detail-content .temple-actions .action-btn.phone-btn:hover {
+    background: #45a049;
+}
+
+.detail-content .temple-contacts {
+    background: var(--bg);
+    padding: 1rem;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+    .detail-content .temple-contacts {
+        padding: 0.8rem;
+        margin-bottom: 1rem;
+    }
+}
+
+.detail-content .temple-contacts .contact-item {
+    margin-bottom: 0.3rem;
+}
+.detail-content .temple-contacts .contact-item strong {
+    display: inline-block;
+    width: 80px;
+}
+
+@media (max-width: 480px) {
+    .detail-content .temple-contacts .contact-item strong {
+        width: 60px;
+        font-size: 0.85rem;
+    }
+}
+
+.detail-content .temple-contacts .map-container {
+    margin-top: 1rem;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #e9e1d4;
+}
+
+.detail-content .temple-contacts .map-container iframe {
+    width: 100%;
+    height: 300px;
+    border: none;
+}
+
+@media (max-width: 480px) {
+    .detail-content .temple-contacts .map-container iframe {
+        height: 200px;
+    }
+}
+
+.detail-content .tabs {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
-    margin-bottom: 1rem;
+    margin: 1rem 0;
 }
-.history-btn {
+
+.detail-content .tabs .tab-btn {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 30px;
-    padding: 0.3rem 1.2rem;
+    padding: 0.3rem 1rem;
     cursor: pointer;
     font-family: inherit;
     font-size: 0.9rem;
     transition: 0.2s;
 }
-.history-btn.active { background: var(--gold); color: white; border-color: var(--gold); }
-.history-btn:hover:not(.active) { background: #f3ede3; }
 
-.tab-content { display: none; padding-top: 1rem; }
-.tab-content.active { display: block; }
+@media (max-width: 480px) {
+    .detail-content .tabs .tab-btn {
+        font-size: 0.8rem;
+        padding: 0.2rem 0.7rem;
+    }
+}
 
-/* ========== МОДАЛЬНОЕ ОКНО ========== */
-.temple-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 300;
-    visibility: hidden;
-    opacity: 0;
-    transition: 0.2s;
+.detail-content .tabs .tab-btn.active {
+    background: var(--gold);
+    color: white;
+    border-color: var(--gold);
 }
-.temple-modal.visible { visibility: visible; opacity: 1; }
-.temple-modal-content {
-    background: var(--card-bg);
-    max-width: 800px;
-    width: 95%;
-    max-height: 90vh;
-    overflow-y: auto;
-    border-radius: 24px;
-    padding: 1.5rem;
-    position: relative;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-}
-.temple-modal-close {
-    position: sticky;
-    top: 0;
-    float: right;
-    background: none;
-    border: none;
-    font-size: 2rem;
-    cursor: pointer;
-    color: var(--text);
-    padding: 0 0.5rem;
-    z-index: 10;
-}
-.temple-modal-close:hover { color: #b45a3b; }
-@media (max-width: 480px) { .temple-modal-content { padding: 1rem; width: 98%; } }
 
-/* ========== ДУХОВЕНСТВО (карточки в модалке) ========== */
-.clergy-list {
+.detail-content .tab-content {
+    display: none;
+    padding-top: 1rem;
+}
+.detail-content .tab-content.active {
+    display: block;
+}
+
+.detail-content .clergy-list {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
     margin-top: 0.5rem;
+    justify-content: center;
 }
-.clergy-card {
+
+.detail-content .clergy-card {
     background: var(--card-bg);
     border-radius: 16px;
     padding: 0.8rem;
@@ -564,34 +726,255 @@ img {
     text-align: center;
     cursor: pointer;
 }
-@media (max-width: 480px) { .clergy-card { width: 100%; padding: 0.6rem; } }
-.clergy-card img {
+
+@media (max-width: 480px) {
+    .detail-content .clergy-card {
+        width: 100%;
+        max-width: 220px;
+        padding: 0.6rem;
+    }
+}
+
+.detail-content .clergy-card img {
     width: 120px;
     height: 120px;
     object-fit: cover;
     border-radius: 50%;
     margin-bottom: 0.5rem;
 }
-@media (max-width: 480px) { .clergy-card img { width: 100px; height: 100px; } }
 
-/* ========== РАСПИСАНИЕ ========== */
-.schedule-table {
+@media (max-width: 480px) {
+    .detail-content .clergy-card img {
+        width: 100px;
+        height: 100px;
+    }
+}
+
+/* ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (hero) ========== */
+.temple-detail-hero {
+    min-height: 70vh;
+    height: 500px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 24px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .temple-detail-hero {
+        height: 60vh;
+        min-height: 300px;
+        border-radius: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .temple-detail-hero {
+        height: 40vh;
+        min-height: 250px;
+        border-radius: 12px;
+        margin-bottom: 1rem;
+    }
+}
+
+.temple-detail-hero .content h1 {
+    font-size: 2.5rem;
+    font-family: 'Cormorant Uncial', serif;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .temple-detail-hero .content h1 {
+        font-size: 1.6rem;
+    }
+    .temple-detail-hero .content .address {
+        font-size: 1rem !important;
+    }
+    .temple-detail-hero .content .action-buttons .temple-action-btn {
+        font-size: 0.8rem !important;
+        padding: 0.4rem 1rem !important;
+    }
+}
+
+/* ========== МОДАЛЬНОЕ ОКНО (храм) ========== */
+.temple-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 0.5rem;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: 0.2s;
 }
-.schedule-table th,
-.schedule-table td {
-    padding: 0.5rem;
-    border-bottom: 1px solid var(--border);
-    text-align: left;
+
+.temple-modal.visible {
+    visibility: visible;
+    opacity: 1;
 }
-@media (max-width: 480px) { .schedule-table th, .schedule-table td { padding: 0.3rem; font-size: 0.85rem; } }
 
-/* ========== ВОСКРЕСНЫЕ ШКОЛЫ ========== */
-.type { font-size: 0.85rem; color: var(--gold); margin-top: 0.2rem; }
+.temple-modal-content {
+    background: var(--card-bg);
+    width: 95%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 32px;
+    padding: 1.5rem;
+    position: relative;
+}
 
-/* ========== ГЛАВНАЯ (карусель) ========== */
+@media (max-width: 480px) {
+    .temple-modal-content {
+        padding: 0.8rem;
+        border-radius: 20px;
+        width: 98%;
+    }
+}
+
+.temple-modal-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    font-size: 2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #333;
+    z-index: 10;
+}
+
+@media (max-width: 480px) {
+    .temple-modal-close {
+        font-size: 1.6rem;
+        top: -0.2rem;
+    }
+}
+
+.temple-modal-content .clergy-card img {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .temple-modal-content .clergy-card img {
+        width: 150px !important;
+        height: 150px !important;
+    }
+    .temple-modal-content .clergy-list {
+        gap: 0.5rem;
+    }
+}
+
+/* ========== ВОСКРЕСНЫЕ ШКОЛЫ (список) ========== */
+#sundaySchoolList .grid-item .info .type {
+    font-size: 0.85rem;
+    color: var(--gold);
+    margin-top: 0.2rem;
+}
+
+/* ========== FAQ ========== */
+#faqForm input,
+#faqForm textarea {
+    width: 100%;
+    padding: 0.6rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 0.8rem;
+    font-family: inherit;
+}
+
+#faqForm button {
+    background: var(--gold);
+    color: white;
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 40px;
+    cursor: pointer;
+}
+
+#faqList .faq-item {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+    #faqList .faq-item {
+        padding: 0.8rem;
+    }
+}
+
+#faqList .faq-item .question {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+#faqList .faq-item .answer {
+    color: var(--text);
+    padding-left: 1rem;
+    border-left: 3px solid var(--gold);
+}
+
+#faqList .faq-item .date {
+    font-size: 0.85rem;
+    color: #999;
+}
+
+/* ========== ФОРМА ОБРАТНОЙ СВЯЗИ ========== */
+#feedbackForm .form-group {
+    margin-bottom: 1rem;
+}
+
+#feedbackForm input,
+#feedbackForm select,
+#feedbackForm textarea {
+    width: 100%;
+    padding: 0.6rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    font-family: inherit;
+    color: var(--text);
+}
+
+#feedbackForm button {
+    background: var(--gold);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 40px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: 0.2s;
+}
+
+#feedbackForm button:hover {
+    opacity: 0.85;
+}
+
+#formResult {
+    margin-top: 1rem;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* ========== ГЛАВНАЯ ========== */
 .hero-banner {
     position: relative;
     height: 100vh;
@@ -605,12 +988,14 @@ img {
     margin-bottom: 2rem;
     cursor: pointer;
 }
+
 .hero-banner::after {
     content: '';
     position: absolute;
     inset: 0;
     background: rgba(0,0,0,0.3);
 }
+
 .hero-banner h1 {
     position: relative;
     z-index: 2;
@@ -621,6 +1006,7 @@ img {
     padding: 0 1rem;
     pointer-events: none;
 }
+
 .hero-banner .sub {
     position: relative;
     z-index: 2;
@@ -631,13 +1017,25 @@ img {
     margin-top: 0.5rem;
     pointer-events: none;
 }
-@media (max-width: 480px) { .hero-banner { min-height: 250px; height: 60vh; margin-bottom: 1rem; } .hero-banner h1 { letter-spacing: 2px; } }
 
+@media (max-width: 480px) {
+    .hero-banner {
+        min-height: 250px;
+        height: 60vh;
+        margin-bottom: 1rem;
+    }
+    .hero-banner h1 {
+        letter-spacing: 2px;
+    }
+}
+
+/* ========== КАРУСЕЛЬ ========== */
 .carousel {
     position: relative;
     overflow: hidden;
     margin: 2rem 0;
 }
+
 .carousel-track {
     display: flex;
     gap: 1rem;
@@ -647,7 +1045,11 @@ img {
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
-.carousel-track::-webkit-scrollbar { display: none; }
+
+.carousel-track::-webkit-scrollbar {
+    display: none;
+}
+
 .carousel-item {
     flex: 0 0 240px;
     background: var(--card-bg);
@@ -658,16 +1060,23 @@ img {
     transition: transform 0.3s;
     border: 1px solid var(--border);
 }
-.carousel-item:hover { transform: scale(1.02); }
-.carousel-item img { width: 100%; height: 160px; object-fit: cover; }
+
+.carousel-item:hover {
+    transform: scale(1.02);
+}
+
+.carousel-item img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+}
+
 .carousel-item .info {
     padding: 0.8rem;
     text-align: center;
     font-size: 0.95rem;
-    white-space: normal;
-    overflow: visible;
-    word-wrap: break-word;
 }
+
 .carousel-btn {
     position: absolute;
     top: 50%;
@@ -682,15 +1091,53 @@ img {
     z-index: 5;
     backdrop-filter: blur(4px);
 }
-.carousel-btn.left { left: 10px; }
-.carousel-btn.right { right: 10px; }
-@media (max-width: 600px) { .carousel-item { flex: 0 0 160px; } .carousel-item img { height: 120px; } }
-@media (max-width: 480px) { .carousel-item { flex: 0 0 140px; } .carousel-item img { height: 100px; } .carousel-btn { width: 30px; height: 30px; font-size: 1rem; } .carousel-btn.left { left: 5px; } .carousel-btn.right { right: 5px; } }
+
+.carousel-btn.left {
+    left: 10px;
+}
+
+.carousel-btn.right {
+    right: 10px;
+}
+
+@media (max-width: 600px) {
+    .carousel-item {
+        flex: 0 0 160px;
+    }
+    .carousel-item img {
+        height: 120px;
+    }
+}
+
+@media (max-width: 480px) {
+    .carousel-item {
+        flex: 0 0 140px;
+    }
+    .carousel-item img {
+        height: 100px;
+    }
+    .carousel-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 1rem;
+    }
+    .carousel-btn.left {
+        left: 5px;
+    }
+    .carousel-btn.right {
+        right: 5px;
+    }
+}
 
 /* ========== БОГОСЛУЖЕНИЯ ========== */
-.worship-content { margin-top: 1rem; }
-.worship-content .worship-block { display: none; }
-.worship-content .worship-block.active { display: block; }
+.worship-content .worship-block {
+    display: none;
+}
+
+.worship-content .worship-block.active {
+    display: block;
+}
+
 .worship-content .worship-block h3 {
     color: var(--primary);
     border-bottom: 2px solid var(--gold);
@@ -698,7 +1145,14 @@ img {
     margin-bottom: 1rem;
     font-size: 1.4rem;
 }
-@media (max-width: 480px) { .worship-content .worship-block h3 { font-size: 1.1rem; margin-bottom: 0.6rem; } }
+
+@media (max-width: 480px) {
+    .worship-content .worship-block h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.6rem;
+    }
+}
+
 .worship-content .worship-block .prayer-item,
 .worship-content .worship-block .interpretation-item,
 .worship-content .worship-block .sacrament-item {
@@ -708,6 +1162,16 @@ img {
     margin-bottom: 0.8rem;
     border-left: 4px solid var(--gold);
 }
+
+@media (max-width: 480px) {
+    .worship-content .worship-block .prayer-item,
+    .worship-content .worship-block .interpretation-item,
+    .worship-content .worship-block .sacrament-item {
+        padding: 0.6rem;
+        margin-bottom: 0.6rem;
+    }
+}
+
 .worship-content .worship-block .prayer-item strong,
 .worship-content .worship-block .interpretation-item strong,
 .worship-content .worship-block .sacrament-item strong {
@@ -715,35 +1179,6 @@ img {
     font-size: 1.1rem;
     color: var(--primary);
 }
-
-/* ========== FAQ ========== */
-#faqForm input, #faqForm textarea {
-    width: 100%;
-    padding: 0.6rem;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    margin-bottom: 0.8rem;
-    font-family: inherit;
-}
-#faqForm button {
-    background: var(--gold);
-    color: white;
-    border: none;
-    padding: 0.4rem 1rem;
-    border-radius: 40px;
-    cursor: pointer;
-}
-#faqList .faq-item {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    border: 1px solid var(--border);
-}
-@media (max-width: 480px) { #faqList .faq-item { padding: 0.8rem; } }
-#faqList .faq-item .question { font-weight: bold; margin-bottom: 0.5rem; }
-#faqList .faq-item .answer { color: var(--text); padding-left: 1rem; border-left: 3px solid var(--gold); }
-#faqList .faq-item .date { font-size: 0.85rem; color: #999; }
 
 /* ========== АДМИН-ПАНЕЛЬ ========== */
 .admin-modal {
@@ -762,7 +1197,12 @@ img {
     opacity: 0;
     transition: 0.2s;
 }
-.admin-modal.visible { visibility: visible; opacity: 1; }
+
+.admin-modal.visible {
+    visibility: visible;
+    opacity: 1;
+}
+
 .admin-panel {
     background: var(--card-bg);
     width: 95%;
@@ -772,7 +1212,16 @@ img {
     border-radius: 32px;
     padding: 1.5rem;
 }
-@media (max-width: 480px) { .admin-panel { padding: 0.8rem; border-radius: 20px; width: 98%; } }
+
+@media (max-width: 480px) {
+    .admin-panel {
+        padding: 0.8rem;
+        border-radius: 20px;
+        width: 98%;
+        max-height: 95vh;
+    }
+}
+
 .admin-panel .admin-header {
     display: flex;
     justify-content: space-between;
@@ -780,11 +1229,39 @@ img {
     margin-bottom: 1.5rem;
     flex-wrap: wrap;
 }
-@media (max-width: 480px) { .admin-panel .admin-header { flex-direction: column; gap: 0.5rem; align-items: stretch; text-align: center; } }
-.admin-panel .admin-header > div { display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; }
-.admin-panel .admin-section { margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
-.admin-panel .form-group { margin-bottom: 0.8rem; }
-.admin-panel .form-group label { display: block; font-weight: 600; color: #6b533c; margin-bottom: 0.2rem; }
+
+@media (max-width: 480px) {
+    .admin-panel .admin-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+        text-align: center;
+    }
+    .admin-panel .admin-header > div {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+}
+
+.admin-panel .admin-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.admin-panel .form-group {
+    margin-bottom: 0.8rem;
+}
+
+.admin-panel .form-group label {
+    display: block;
+    font-weight: 600;
+    color: #6b533c;
+    margin-bottom: 0.2rem;
+}
+
 .admin-panel .form-group input,
 .admin-panel .form-group textarea,
 .admin-panel .form-group select {
@@ -796,11 +1273,16 @@ img {
     font-family: inherit;
     color: var(--text);
 }
+
 @media (max-width: 480px) {
     .admin-panel .form-group input,
     .admin-panel .form-group textarea,
-    .admin-panel .form-group select { padding: 0.5rem; font-size: 0.9rem; }
+    .admin-panel .form-group select {
+        padding: 0.5rem;
+        font-size: 0.9rem;
+    }
 }
+
 .admin-panel .btn {
     background: var(--gold);
     color: white;
@@ -811,9 +1293,23 @@ img {
     font-size: 0.85rem;
     font-weight: 500;
 }
-@media (max-width: 480px) { .admin-panel .btn { font-size: 0.8rem; padding: 0.3rem 0.8rem; } }
-.admin-panel .btn-danger { background: #b68b6a; }
-.admin-panel .btn-sm { padding: 0.2rem 0.8rem; font-size: 0.75rem; }
+
+@media (max-width: 480px) {
+    .admin-panel .btn {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.8rem;
+    }
+}
+
+.admin-panel .btn-danger {
+    background: #b68b6a;
+}
+
+.admin-panel .btn-sm {
+    padding: 0.2rem 0.8rem;
+    font-size: 0.75rem;
+}
+
 .admin-panel .admin-item {
     display: flex;
     flex-wrap: wrap;
@@ -825,7 +1321,15 @@ img {
     margin-bottom: 0.5rem;
     border: 1px solid var(--border);
 }
-@media (max-width: 480px) { .admin-panel .admin-item { flex-direction: column; align-items: stretch; text-align: center; } }
+
+@media (max-width: 480px) {
+    .admin-panel .admin-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+}
+
 .admin-panel .admin-menu-btn {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -836,11 +1340,32 @@ img {
     font-size: 0.9rem;
     transition: 0.2s;
 }
-@media (max-width: 480px) { .admin-panel .admin-menu-btn { font-size: 0.8rem; padding: 0.3rem 0.7rem; } }
-.admin-panel .admin-menu-btn:hover { background: var(--gold); color: white; border-color: var(--gold); }
+
+@media (max-width: 480px) {
+    .admin-panel .admin-menu-btn {
+        font-size: 0.8rem;
+        padding: 0.3rem 0.7rem;
+    }
+}
+
+.admin-panel .admin-menu-btn:hover {
+    background: var(--gold);
+    color: white;
+    border-color: var(--gold);
+}
+
 .admin-panel .schedule-table th,
-.admin-panel .schedule-table td { padding: 0.3rem 0.6rem; }
-@media (max-width: 480px) { .admin-panel .schedule-table th, .admin-panel .schedule-table td { padding: 0.2rem 0.4rem; font-size: 0.8rem; } }
+.admin-panel .schedule-table td {
+    padding: 0.3rem 0.6rem;
+}
+
+@media (max-width: 480px) {
+    .admin-panel .schedule-table th,
+    .admin-panel .schedule-table td {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.8rem;
+    }
+}
 
 /* ========== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ========== */
 body.vision {
@@ -849,28 +1374,75 @@ body.vision {
     background: #ffffff !important;
     color: #000000 !important;
 }
-body.vision * { font-size: inherit !important; line-height: inherit !important; }
-body.vision a { color: #0055cc !important; text-decoration: underline !important; }
+
+body.vision * {
+    font-size: inherit !important;
+    line-height: inherit !important;
+}
+
+body.vision a {
+    color: #0055cc !important;
+    text-decoration: underline !important;
+}
+
 body.vision .card,
 body.vision .detail-content,
-body.vision .grid-item { background: #f9f9f9 !important; border: 2px solid #000 !important; }
+body.vision .grid-item {
+    background: #f9f9f9 !important;
+    border: 2px solid #000 !important;
+}
+
 body.vision button,
-body.vision .btn { font-size: 1.2rem !important; padding: 0.7rem 1.5rem !important; border: 2px solid #000 !important; }
-body.vision .top-bar nav a { font-size: 1.2rem !important; padding: 0.5rem 1rem !important; }
-body.vision .top-bar nav a.active { background: #000 !important; color: #fff !important; }
+body.vision .btn {
+    font-size: 1.2rem !important;
+    padding: 0.7rem 1.5rem !important;
+    border: 2px solid #000 !important;
+}
+
+body.vision .top-bar nav a {
+    font-size: 1.2rem !important;
+    padding: 0.5rem 1rem !important;
+}
+
+body.vision .top-bar nav a.active {
+    background: #000 !important;
+    color: #fff !important;
+}
+
 body.vision .banner-main,
-body.vision .banner-sub-item { font-size: 2rem !important; }
+body.vision .banner-sub-item {
+    font-size: 2rem !important;
+}
+
 body.vision input,
 body.vision select,
-body.vision textarea { font-size: 1.2rem !important; padding: 0.7rem !important; }
-body.vision .admin-panel { font-size: 1.2rem !important; }
+body.vision textarea {
+    font-size: 1.2rem !important;
+    padding: 0.7rem !important;
+}
+
+body.vision .admin-panel {
+    font-size: 1.2rem !important;
+}
+
 body.vision .admin-panel input,
 body.vision .admin-panel select,
-body.vision .admin-panel textarea { font-size: 1.2rem !important; }
+body.vision .admin-panel textarea {
+    font-size: 1.2rem !important;
+}
+
 @media (max-width: 480px) {
-    body.vision { font-size: 18px; }
-    body.vision .top-bar nav a { font-size: 1rem !important; padding: 0.3rem 0.6rem !important; }
-    body.vision #visionToggle { font-size: 1rem !important; padding: 0.3rem 0.8rem !important; }
+    body.vision {
+        font-size: 18px;
+    }
+    body.vision .top-bar nav a {
+        font-size: 1rem !important;
+        padding: 0.3rem 0.6rem !important;
+    }
+    body.vision #visionToggle {
+        font-size: 1rem !important;
+        padding: 0.3rem 0.8rem !important;
+    }
 }
 
 /* ========== ФУТЕР ========== */
@@ -883,9 +1455,23 @@ footer {
     border-top: 3px solid var(--gold);
     font-size: 0.9rem;
 }
-@media (max-width: 480px) { footer { font-size: 0.75rem; padding: 0.6rem; margin-top: 1rem; } }
-footer a { color: var(--gold); text-decoration: none; }
-footer a:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+    footer {
+        font-size: 0.75rem;
+        padding: 0.6rem;
+        margin-top: 1rem;
+    }
+}
+
+footer a {
+    color: var(--gold);
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
 
 /* ========== КНОПКА НАВЕРХ ========== */
 .back-to-top {
@@ -904,5 +1490,81 @@ footer a:hover { text-decoration: underline; }
     display: none;
     z-index: 50;
 }
-.back-to-top.visible { display: block; }
-@media (max-width: 480px) { .back-to-top { width: 40px; height: 40px; font-size: 20px; bottom: 15px; right: 15px; } }
+
+.back-to-top.visible {
+    display: block;
+}
+
+@media (max-width: 480px) {
+    .back-to-top {
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+/* ========== ТАБЛИЦЫ (расписание) ========== */
+.schedule-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.schedule-table th,
+.schedule-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+}
+
+@media (max-width: 480px) {
+    .schedule-table th,
+    .schedule-table td {
+        padding: 0.3rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* ========== ДОПОЛНИТЕЛЬНАЯ АДАПТАЦИЯ ДЛЯ МЕЛКИХ ЭКРАНОВ ========== */
+@media (max-width: 400px) {
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+    .top-bar nav a {
+        font-size: 0.7rem;
+        padding: 0.15rem 0.4rem;
+    }
+    .container {
+        padding: 0.4rem 0.3rem;
+    }
+    .card {
+        padding: 0.5rem;
+    }
+    .card h2 {
+        font-size: 1rem;
+        padding-left: 0.5rem;
+    }
+    .temple-detail-hero .content h1 {
+        font-size: 1.3rem;
+    }
+    .temple-detail-hero .content .action-buttons .temple-action-btn {
+        font-size: 0.65rem !important;
+        padding: 0.2rem 0.6rem !important;
+    }
+}
+
+/* ========== ИСПРАВЛЕНИЕ ДЛЯ БАННЕРА НА МАЛЕНЬКИХ ========== */
+@media (max-width: 360px) {
+    .banner-main {
+        font-size: 1.1rem;
+    }
+    .banner-sub-item {
+        font-size: 0.6rem;
+    }
+    .banner-logo-img {
+        max-height: 40px;
+    }
+}
