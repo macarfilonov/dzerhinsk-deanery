@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ФИНАЛЬНАЯ ВЕРСИЯ (с хешированием паролей, доп. вопросом, бесконечной каруселью, модальным меню, логами)
+//  script.js – ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ (всё исправлено, карусель бесконечная)
 // ============================================================
 
-console.log('script.js загружен (финальная полная версия с хешированием)');
+console.log('script.js загружен (финальная полная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -20,6 +20,15 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
+
+// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
+async function hashPassword(password) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 // ========== НАСТРОЙКИ ИИ (заглушка) ==========
 const AI_API_URL = null;
@@ -52,7 +61,7 @@ let currentUser = null;
 let dataLoaded = false;
 let visionMode = false;
 let syncInterval = null;
-let logsListener = null;
+let carouselInterval = null;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
@@ -64,22 +73,7 @@ function hasPermission(user, permission) { return user?.permissions?.includes('a
 function getStoredTab(key, defaultTab) { return sessionStorage.getItem(key) || defaultTab; }
 function setStoredTab(key, tab) { sessionStorage.setItem(key, tab); }
 
-// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
-async function hashPassword(password) {
-    if (!password) return '';
-    const encoder = new TextEncoder();
-    const dataBytes = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-// Проверка, является ли строка хешем (64 hex символа)
-function isHash(str) {
-    return /^[a-f0-9]{64}$/.test(str);
-}
-
-// ========== ПЕРЕВОДЫ ==========
+// ========== ПЕРЕВОДЫ (включая названия прав на русском) ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -188,7 +182,7 @@ const translations = {
     }
 };
 
-// ========== РОЛИ И ПРАВА ==========
+// ========== РОЛИ И ПРАВА (русские названия уже в переводе) ==========
 const rolePermissions = {
     developer: ['all'],
     senior: ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_ai', 'manage_opechenie', 'manage_users', 'view_logs'],
@@ -208,11 +202,10 @@ function addLog(action, details) {
     db.ref('logs').push(logEntry).catch(err => console.error('Ошибка сохранения лога:', err));
     if (!data.logs) data.logs = [];
     data.logs.push(logEntry);
-    saveToLocalStorage();
 }
 
 // ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
-function loadData() {
+async function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
     const stored = localStorage.getItem('blago_data');
@@ -221,13 +214,18 @@ function loadData() {
             const parsed = JSON.parse(stored);
             data = parsed.data || data;
             nextId = parsed.nextId || nextId;
+            for (const user of data.users) {
+                if (user.password && !user.password.match(/^[a-f0-9]{64}$/)) {
+                    user.password = await hashPassword(user.password);
+                }
+            }
             migrateData();
             renderCurrentPage();
             applyTranslations();
             restoreVisionMode();
             rebuildNav();
-        } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
-    } else { initDefaultData(); }
+        } catch(e) { console.warn('Ошибка загрузки из localStorage', e); await initDefaultData(); }
+    } else { await initDefaultData(); }
 
     db.ref('data').on('value', (snapshot) => {
         const val = snapshot.val();
@@ -243,22 +241,8 @@ function loadData() {
         }
     });
 
-    if (logsListener) logsListener.off();
-    logsListener = db.ref('logs');
-    logsListener.on('value', (snapshot) => {
-        const logsData = snapshot.val();
-        if (logsData) {
-            const logsArray = Object.values(logsData).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            data.logs = logsArray;
-            saveToLocalStorage();
-            const adminContent = document.getElementById('adminSectionContent');
-            if (adminContent && adminContent.closest('.admin-modal') && adminContent.closest('.admin-modal').classList.contains('visible')) {
-                const section = adminContent.dataset.currentSection;
-                if (section === 'logs') {
-                    renderAdminLogs(adminContent);
-                }
-            }
-        }
+    db.ref('data').once('value', (snapshot) => {
+        if (!snapshot.val()) { initDefaultData(); }
     });
 
     if (syncInterval) clearInterval(syncInterval);
@@ -311,22 +295,16 @@ function loadData() {
 }
 
 function migrateData() {
-    data.users.forEach(u => { 
-        if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; 
-        if (u.extraQuestion === undefined) u.extraQuestion = '';
-        // Если пароль не хеш (и не пустой), то при следующем входе он будет обновлён (но мы не можем обновить автоматически, только при логине)
-    });
+    data.users.forEach(u => { if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; });
     ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers','logs'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
-    // Если нет пользователей, создаём с хешированным паролем
     if (!data.users || data.users.length === 0) {
-        hashPassword('Makar27.05.2014').then(hash => {
-            data.users.push({ id: nextId.user++, username: 'Makar', password: hash, role: 'developer', permissions: ['all'], extraQuestion: '' });
+        (async () => {
+            const hashedPass = await hashPassword('Makar27.05.2014');
+            data.users.push({ id: nextId.user++, username: 'Makar', password: hashedPass, role: 'developer', permissions: ['all'] });
             saveData();
-        });
-    } else {
-        // Если у существующего пользователя пароль не хеш, оставляем как есть, но при логине он будет захеширован (если пароль совпадает)
+        })();
     }
     setDefaultPhotos();
 }
@@ -342,7 +320,7 @@ function setDefaultPhotos() {
 }
 
 // ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
-function initDefaultData() {
+async function initDefaultData() {
     data = {
         temples: [
             { id:1, name:'Храм Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г.\u00A0Дзержинск.', address:'Минская область, г.\u00A0Дзержинск, ул.\u00A0Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
@@ -378,7 +356,7 @@ function initDefaultData() {
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
         faq: [],
-        users: [], // будет создан при миграции
+        users: [],
         opechenie: [
             { id: 1, name: 'Паллиативный хоспис, д.\u00A0Волковичи', responsible: 'настоятель', description: '', templeId: 0 },
             { id: 2, name: 'Дзержинская районная центральная библиотека', responsible: 'настоятель', description: '', templeId: 0 },
@@ -405,9 +383,10 @@ function initDefaultData() {
         ],
         logs: []
     };
-    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:1, opechenie:23, teacher:4 };
+    const hashedPass = await hashPassword('Makar27.05.2014');
+    data.users = [ { id:1, username:'Makar', password: hashedPass, role:'developer', permissions:['all'] } ];
+    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:2, opechenie:23, teacher:4 };
     setDefaultPhotos();
-    // Пользователь будет создан в migrateData (асинхронно)
     saveData();
     renderCurrentPage();
     applyTranslations();
@@ -415,7 +394,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ, ССЫЛКИ РАБОТАЮТ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -461,6 +440,7 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
+    // Модальное окно
     const modal = document.createElement('div');
     modal.className = 'menu-modal';
     modal.id = 'menuModal';
@@ -511,7 +491,6 @@ function rebuildNav() {
         color: #333;
         z-index: 10;
         padding: 0 0.5rem;
-        pointer-events: auto;
     `;
     closeBtn.setAttribute('aria-label', 'Закрыть меню');
     modalContent.appendChild(closeBtn);
@@ -553,7 +532,6 @@ function rebuildNav() {
             text-decoration: none;
             border: 1px solid var(--border, #e8ddd0);
             transition: background 0.2s, transform 0.2s;
-            pointer-events: auto;
         `;
         a.addEventListener('mouseenter', () => {
             a.style.background = 'var(--gold, #c9aa5f)';
@@ -563,7 +541,11 @@ function rebuildNav() {
             a.style.background = 'var(--bg, #f9f6ef)';
             a.style.color = 'var(--text, #2c2a24)';
         });
-        a.addEventListener('click', function(e) { closeModal(e); });
+        // Ссылка: закрываем меню и переходим
+        a.addEventListener('click', function(e) {
+            // Не блокируем событие, чтобы переход произошёл
+            closeModalWithoutPrevent(e);
+        });
         linksList.appendChild(a);
     });
     modalContent.appendChild(linksList);
@@ -583,7 +565,6 @@ function rebuildNav() {
     function openModal(e) {
         e.preventDefault();
         modalEl.style.display = 'flex';
-        modalEl.style.pointerEvents = 'auto';
         requestAnimationFrame(() => {
             modalEl.style.visibility = 'visible';
             modalEl.style.opacity = '1';
@@ -596,12 +577,23 @@ function rebuildNav() {
         if (e) e.preventDefault();
         modalEl.style.opacity = '0';
         modalEl.style.visibility = 'hidden';
-        modalEl.style.pointerEvents = 'none';
         modalEl.querySelector('.menu-modal-content').style.transform = 'scale(0.9)';
         setTimeout(() => {
             modalEl.style.display = 'none';
         }, 300);
         document.body.style.overflow = '';
+    }
+
+    function closeModalWithoutPrevent(e) {
+        // Не вызываем e.preventDefault()
+        modalEl.style.opacity = '0';
+        modalEl.style.visibility = 'hidden';
+        modalEl.querySelector('.menu-modal-content').style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            modalEl.style.display = 'none';
+        }, 300);
+        document.body.style.overflow = '';
+        // Переход произойдёт автоматически
     }
 
     toggleBtn.addEventListener('click', openModal);
@@ -616,18 +608,6 @@ function rebuildNav() {
         closeModal(e);
     }, { passive: false });
 
-    modalEl.addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal(e);
-        }
-    });
-
-    modalEl.querySelectorAll('a[data-page]').forEach(a => {
-        a.addEventListener('click', function(e) {
-            closeModal(e);
-        });
-    });
-
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
@@ -641,11 +621,47 @@ function rebuildNav() {
         });
         toggleBtn.style.display = isMobile ? 'inline-flex' : 'none';
         if (!isMobile && modalEl.style.display === 'flex') {
-            closeModal();
+            closeModalWithoutPrevent();
         }
     }
     updateNavVisibility();
-    window.addEventListener('resize', updateNavVisibility);
+}
+
+// ========== КАРУСЕЛЬ (БЕСКОНЕЧНАЯ, ПЛАВНАЯ) ==========
+function initCarousel() {
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    // Удаляем старый интервал
+    if (carouselInterval) clearInterval(carouselInterval);
+    
+    // Клонируем элементы для бесконечности
+    const items = track.querySelectorAll('.carousel-item');
+    if (items.length < 2) return;
+    
+    // Добавляем клоны для плавной прокрутки
+    const cloneCount = items.length;
+    for (let i = 0; i < cloneCount; i++) {
+        const clone = items[i].cloneNode(true);
+        track.appendChild(clone);
+    }
+    
+    let scrollAmount = 0;
+    const itemWidth = items[0].offsetWidth + 16; // ширина + gap
+    
+    function autoScroll() {
+        if (!track) return;
+        const maxScroll = track.scrollWidth / 2; // половина ширины (оригиналы)
+        scrollAmount += 0.5; // скорость прокрутки (плавно)
+        if (scrollAmount >= maxScroll) {
+            // Сброс в начало без рывка
+            track.scrollLeft = 0;
+            scrollAmount = 0;
+        } else {
+            track.scrollLeft = scrollAmount;
+        }
+    }
+    
+    carouselInterval = setInterval(autoScroll, 20); // 20 мс для плавности
 }
 
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
@@ -698,6 +714,10 @@ function renderCurrentPage() {
     updateNavActive(page);
     applyTranslations();
     updateVisionUI();
+    // Запускаем карусель, если это главная
+    if (page === 'main') {
+        setTimeout(initCarousel, 100);
+    }
 }
 
 function updateNavActive(page) {
@@ -709,7 +729,7 @@ function updateNavActive(page) {
     }
 }
 
-// ---------- ГЛАВНАЯ (с бесконечной каруселью) ----------
+// ---------- ГЛАВНАЯ ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -721,11 +741,15 @@ function renderMainPage() {
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
-        <div class="carousel" id="mainCarousel">
-            <button class="carousel-btn left" id="carouselPrev">‹</button>
-            <div class="carousel-track" id="carouselTrack"></div>
-            <button class="carousel-btn right" id="carouselNext">›</button>
-        </div>`;
+        <div class="carousel">
+            <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
+            <div class="carousel-track" id="carouselTrack">`;
+    data.temples.forEach(t => {
+        if (t.id === 1) return;
+        const imgSrc = getTemplePhoto(t);
+        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
+    });
+    html += `</div><button class="carousel-btn right" onclick="scrollCarousel(1)">›</button></div>`;
     // Новости
     html += `<div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
@@ -752,108 +776,13 @@ function renderMainPage() {
     }
     html += `</div>`;
     container.innerHTML = html;
-
-    initInfiniteCarousel();
+    container.querySelectorAll('.carousel-item').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
+    // Запускаем карусель
+    setTimeout(initCarousel, 50);
 }
-
-function initInfiniteCarousel() {
-    const track = document.getElementById('carouselTrack');
-    if (!track) return;
-    const prevBtn = document.getElementById('carouselPrev');
-    const nextBtn = document.getElementById('carouselNext');
-    if (!prevBtn || !nextBtn) return;
-
-    const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
-        const imgSrc = getTemplePhoto(t);
-        return `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
-    });
-
-    const totalItems = templeItems.length;
-    if (totalItems === 0) {
-        track.innerHTML = '<p>Нет храмов для отображения</p>';
-        return;
-    }
-
-    const cloneFirst = templeItems.slice(0, 2).join('');
-    const cloneLast = templeItems.slice(-2).join('');
-    const allItems = cloneLast + templeItems.join('') + cloneFirst;
-
-    track.innerHTML = allItems;
-
-    let currentIndex = 2;
-    let isTransitioning = false;
-
-    function getItemWidth() {
-        const firstItem = track.querySelector('.carousel-item');
-        if (!firstItem) return 240;
-        const style = window.getComputedStyle(firstItem);
-        const width = parseFloat(style.flexBasis) || parseFloat(style.width) || 240;
-        const marginRight = parseFloat(style.marginRight) || 0;
-        return width + marginRight;
-    }
-
-    function getGap() {
-        const style = window.getComputedStyle(track);
-        return parseFloat(style.gap) || 16;
-    }
-
-    function updateCarousel(animate = true) {
-        const width = getItemWidth();
-        const gap = getGap();
-        const offset = currentIndex * (width + gap);
-        track.style.transition = animate ? 'transform 0.5s ease' : 'none';
-        track.style.transform = `translateX(-${offset}px)`;
-    }
-
-    function goTo(index, animate = true) {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        currentIndex = index;
-        updateCarousel(animate);
-        setTimeout(() => {
-            isTransitioning = false;
-            const totalRealItems = totalItems;
-            if (currentIndex >= totalRealItems + 2) {
-                currentIndex = 2;
-                updateCarousel(false);
-            } else if (currentIndex < 2) {
-                currentIndex = totalRealItems + 1;
-                updateCarousel(false);
-            }
-        }, 500);
-    }
-
-    function next() {
-        goTo(currentIndex + 1);
-    }
-
-    function prev() {
-        goTo(currentIndex - 1);
-    }
-
-    nextBtn.addEventListener('click', next);
-    prevBtn.addEventListener('click', prev);
-
-    track.querySelectorAll('.carousel-item').forEach(el => {
-        el.addEventListener('click', function() {
-            const id = this.dataset.id;
-            if (id) window.location.href = `temple-${id}.html`;
-        });
-    });
-
-    let autoplayInterval = setInterval(next, 4000);
-    track.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
-    track.addEventListener('mouseleave', () => {
-        autoplayInterval = setInterval(next, 4000);
-    });
-
-    window.addEventListener('resize', () => {
-        updateCarousel(false);
-    });
-
-    setTimeout(() => {
-        updateCarousel(false);
-    }, 100);
+function scrollCarousel(direction) { 
+    const track = document.getElementById('carouselTrack'); 
+    if (track) track.scrollBy({ left: direction * 280, behavior: 'smooth' }); 
 }
 
 // ---------- СПИСОК ХРАМОВ ----------
@@ -870,7 +799,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (с фото 300×300) ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -1050,7 +979,6 @@ function renderClergyList(container) {
     container.innerHTML = html;
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
-
 function renderClergyDetail(id) {
     if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
@@ -1077,7 +1005,6 @@ function getScheduleHTML() {
     html += `</select></div><div id="scheduleDisplay"></div>`;
     return html;
 }
-
 function initScheduleSelect(container) {
     const select = container.querySelector('#scheduleTempleSelect');
     if (!select) return;
@@ -1196,40 +1123,12 @@ function renderSundaySchoolDetail(id) {
 
 // ---------- О БЛАГОЧИНИИ ----------
 function renderAboutPage(container) {
-    let html = `
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="font-size: 2.8rem; font-family: 'Cormorant Uncial', Georgia, serif; color: var(--primary); margin-bottom: 0.5rem; font-weight: 700;">Дзержинское благочиние: Духовное Сердце Города с Семи Храмами</h1>
-            <div style="width: 100px; height: 3px; background: var(--gold); margin: 0 auto 1.5rem;"></div>
-        </div>
-        <div class="card">
-            <div style="white-space: pre-line; font-size: 1.05rem; line-height: 1.8;">
-                Добро пожаловать на страницу Дзержинского благочиния — места, где вера и любовь Христова наполняют жизнь нашего города. Мы рады приветствовать вас и приглашаем познакомиться с духовным центром, который объединяет верующих в молитве и добрых делах.
-
-                Наш благочинный: Протоиерей Борис Полторжицкий. Под его мудрым руководством благочиние развивается, храмы оживают, а приходская жизнь становится богаче и содержательнее.
-
-                История и настоящее:
-                Дзержинское благочиние — это не просто территория, объединяющая несколько храмов. Это живой организм, где каждый приход имеет свою уникальную историю и традиции. Наши храмы — это архитектурные жемчужины, но главное — это дома Божии, где каждый может найти утешение, поддержку и обрести духовный мир.
-
-                Жизнь благочиния:
-                Богослужения: Регулярные богослужения, Таинства Церкви, молитвенные собрания — всё это составляет основу духовной жизни наших прихожан.
-                Миссионерская деятельность: Мы стремимся нести свет Христовой истины каждому человеку, организуя просветительские беседы, воскресные школы и мероприятия для детей и взрослых.
-                Социальное служение: Особое внимание уделяется помощи нуждающимся. Мы заботимся о престарелых, малоимущих, детях-сиротах, участвуя в различных благотворительных акциях.
-                Культурно-просветительская работа: Проводятся лекции, концерты, выставки, направленные на духовное и культурное развитие нашей паствы.
-
-                Наше духовное созвездие:
-                Дзержинское благочиние гордится своими семью храмами, каждый из которых является уникальным центром духовной жизни. Благочиннический центр и сердце нашего благочиния — это величественный Храм Покрова Пресвятой Богородицы в Дзержинске.
-
-                Приглашаем вас:
-                Присоединяйтесь к нам! Посетите наши храмы, станьте частью нашего приходского сообщества. Мы верим, что вместе мы можем сделать мир добрее и светлее.
-
-                С любовью во Христе, Дзержинское благочиние.
-            </div>
-        </div>
-    `;
+    let html = `<h2>О благочинии</h2>
+        <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// ---------- БОГОСЛУЖЕНИЯ (со вкладкой "Святые дня") ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1250,14 +1149,17 @@ function renderWorshipPage(container) {
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
 
+    // Расписание
     html += `<div class="worship-block ${activeTab === 'schedule' ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
 
+    // Молитвослов
     html += `<div class="worship-block ${activeTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
+    // Святые дня
     html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
     html += `<div class="saints-widget-container">
         <h3>Святые дня</h3>
@@ -1266,12 +1168,14 @@ function renderWorshipPage(container) {
     </div>`;
     html += `</div>`;
 
+    // Толкования
     html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
 
+    // Подготовка к таинствам
     html += `<div class="worship-block ${activeTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
@@ -1524,7 +1428,6 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
-// ========== АДМИН-ЛОГИН С ХЕШИРОВАНИЕМ ==========
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
@@ -1533,37 +1436,18 @@ function renderAdminLogin() {
     document.getElementById('doLogin').addEventListener('click', async function() {
         const login = document.getElementById('adminLogin').value.trim();
         const pass = document.getElementById('adminPass').value.trim();
-        if (!login || !pass) { alert('Введите логин и пароль'); return; }
         const user = data.users.find(u => u.username === login);
         if (!user) { alert(t('wrong-password')); return; }
-        // Если пароль сохранён как хеш, сравниваем хеш
-        let storedPassword = user.password || '';
-        // Если пароль не хеш (и не пустой), то хешируем введённый и сравниваем с открытым (для миграции)
-        // Но лучше просто хешировать введённый и сравнивать с сохранённым хешем, если он есть
-        if (isHash(storedPassword)) {
-            const inputHash = await hashPassword(pass);
-            if (inputHash === storedPassword) {
-                currentUser = user;
-                renderAdminDashboard();
-            } else {
-                alert(t('wrong-password'));
-            }
+        const hashedInput = await hashPassword(pass);
+        if (hashedInput === user.password) {
+            currentUser = user;
+            renderAdminDashboard();
         } else {
-            // Старый пароль в открытом виде – миграция
-            if (storedPassword === pass) {
-                // Обновляем пароль на хеш
-                user.password = await hashPassword(pass);
-                saveData();
-                currentUser = user;
-                renderAdminDashboard();
-            } else {
-                alert(t('wrong-password'));
-            }
+            alert(t('wrong-password'));
         }
     });
 }
 
-// ========== АДМИН-ПАНЕЛЬ (ДАШБОРД) ==========
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
@@ -1595,7 +1479,7 @@ function renderAdminDashboard() {
         <button id="logoutAdmin" class="btn btn-sm">${t('logout')}</button>
         <button id="closeAdminBtn2" class="btn btn-sm">${t('admin-close')}</button></div></div>
         <div class="admin-menu" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem;">${menuButtons}</div>
-        <div id="adminSectionContent" data-current-section=""><p>Выберите раздел для управления.</p></div>
+        <div id="adminSectionContent"><p>Выберите раздел для управления.</p></div>
     </div>`;
     document.getElementById('closeAdminBtn2').addEventListener('click', closeAdminModal);
     document.getElementById('logoutAdmin').addEventListener('click', function() { currentUser = null; renderAdminLogin(); });
@@ -1605,7 +1489,6 @@ function renderAdminDashboard() {
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
-    content.dataset.currentSection = section;
     const permMap = {
         'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy',
         'news':'manage_news','announcements':'manage_announcements',
@@ -1632,7 +1515,6 @@ function renderAdminSection(section) {
         default: content.innerHTML = '<p>Неизвестный раздел.</p>';
     }
 }
-
 // ========== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ==========
 
 // РАСПИСАНИЕ
@@ -2571,7 +2453,7 @@ function initVisionToggle() { document.getElementById('visionToggle')?.addEventL
 function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная полная версия с хешированием');
+    console.log('DOMContentLoaded – финальная полная версия');
     loadData();
     initAdminTrigger();
     initVisionToggle();
