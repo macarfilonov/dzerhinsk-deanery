@@ -1,0 +1,25 @@
+# Разрешаем загрузку script.js и style.css ТОЛЬКО с нашего сайта
+/script.js / 404 !referer "https://dzerhinsk-deanerys.netlify.app"
+/style.css / 404 !referer "https://dzerhinsk-deanerys.netlify.app"
+
+# Запрещаем доступ к остальным служебным файлам
+/admins.json / 404
+/messages.json / 404
+/messages.txt / 404
+/*.env / 404
+/*.log / 404
+/*.config / 404
+/*.md / 404
+/*.map / 404
+/*.sh / 404
+/*.git / 404
+/*.sql / 404
+/*.lock / 404
+/*.pid / 404
+/*.tmp / 404
+/.htaccess / 404
+/.htpasswd / 404
+/.gitignore / 404
+/.env.local / 404
+/*.json / 404
+/*.txt / 404
