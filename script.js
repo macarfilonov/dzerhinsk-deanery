@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (гамбургер с анимацией, закрытие по клику на фон)
+//  script.js – ПОЛНАЯ ВЕРСИЯ (логирование, права на русском, фото 300×300, модальное меню)
 // ============================================================
 
 console.log('script.js загружен');
@@ -43,7 +43,8 @@ let data = {
     },
     faq: [],
     users: [],
-    opechenie: []
+    opechenie: [],
+    logs: []
 };
 let nextId = { temple: 1, clergy: 1, schedule: 1, news: 1, announcement: 1, sundaySchool: 1, faq: 1, user: 1, opechenie: 1, teacher: 1 };
 let currentLang = 'ru';
@@ -61,7 +62,7 @@ function setStoredTab(key, tab) {
     sessionStorage.setItem(key, tab);
 }
 
-// ========== ПЕРЕВОДЫ ==========
+// ========== ПЕРЕВОДЫ (с добавлением прав на русском) ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -121,6 +122,7 @@ const translations = {
         'admin-schedule': 'Управление расписанием',
         'admin-users': 'Управление пользователями',
         'admin-opechenie': 'Управление окормлением',
+        'admin-logs': '📜 Логи действий',
         'add-schedule': '➕ Добавить запись',
         'schedule-date': 'Дата (ГГГГ-ММ-ДД)',
         'schedule-event': 'Событие',
@@ -163,18 +165,20 @@ const translations = {
         'ai-question': 'Ваш вопрос к ИИ',
         'ai-answer': 'Ответ ИИ',
         'ai-thinking': 'ИИ думает...',
-        'ai-error': 'Ошибка при обращении к ИИ'
+        'ai-error': 'Ошибка при обращении к ИИ',
+        'all': 'Все права',
+        'logs': 'Логи'
     }
 };
 
 // ========== РОЛИ И ПРАВА ==========
 const rolePermissions = {
     developer: ['all'],
-    senior: ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_ai', 'manage_opechenie'],
+    senior: ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_ai', 'manage_opechenie', 'manage_users', 'view_logs'],
     junior: ['manage_schedule', 'manage_news', 'manage_announcements', 'manage_ai', 'manage_opechenie'],
     editor: ['manage_news', 'manage_announcements']
 };
-const allPermissions = ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_users', 'manage_ai', 'manage_opechenie'];
+const allPermissions = ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_users', 'manage_ai', 'manage_opechenie', 'view_logs'];
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
@@ -184,6 +188,19 @@ function getTempleNames(ids) { if (!ids || !ids.length) return 'не привя�
 function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 function fillTempleDropdown() { /* заглушка */ }
+
+// ========== ЛОГИРОВАНИЕ ==========
+function addLog(action, details) {
+    const logEntry = {
+        timestamp: new Date().toISOString(),
+        user: currentUser ? currentUser.username : 'system',
+        action: action,
+        details: details
+    };
+    db.ref('logs').push(logEntry).catch(err => console.error('Ошибка сохранения лога:', err));
+    if (!data.logs) data.logs = [];
+    data.logs.push(logEntry);
+}
 
 // ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
 function loadData() {
@@ -272,7 +289,7 @@ function loadData() {
 
 function migrateData() {
     data.users.forEach(u => { if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; });
-    ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers'].forEach(k => { if (!data[k]) data[k] = []; });
+    ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers','logs'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
     if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
@@ -350,7 +367,8 @@ function initDefaultData() {
             { id: 20, name: 'Учебный центр специального назначения внутренних войск 5528', responsible: 'командир', description: '', templeId: 0 },
             { id: 21, name: 'Войсковая часть 1463, г.\u00A0Дзержинск', responsible: 'командир', description: '', templeId: 0 },
             { id: 22, name: 'Войсковая часть 30151, г.\u00A0Фаниполь', responsible: 'командир', description: '', templeId: 0 }
-        ]
+        ],
+        logs: []
     };
     nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:2, opechenie:23, teacher:4 };
     setDefaultPhotos();
@@ -361,7 +379,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ГАМБУРГЕР С АНИМАЦИЕЙ, ЗАКРЫТИЕ ПО КЛИКУ НА ФОН) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (модальное меню) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -369,8 +387,8 @@ function rebuildNav() {
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
 
-    const oldOverlay = document.getElementById('fullscreenMenu');
-    if (oldOverlay) oldOverlay.remove();
+    const oldModal = document.getElementById('menuModal');
+    if (oldModal) oldModal.remove();
 
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
@@ -390,7 +408,6 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
-    // Обычные ссылки (десктоп)
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
@@ -400,64 +417,86 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
-    // === ГАМБУРГЕР (три полоски с анимацией) ===
-    const hamburger = document.createElement('div');
-    hamburger.className = 'hamburger';
-    hamburger.id = 'hamburger';
-    hamburger.setAttribute('aria-label', 'Открыть меню');
-    hamburger.innerHTML = '<span></span><span></span><span></span>';
-    nav.appendChild(hamburger);
+    const menuToggle = document.createElement('button');
+    menuToggle.className = 'menu-toggle';
+    menuToggle.id = 'menuToggle';
+    menuToggle.setAttribute('aria-label', 'Открыть меню');
+    menuToggle.innerHTML = '☰ Меню';
+    nav.appendChild(menuToggle);
 
     topBar.insertBefore(nav, tools);
 
-    // === ПОЛНОЭКРАННОЕ МЕНЮ (OVERLAY) ===
-    const overlay = document.createElement('div');
-    overlay.className = 'fullscreen-menu';
-    overlay.id = 'fullscreenMenu';
-    overlay.style.cssText = `
+    const modal = document.createElement('div');
+    modal.className = 'menu-modal';
+    modal.id = 'menuModal';
+    modal.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.95);
-        z-index: 1000;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(4px);
+        z-index: 200;
         display: none;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 2rem;
-        box-sizing: border-box;
+        visibility: hidden;
+        opacity: 0;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     `;
-    // Крестик закрытия (скрыт, т.к. закрываем по клику на фон или по гамбургеру)
+    const modalContent = document.createElement('div');
+    modalContent.className = 'menu-modal-content';
+    modalContent.style.cssText = `
+        background: var(--card-bg, #ffffff);
+        width: 95%;
+        max-width: 400px;
+        max-height: 90vh;
+        overflow-y: auto;
+        border-radius: 32px;
+        padding: 1.5rem 1.5rem 2rem;
+        position: relative;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    `;
     const closeBtn = document.createElement('button');
-    closeBtn.className = 'fullscreen-close';
+    closeBtn.className = 'menu-modal-close';
     closeBtn.innerHTML = '✕';
     closeBtn.style.cssText = `
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        font-size: 2.5rem;
-        color: white;
+        position: sticky;
+        top: 0;
+        float: right;
+        font-size: 2rem;
         background: none;
         border: none;
         cursor: pointer;
-        padding: 0.5rem 1rem;
-        font-family: sans-serif;
-        display: none; /* скрываем, т.к. закрываем по клику на фон или по гамбургеру */
+        color: #333;
+        z-index: 10;
+        padding: 0 0.5rem;
     `;
     closeBtn.setAttribute('aria-label', 'Закрыть меню');
-    overlay.appendChild(closeBtn);
+    modalContent.appendChild(closeBtn);
 
-    // Ссылки внутри overlay
-    const linksContainer = document.createElement('div');
-    linksContainer.style.cssText = `
+    const title = document.createElement('h3');
+    title.textContent = 'Меню';
+    title.style.cssText = `
+        font-family: 'Cormorant Uncial', Georgia, serif;
+        color: var(--primary, #1a2f40);
+        text-align: center;
+        margin-bottom: 1rem;
+        font-size: 1.6rem;
+        border-bottom: 2px solid var(--gold, #c9aa5f);
+        padding-bottom: 0.5rem;
+    `;
+    modalContent.appendChild(title);
+
+    const linksList = document.createElement('div');
+    linksList.style.cssText = `
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
-        align-items: center;
-        width: 100%;
-        max-width: 400px;
+        gap: 0.8rem;
+        margin-top: 0.5rem;
     `;
     links.forEach(l => {
         const a = document.createElement('a');
@@ -465,156 +504,103 @@ function rebuildNav() {
         a.dataset.page = l.page;
         a.textContent = l.text;
         a.style.cssText = `
-            color: white;
-            font-size: 1.6rem;
-            font-family: var(--font, Georgia, serif);
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-bottom: 2px solid transparent;
-            transition: border-color 0.3s;
-            width: 100%;
+            display: block;
+            padding: 0.7rem 1rem;
+            background: var(--bg, #f9f6ef);
+            border-radius: 16px;
             text-align: center;
-            letter-spacing: 0.5px;
+            font-size: 1.1rem;
+            font-family: var(--font, Georgia, serif);
+            color: var(--text, #2c2a24);
+            text-decoration: none;
+            border: 1px solid var(--border, #e8ddd0);
+            transition: background 0.2s, transform 0.2s;
         `;
-        a.addEventListener('mouseenter', () => a.style.borderBottomColor = '#c9aa5f');
-        a.addEventListener('mouseleave', () => a.style.borderBottomColor = 'transparent');
-        linksContainer.appendChild(a);
+        a.addEventListener('mouseenter', () => {
+            a.style.background = 'var(--gold, #c9aa5f)';
+            a.style.color = 'white';
+        });
+        a.addEventListener('mouseleave', () => {
+            a.style.background = 'var(--bg, #f9f6ef)';
+            a.style.color = 'var(--text, #2c2a24)';
+        });
+        a.addEventListener('click', function(e) {
+            closeModal(e);
+        });
+        linksList.appendChild(a);
     });
-    overlay.appendChild(linksContainer);
+    modalContent.appendChild(linksList);
 
-    document.body.appendChild(overlay);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
 
-    // Получаем элементы
-    const hamburgerBtn = document.getElementById('hamburger');
-    const overlayEl = document.getElementById('fullscreenMenu');
+    const toggleBtn = document.getElementById('menuToggle');
+    const modalEl = document.getElementById('menuModal');
+    const closeBtnEl = modalEl.querySelector('.menu-modal-close');
 
-    if (!hamburgerBtn || !overlayEl) {
-        console.error('Не удалось найти элементы гамбургера');
+    if (!toggleBtn || !modalEl || !closeBtnEl) {
+        console.error('Не удалось найти элементы меню');
         return;
     }
 
-    function toggleMenu(e) {
+    function openModal(e) {
         e.preventDefault();
-        const isOpen = overlayEl.style.display === 'flex';
-        overlayEl.style.display = isOpen ? 'none' : 'flex';
-        hamburgerBtn.classList.toggle('active', !isOpen);
-        document.body.style.overflow = isOpen ? '' : 'hidden';
+        modalEl.style.display = 'flex';
+        requestAnimationFrame(() => {
+            modalEl.style.visibility = 'visible';
+            modalEl.style.opacity = '1';
+            modalEl.querySelector('.menu-modal-content').style.transform = 'scale(1)';
+        });
+        document.body.style.overflow = 'hidden';
     }
 
-    // Открытие/закрытие по клику на гамбургер
-    hamburgerBtn.addEventListener('click', toggleMenu);
-    hamburgerBtn.addEventListener('touchstart', function(e) {
+    function closeModal(e) {
+        if (e) e.preventDefault();
+        modalEl.style.opacity = '0';
+        modalEl.style.visibility = 'hidden';
+        modalEl.querySelector('.menu-modal-content').style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            modalEl.style.display = 'none';
+        }, 300);
+        document.body.style.overflow = '';
+    }
+
+    toggleBtn.addEventListener('click', openModal);
+    toggleBtn.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        toggleMenu(e);
+        openModal(e);
     }, { passive: false });
 
-    // Закрытие при клике на фон (overlay)
-    overlayEl.addEventListener('click', function(e) {
+    closeBtnEl.addEventListener('click', closeModal);
+    closeBtnEl.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        closeModal(e);
+    }, { passive: false });
+
+    modalEl.addEventListener('click', function(e) {
         if (e.target === this) {
-            overlayEl.style.display = 'none';
-            hamburgerBtn.classList.remove('active');
-            document.body.style.overflow = '';
+            closeModal(e);
         }
     });
 
-    // Закрытие при клике на ссылку в меню
-    overlayEl.querySelectorAll('a').forEach(a => {
-        a.addEventListener('click', function() {
-            overlayEl.style.display = 'none';
-            hamburgerBtn.classList.remove('active');
-            document.body.style.overflow = '';
-        });
-    });
-
-    // Устанавливаем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
-    // Управление видимостью в зависимости от ширины окна
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
         nav.querySelectorAll('a.nav-link').forEach(a => {
             a.style.display = isMobile ? 'none' : 'inline-block';
         });
-        hamburgerBtn.style.display = isMobile ? 'block' : 'none';
-        if (!isMobile && overlayEl.style.display === 'flex') {
-            overlayEl.style.display = 'none';
-            hamburgerBtn.classList.remove('active');
-            document.body.style.overflow = '';
+        toggleBtn.style.display = isMobile ? 'inline-flex' : 'none';
+        if (!isMobile && modalEl.style.display === 'flex') {
+            closeModal();
         }
     }
 
     updateNavVisibility();
-    // Убираем авто-закрытие при ресайзе
-    // window.addEventListener('resize', updateNavVisibility);
-
-    // === СТИЛИ ДЛЯ ГАМБУРГЕРА (анимация) ===
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-        .hamburger {
-            display: none;
-            cursor: pointer;
-            width: 30px;
-            height: 24px;
-            position: relative;
-            z-index: 1001;
-            margin-left: auto;
-        }
-        .hamburger span {
-            display: block;
-            position: absolute;
-            height: 3px;
-            width: 100%;
-            background: var(--text, #2c2a24);
-            border-radius: 2px;
-            opacity: 1;
-            left: 0;
-            transition: 0.25s ease-in-out;
-        }
-        .hamburger span:nth-child(1) { top: 0px; }
-        .hamburger span:nth-child(2) { top: 10px; }
-        .hamburger span:nth-child(3) { top: 20px; }
-        .hamburger.active span:nth-child(1) {
-            transform: rotate(45deg);
-            top: 10px;
-            background: white;
-        }
-        .hamburger.active span:nth-child(2) {
-            opacity: 0;
-            width: 0;
-        }
-        .hamburger.active span:nth-child(3) {
-            transform: rotate(-45deg);
-            top: 10px;
-            background: white;
-        }
-        .fullscreen-menu {
-            display: none;
-        }
-        @media (max-width: 768px) {
-            .hamburger {
-                display: block !important;
-            }
-            .fullscreen-menu {
-                display: none;
-            }
-        }
-        @media (min-width: 769px) {
-            .hamburger {
-                display: none !important;
-            }
-            .fullscreen-menu {
-                display: none !important;
-            }
-            .top-bar nav a:not(.hamburger) {
-                display: inline-block !important;
-            }
-        }
-    `;
-    document.head.appendChild(styleEl);
 }
 
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
@@ -743,7 +729,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (С УВЕЛИЧЕННЫМИ ФОТО СВЯЩЕННИКОВ) ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -796,11 +782,13 @@ function openTempleModal(tab, templeId) {
             if (clergy.length) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
-                    content += `<div class="clergy-card" data-id="${c.id}" style="cursor:pointer; text-align:center;">
-                        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" style="width:300px; height:300px; border-radius:50%; object-fit:cover; margin-bottom:0.5rem;">
-                        <div><strong>${escapeHtml(c.name)}</strong></div>
-                        <div style="font-size:0.85rem;">${escapeHtml(c.rank)}</div>
-                    </div>`;
+                    content += `
+                        <div class="clergy-card" data-id="${c.id}">
+                            <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo">
+                            <div class="clergy-name">${escapeHtml(c.name)}</div>
+                            <div class="clergy-rank">${escapeHtml(c.rank)}</div>
+                        </div>
+                    `;
                 });
                 content += `</div>`;
             } else {
@@ -1070,7 +1058,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (без вкладок "Календарь" и "Святые дня") ----------
+// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1148,7 +1136,7 @@ function renderWorshipPage(container) {
     }
 }
 
-// ---------- FAQ (с заглушкой ИИ) ----------
+// ---------- FAQ ----------
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card"><h3>${t('ask-question')}</h3>
@@ -1298,7 +1286,7 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ========== АДМИН-ПАНЕЛЬ (ПОЛНАЯ) ==========
+// ========== АДМИН-ПАНЕЛЬ ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -1334,6 +1322,7 @@ function renderAdminLogin() {
 
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
+    const hasLogsPerm = hasPermission(currentUser, 'view_logs');
     const hasTemplesPerm = hasPermission(currentUser, 'manage_temples');
     const hasClergyPerm = hasPermission(currentUser, 'manage_clergy');
     const hasSchedulePerm = hasPermission(currentUser, 'manage_schedule');
@@ -1356,6 +1345,7 @@ function renderAdminDashboard() {
     if (hasAIPerm) menuButtons += `<button class="admin-menu-btn" data-section="ai">🤖 ИИ-помощник</button>`;
     if (hasOpecheniePerm) menuButtons += `<button class="admin-menu-btn" data-section="opechenie">📋 Окормление</button>`;
     if (hasUsersPerm) menuButtons += `<button class="admin-menu-btn" data-section="users">👥 Пользователи</button>`;
+    if (hasLogsPerm) menuButtons += `<button class="admin-menu-btn" data-section="logs">📜 Логи</button>`;
     adminModalContent.innerHTML = `<div class="admin-panel">
         <div class="admin-header"><h3>${t('admin-title')}</h3><div><span style="margin-right:1rem;">👤 ${escapeHtml(currentUser.username)} (${t('role-'+currentUser.role)||currentUser.role})</span>
         <button id="logoutAdmin" class="btn btn-sm">${t('logout')}</button>
@@ -1376,7 +1366,7 @@ function renderAdminSection(section) {
         'news':'manage_news','announcements':'manage_announcements',
         'sunday-school':'manage_sunday_schools','about':'manage_about',
         'worship':'manage_worship','ai':'manage_ai','users':'manage_users',
-        'opechenie':'manage_opechenie'
+        'opechenie':'manage_opechenie','logs':'view_logs'
     };
     if (permMap[section] && !hasPermission(currentUser, permMap[section])) {
         content.innerHTML = '<p>Доступ запрещён.</p>'; return;
@@ -1393,11 +1383,14 @@ function renderAdminSection(section) {
         case 'ai': renderAdminAI(content); break;
         case 'users': renderAdminUsers(content); break;
         case 'opechenie': renderAdminOpechenie(content); break;
+        case 'logs': renderAdminLogs(content); break;
         default: content.innerHTML = '<p>Неизвестный раздел.</p>';
     }
 }
 
 // ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ----------
+
+// РАСПИСАНИЕ
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1456,6 +1449,7 @@ function renderScheduleTable() {
     return table;
 }
 
+// ХРАМЫ
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -1546,6 +1540,7 @@ function renderTemplesTable() {
     return table;
 }
 
+// ДУХОВЕНСТВО
 function renderAdminClergy(container) {
     let html = `<h3>Управление духовенством</h3>
         <button id="adminClergyAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
@@ -1627,6 +1622,7 @@ function renderClergyTable() {
     return table;
 }
 
+// НОВОСТИ
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1707,6 +1703,7 @@ function renderNewsTable() {
     return table;
 }
 
+// ОБЪЯВЛЕНИЯ
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1779,6 +1776,7 @@ function renderAnnounceTable() {
     return table;
 }
 
+// ВОСКРЕСНЫЕ ШКОЛЫ
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -1811,7 +1809,6 @@ function renderAdminSundaySchools(container) {
             </div>
         </div>`;
     container.innerHTML = html;
-
     container.addEventListener('click', function(e) {
         const target = e.target;
         if (target.id === 'adminSSAddBtn') {
@@ -1862,7 +1859,6 @@ function renderAdminSundaySchools(container) {
             document.getElementById('ssFormPhoto').value = s.photo||'';
             document.getElementById('adminSSForm').style.display = 'block';
         }
-
         if (target.id === 'adminTeacherAddBtn') {
             document.getElementById('teacherFormTitle').textContent = 'Добавить преподавателя';
             document.getElementById('teacherFormId').value = '';
@@ -1939,6 +1935,7 @@ function renderTeacherTable() {
     return table;
 }
 
+// О БЛАГОЧИНИИ
 function renderAdminAbout(container) {
     let html = `<h3>Редактирование страницы "О благочинии"</h3>
         <div class="form-group"><label>Текст (поддерживается перенос строк)</label>
@@ -1954,6 +1951,7 @@ function renderAdminAbout(container) {
     });
 }
 
+// БОГОСЛУЖЕНИЯ
 function renderAdminWorship(container) {
     let html = `<h3>Управление богослужениями</h3>
         <div class="card"><h4>Молитвослов</h4>
@@ -2081,102 +2079,7 @@ function renderSacramentsTable() {
     return table;
 }
 
-function renderAdminUsers(container) {
-    let html = `<h3>${t('admin-users')}</h3>
-        <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
-        <div id="adminUserList">${renderUserTable()}</div>
-        <div id="adminUserForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
-            <h4 id="userFormTitle">${t('add-user')}</h4>
-            <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
-            <div class="form-group"><label>${t('password')}</label><input type="password" id="userFormPassword" style="width:100%; padding:0.4rem;" placeholder="${t('password')}"></div>
-            <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
-            <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
-            <input type="hidden" id="userFormEditId" value="">
-            <button id="userFormSaveBtn" class="btn">${t('save')}</button>
-            <button id="userFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
-        </div>`;
-    container.innerHTML = html;
-    document.getElementById('userFormRole').addEventListener('change', function() {
-        const role = this.value;
-        const perms = rolePermissions[role] || [];
-        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
-    });
-    container.addEventListener('click', function(e) {
-        const target = e.target;
-        if (target.id === 'adminAddUserBtn') {
-            const form = document.getElementById('adminUserForm');
-            if (!form) return;
-            document.getElementById('userFormTitle').textContent = t('add-user');
-            document.getElementById('userFormUsername').value = '';
-            document.getElementById('userFormPassword').value = '';
-            document.getElementById('userFormRole').value = 'junior';
-            document.getElementById('userFormEditId').value = '';
-            const perms = rolePermissions['junior'] || [];
-            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
-            form.style.display = 'block';
-        }
-        if (target.id === 'userFormCancelBtn') document.getElementById('adminUserForm').style.display = 'none';
-        if (target.id === 'userFormSaveBtn') {
-            const editId = document.getElementById('userFormEditId').value;
-            const username = document.getElementById('userFormUsername').value.trim();
-            const password = document.getElementById('userFormPassword').value.trim();
-            const role = document.getElementById('userFormRole').value;
-            const checkedPerms = [];
-            document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
-            if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
-            if (!username) { alert('Введите логин'); return; }
-            if (data.users.find(u => u.username === username && u.id != editId)) { alert('Пользователь с таким логином уже существует'); return; }
-            if (editId) {
-                const u = data.users.find(u => u.id == editId);
-                if (u) { u.username = username; if (password) u.password = password; u.role = role; u.permissions = checkedPerms; }
-            } else {
-                if (!password) { alert('Введите пароль'); return; }
-                data.users.push({ id: nextId.user++, username, password, role, permissions: checkedPerms });
-            }
-            saveData();
-            document.getElementById('adminUserForm').style.display = 'none';
-            renderAdminUsers(container);
-        }
-        if (target.classList.contains('admin-delete-user')) {
-            const id = parseInt(target.dataset.id);
-            const u = data.users.find(u => u.id === id);
-            if (!u) return;
-            if (u.id === currentUser.id) { alert('Нельзя удалить себя'); return; }
-            if (!confirm(t('confirm-delete'))) return;
-            data.users = data.users.filter(u => u.id !== id);
-            saveData();
-            renderAdminUsers(container);
-        }
-        if (target.classList.contains('admin-edit-user')) {
-            const id = parseInt(target.dataset.id);
-            const u = data.users.find(u => u.id === id);
-            if (!u) return;
-            const form = document.getElementById('adminUserForm');
-            if (!form) return;
-            document.getElementById('userFormTitle').textContent = t('edit-user');
-            document.getElementById('userFormUsername').value = u.username;
-            document.getElementById('userFormPassword').value = '';
-            document.getElementById('userFormRole').value = u.role;
-            document.getElementById('userFormEditId').value = u.id;
-            const perms = u.permissions || [];
-            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
-            form.style.display = 'block';
-        }
-    });
-}
-function renderUserTable() {
-    if (!data.users.length) return `<p>${t('no-users')}</p>`;
-    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
-    data.users.forEach(u => {
-        const roleLabel = t('role-'+u.role) || u.role;
-        const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
-        const isSelf = u.id === currentUser?.id;
-        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
-    });
-    table += `</tbody></table>`;
-    return table;
-}
-
+// ОКОРМЛЕНИЕ
 function renderAdminOpechenie(container) {
     let html = `<h3>Управление окормлением</h3>
         <button id="adminOpechenieAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объект</button>
@@ -2253,6 +2156,145 @@ function renderOpechenieTable() {
     });
     table += `</tbody></table>`;
     return table;
+}
+
+// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (с русскими правами, генерацией пароля, логами)
+function renderAdminUsers(container) {
+    let html = `<h3>${t('admin-users')}</h3>
+        <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
+        <div id="adminUserList">${renderUserTable()}</div>
+        <div id="adminUserForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
+            <h4 id="userFormTitle">${t('add-user')}</h4>
+            <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>${t('password')}</label><div style="display:flex; gap:0.5rem;"><input type="text" id="userFormPassword" style="flex:1; padding:0.4rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);" placeholder="${t('password')}"><button id="generatePasswordBtn" class="btn btn-sm">🔑 Сгенерировать</button></div></div>
+            <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
+            <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
+            <input type="hidden" id="userFormEditId" value="">
+            <button id="userFormSaveBtn" class="btn">${t('save')}</button>
+            <button id="userFormCancelBtn" class="btn btn-sm">${t('cancel')}</button>
+        </div>`;
+    container.innerHTML = html;
+    document.getElementById('userFormRole').addEventListener('change', function() {
+        const role = this.value;
+        const perms = rolePermissions[role] || [];
+        document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+    });
+    document.getElementById('generatePasswordBtn').addEventListener('click', function() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+        let password = '';
+        for (let i = 0; i < 12; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        document.getElementById('userFormPassword').value = password;
+    });
+
+    container.addEventListener('click', function(e) {
+        const target = e.target;
+        if (target.id === 'adminAddUserBtn') {
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('add-user');
+            document.getElementById('userFormUsername').value = '';
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = 'junior';
+            document.getElementById('userFormEditId').value = '';
+            const perms = rolePermissions['junior'] || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+        if (target.id === 'userFormCancelBtn') document.getElementById('adminUserForm').style.display = 'none';
+        if (target.id === 'userFormSaveBtn') {
+            const editId = document.getElementById('userFormEditId').value;
+            const username = document.getElementById('userFormUsername').value.trim();
+            const password = document.getElementById('userFormPassword').value.trim();
+            const role = document.getElementById('userFormRole').value;
+            const checkedPerms = [];
+            document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
+            if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
+            if (!username) { alert('Введите логин'); return; }
+            if (data.users.find(u => u.username === username && u.id != editId)) { alert('Пользователь с таким логином уже существует'); return; }
+            if (editId) {
+                const u = data.users.find(u => u.id == editId);
+                if (u) {
+                    const oldUsername = u.username;
+                    u.username = username;
+                    if (password) u.password = password;
+                    u.role = role;
+                    u.permissions = checkedPerms;
+                    addLog(`Редактирован пользователь ${oldUsername} → ${username}`, `Роль: ${role}, права: ${checkedPerms.join(', ')}`);
+                }
+            } else {
+                if (!password) { alert('Введите пароль'); return; }
+                const newUser = { id: nextId.user++, username, password, role, permissions: checkedPerms };
+                data.users.push(newUser);
+                addLog(`Добавлен пользователь ${username}`, `Роль: ${role}, права: ${checkedPerms.join(', ')}`);
+            }
+            saveData();
+            document.getElementById('adminUserForm').style.display = 'none';
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-delete-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            if (u.id === currentUser.id) { alert('Нельзя удалить себя'); return; }
+            if (!confirm(t('confirm-delete'))) return;
+            data.users = data.users.filter(u => u.id !== id);
+            addLog(`Удалён пользователь ${u.username}`, `ID: ${u.id}`);
+            saveData();
+            renderAdminUsers(container);
+        }
+        if (target.classList.contains('admin-edit-user')) {
+            const id = parseInt(target.dataset.id);
+            const u = data.users.find(u => u.id === id);
+            if (!u) return;
+            const form = document.getElementById('adminUserForm');
+            if (!form) return;
+            document.getElementById('userFormTitle').textContent = t('edit-user');
+            document.getElementById('userFormUsername').value = u.username;
+            document.getElementById('userFormPassword').value = '';
+            document.getElementById('userFormRole').value = u.role;
+            document.getElementById('userFormEditId').value = u.id;
+            const perms = u.permissions || [];
+            document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
+            form.style.display = 'block';
+        }
+    });
+}
+function renderUserTable() {
+    if (!data.users.length) return `<p>${t('no-users')}</p>`;
+    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
+    data.users.forEach(u => {
+        const roleLabel = t('role-'+u.role) || u.role;
+        const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
+        const isSelf = u.id === currentUser?.id;
+        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+    });
+    table += `</tbody></table>`;
+    return table;
+}
+
+// ЛОГИ
+function renderAdminLogs(container) {
+    let logs = data.logs || [];
+    logs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+    let html = `<h3>📜 Логи действий администраторов</h3>`;
+    if (!logs.length) {
+        html += `<p>Логов пока нет.</p>`;
+    } else {
+        html += `<div style="max-height: 500px; overflow-y: auto;">`;
+        logs.forEach(log => {
+            html += `
+                <div style="border-bottom: 1px solid var(--border); padding: 0.5rem 0;">
+                    <div><strong>${escapeHtml(log.user)}</strong> <span style="color:#999; font-size:0.85rem;">${escapeHtml(new Date(log.timestamp).toLocaleString())}</span></div>
+                    <div>${escapeHtml(log.action)}</div>
+                    <div style="font-size:0.9rem; color:#666;">${escapeHtml(log.details)}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+    container.innerHTML = html;
 }
 
 // ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
