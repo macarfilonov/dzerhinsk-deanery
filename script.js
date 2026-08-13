@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (с исправленными «Святыми дня»)
+//  script.js – ПОЛНАЯ ФИНАЛЬНАЯ ВЕРСИЯ (все функции, фото 300×300)
 // ============================================================
 
-console.log('script.js загружен');
+console.log('script.js загружен (финальная полная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -51,16 +51,17 @@ let currentLang = 'ru';
 let currentUser = null;
 let dataLoaded = false;
 let visionMode = false;
-let isDetailPage = false;
 let syncInterval = null;
 
-// ========== СОХРАНЕНИЕ СОСТОЯНИЯ ВКЛАДОК ==========
-function getStoredTab(key, defaultTab) {
-    return sessionStorage.getItem(key) || defaultTab;
-}
-function setStoredTab(key, tab) {
-    sessionStorage.setItem(key, tab);
-}
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
+function t(key) { return translations[currentLang]?.[key] || key; }
+function getTempleName(id) { const t = data.temples.find(t => t.id === id); return t ? t.name : '?'; }
+function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
+function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
+function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
+function getStoredTab(key, defaultTab) { return sessionStorage.getItem(key) || defaultTab; }
+function setStoredTab(key, tab) { sessionStorage.setItem(key, tab); }
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -179,15 +180,6 @@ const rolePermissions = {
     editor: ['manage_news', 'manage_announcements']
 };
 const allPermissions = ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_users', 'manage_ai', 'manage_opechenie', 'view_logs'];
-
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
-function t(key) { return translations[currentLang]?.[key] || key; }
-function getTempleName(id) { const t = data.temples.find(t => t.id === id); return t ? t.name : '?'; }
-function getTempleNames(ids) { if (!ids || !ids.length) return 'не привязан'; return ids.map(id => getTempleName(id)).join(', '); }
-function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.jpg'; }
-function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
-function fillTempleDropdown() { /* заглушка */ }
 
 // ========== ЛОГИРОВАНИЕ ==========
 function addLog(action, details) {
@@ -379,14 +371,13 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (модальное меню) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
-
     const oldModal = document.getElementById('menuModal');
     if (oldModal) oldModal.remove();
 
@@ -524,9 +515,7 @@ function rebuildNav() {
             a.style.background = 'var(--bg, #f9f6ef)';
             a.style.color = 'var(--text, #2c2a24)';
         });
-        a.addEventListener('click', function(e) {
-            closeModal(e);
-        });
+        a.addEventListener('click', function(e) { closeModal(e); });
         linksList.appendChild(a);
     });
     modalContent.appendChild(linksList);
@@ -599,7 +588,6 @@ function rebuildNav() {
             closeModal();
         }
     }
-
     updateNavVisibility();
 }
 
@@ -729,7 +717,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (С УВЕЛИЧЕННЫМИ ФОТО СВЯЩЕННИКОВ) ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (с фото 300×300 через класс) ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -1058,9 +1046,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ============================================================
-//  БОГОСЛУЖЕНИЯ – с исправленными «Святыми дня» (перезагрузка виджета)
-// ============================================================
+// ---------- БОГОСЛУЖЕНИЯ (со вкладкой "Святые дня" с перезагрузкой) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1091,7 +1077,7 @@ function renderWorshipPage(container) {
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
-    // Святые дня – блок с контейнером, который будет пересоздаваться
+    // Святые дня – с перезагрузкой виджета
     html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
     html += `<div class="saints-widget-container">
         <h3>Святые дня</h3>
@@ -1119,29 +1105,24 @@ function renderWorshipPage(container) {
 
     initScheduleSelect(container);
 
-    // Функция загрузки виджета святых
+    // Функция загрузки виджета святых (перезагрузка при каждом переключении)
     function loadSaintsWidget() {
         const containerEl = document.getElementById('saintsContainer');
         if (!containerEl) return;
-        // Очищаем контейнер
         containerEl.innerHTML = '';
-        // Создаём новый элемент для виджета
         const widgetDiv = document.createElement('div');
         widgetDiv.className = 'azbyka-saints';
         containerEl.appendChild(widgetDiv);
 
-        // Удаляем старый скрипт, если он есть
         const oldScript = document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]');
         if (oldScript) oldScript.remove();
 
-        // Настройки виджета
         window.___azcfg = {
             api: 'https://azbyka.ru/days/widgets',
             css: 'https://azbyka.ru/days/css/api.min.css',
             image: '1',
             prevNextLinks: '1'
         };
-        // Загружаем скрипт
         var el = document.createElement('script');
         el.type = 'text/javascript';
         el.async = true;
@@ -1169,20 +1150,16 @@ function renderWorshipPage(container) {
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
 
-            // Если переключились на вкладку «Святые дня» – перезагружаем виджет
             if (tabId === 'saints') {
-                // Небольшая задержка, чтобы DOM успел обновиться
                 setTimeout(loadSaintsWidget, 100);
             }
         });
     });
 
-    // Если активная вкладка уже «Святые дня» – загружаем виджет сразу
     if (activeTab === 'saints') {
         setTimeout(loadSaintsWidget, 200);
     }
 
-    // Устанавливаем активную кнопку
     const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
     if (activeBtn) {
         activeBtn.classList.add('active');
@@ -1350,7 +1327,7 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ========== АДМИН-ПАНЕЛЬ ==========
+// ========== АДМИН-ПАНЕЛЬ (ПОЛНАЯ) ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
@@ -1452,7 +1429,9 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ----------
+// ========== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ==========
+
+// РАСПИСАНИЕ
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1511,6 +1490,7 @@ function renderScheduleTable() {
     return table;
 }
 
+// ХРАМЫ
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -1601,6 +1581,7 @@ function renderTemplesTable() {
     return table;
 }
 
+// ДУХОВЕНСТВО
 function renderAdminClergy(container) {
     let html = `<h3>Управление духовенством</h3>
         <button id="adminClergyAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
@@ -1682,6 +1663,7 @@ function renderClergyTable() {
     return table;
 }
 
+// НОВОСТИ
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1762,6 +1744,7 @@ function renderNewsTable() {
     return table;
 }
 
+// ОБЪЯВЛЕНИЯ
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1834,6 +1817,7 @@ function renderAnnounceTable() {
     return table;
 }
 
+// ВОСКРЕСНЫЕ ШКОЛЫ
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -1992,6 +1976,7 @@ function renderTeacherTable() {
     return table;
 }
 
+// О БЛАГОЧИНИИ
 function renderAdminAbout(container) {
     let html = `<h3>Редактирование страницы "О благочинии"</h3>
         <div class="form-group"><label>Текст (поддерживается перенос строк)</label>
@@ -2007,6 +1992,7 @@ function renderAdminAbout(container) {
     });
 }
 
+// БОГОСЛУЖЕНИЯ
 function renderAdminWorship(container) {
     let html = `<h3>Управление богослужениями</h3>
         <div class="card"><h4>Молитвослов</h4>
@@ -2134,6 +2120,7 @@ function renderSacramentsTable() {
     return table;
 }
 
+// ОКОРМЛЕНИЕ
 function renderAdminOpechenie(container) {
     let html = `<h3>Управление окормлением</h3>
         <button id="adminOpechenieAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объект</button>
@@ -2371,7 +2358,7 @@ function initVisionToggle() { document.getElementById('visionToggle')?.addEventL
 function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded');
+    console.log('DOMContentLoaded – финальная полная версия');
     loadData();
     initAdminTrigger();
     initVisionToggle();
