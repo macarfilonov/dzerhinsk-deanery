@@ -270,6 +270,149 @@ img {
     }
 }
 
+/* ========== КНОПКА МЕНЮ (мобильная) ========== */
+.menu-toggle {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--gold, #c9aa5f);
+    color: white;
+    border: none;
+    border-radius: 40px;
+    padding: 0.5rem 1.2rem;
+    font-size: 1rem;
+    font-family: var(--font, Georgia, serif);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.menu-toggle:hover {
+    background: #b89a4a;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+}
+.menu-toggle:active {
+    transform: scale(0.98);
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: inline-flex !important;
+        padding: 0.4rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+@media (max-width: 480px) {
+    .menu-toggle {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.8rem;
+        gap: 0.3rem;
+    }
+}
+@media (min-width: 769px) {
+    .menu-toggle {
+        display: none !important;
+    }
+    .top-bar nav a:not(.menu-toggle) {
+        display: inline-block !important;
+    }
+}
+
+/* ========== МОДАЛЬНОЕ ОКНО МЕНЮ ========== */
+.menu-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+.menu-modal.visible {
+    visibility: visible;
+    opacity: 1;
+}
+.menu-modal-content {
+    background: var(--card-bg, #ffffff);
+    width: 95%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 32px;
+    padding: 1.5rem 1.5rem 2rem;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
+}
+.menu-modal-content h3 {
+    font-family: 'Cormorant Uncial', Georgia, serif;
+    color: var(--primary, #1a2f40);
+    text-align: center;
+    margin-bottom: 1rem;
+    font-size: 1.6rem;
+    border-bottom: 2px solid var(--gold, #c9aa5f);
+    padding-bottom: 0.5rem;
+}
+.menu-modal-close {
+    position: sticky;
+    top: 0;
+    float: right;
+    font-size: 2rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #333;
+    z-index: 10;
+    padding: 0 0.5rem;
+}
+.menu-modal-content a {
+    display: block;
+    padding: 0.7rem 1rem;
+    background: var(--bg, #f9f6ef);
+    border-radius: 16px;
+    text-align: center;
+    font-size: 1.1rem;
+    font-family: var(--font, Georgia, serif);
+    color: var(--text, #2c2a24);
+    text-decoration: none;
+    border: 1px solid var(--border, #e8ddd0);
+    transition: background 0.2s, transform 0.2s;
+}
+.menu-modal-content a:hover {
+    background: var(--gold, #c9aa5f);
+    color: white;
+}
+@media (max-width: 480px) {
+    .menu-modal-content {
+        padding: 1rem;
+        max-width: 95%;
+    }
+    .menu-modal-content h3 {
+        font-size: 1.3rem;
+    }
+    .menu-modal-content a {
+        font-size: 1rem;
+        padding: 0.6rem 0.8rem;
+    }
+    .menu-modal-close {
+        font-size: 1.6rem;
+    }
+}
+
 /* ========== КОНТЕЙНЕР ========== */
 .container {
     max-width: 1200px;
@@ -404,7 +547,7 @@ img {
     }
 }
 
-/* ========== ДУХОВЕНСТВО ========== */
+/* ========== ДУХОВЕНСТВО (список) ========== */
 #clergyList .grid-item img {
     height: 400px;
 }
@@ -637,47 +780,6 @@ img {
     display: block;
 }
 
-.detail-content .clergy-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 0.5rem;
-    justify-content: center;
-}
-
-.detail-content .clergy-card {
-    background: var(--card-bg);
-    border-radius: 16px;
-    padding: 0.8rem;
-    border: 1px solid var(--border);
-    width: 200px;
-    text-align: center;
-    cursor: pointer;
-}
-
-@media (max-width: 480px) {
-    .detail-content .clergy-card {
-        width: 100%;
-        max-width: 220px;
-        padding: 0.6rem;
-    }
-}
-
-.detail-content .clergy-card img {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 50%;
-    margin-bottom: 0.5rem;
-}
-
-@media (max-width: 480px) {
-    .detail-content .clergy-card img {
-        width: 100px;
-        height: 100px;
-    }
-}
-
 /* ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (hero) ========== */
 .temple-detail-hero {
     min-height: 70vh;
@@ -789,21 +891,83 @@ img {
     }
 }
 
-.temple-modal-content .clergy-card img {
+/* ========== ФОТО СВЯЩЕННИКОВ В МОДАЛКЕ ХРАМА (300×300, центр, текст крупнее) ========== */
+.temple-modal-content .clergy-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.temple-modal-content .clergy-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    background: var(--card-bg, #ffffff);
+    border-radius: 16px;
+    padding: 1rem;
+    border: 1px solid var(--border, #e8ddd0);
+    width: 220px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.temple-modal-content .clergy-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+}
+
+.temple-modal-content .clergy-photo {
     width: 300px;
     height: 300px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.8rem;
+    background: #e9e1d4;
 }
 
+.temple-modal-content .clergy-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary, #1a2f40);
+    margin-bottom: 0.2rem;
+}
+
+.temple-modal-content .clergy-rank {
+    font-size: 1rem;
+    color: var(--gold, #c9aa5f);
+}
+
+/* Адаптация для мобильных */
 @media (max-width: 480px) {
-    .temple-modal-content .clergy-card img {
-        width: 200px !important;
-        height: 200px !important;
+    .temple-modal-content .clergy-card {
+        width: 100%;
+        max-width: 220px;
+        padding: 0.6rem;
     }
-    .temple-modal-content .clergy-list {
-        gap: 0.5rem;
+    .temple-modal-content .clergy-photo {
+        width: 200px;
+        height: 200px;
+    }
+    .temple-modal-content .clergy-name {
+        font-size: 1rem;
+    }
+    .temple-modal-content .clergy-rank {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .temple-modal-content .clergy-photo {
+        width: 160px;
+        height: 160px;
+    }
+    .temple-modal-content .clergy-name {
+        font-size: 0.9rem;
+    }
+    .temple-modal-content .clergy-rank {
+        font-size: 0.8rem;
     }
 }
 
