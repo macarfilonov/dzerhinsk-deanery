@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ФИНАЛЬНАЯ ВЕРСИЯ (все функции, фото 300×300)
+//  script.js – ПОЛНАЯ ФИНАЛЬНАЯ ВЕРСИЯ (с хешированием паролей, доп. вопросом, бесконечной каруселью, модальным меню, логами)
 // ============================================================
 
-console.log('script.js загружен (финальная полная версия)');
+console.log('script.js загружен (финальная полная версия с хешированием)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -52,6 +52,7 @@ let currentUser = null;
 let dataLoaded = false;
 let visionMode = false;
 let syncInterval = null;
+let logsListener = null;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
@@ -62,6 +63,21 @@ function getTemplePhoto(temple) { return temple?.photo?.trim() || 'placeholder.j
 function hasPermission(user, permission) { return user?.permissions?.includes('all') || user?.permissions?.includes(permission) || false; }
 function getStoredTab(key, defaultTab) { return sessionStorage.getItem(key) || defaultTab; }
 function setStoredTab(key, tab) { sessionStorage.setItem(key, tab); }
+
+// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
+async function hashPassword(password) {
+    if (!password) return '';
+    const encoder = new TextEncoder();
+    const dataBytes = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Проверка, является ли строка хешем (64 hex символа)
+function isHash(str) {
+    return /^[a-f0-9]{64}$/.test(str);
+}
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -192,6 +208,7 @@ function addLog(action, details) {
     db.ref('logs').push(logEntry).catch(err => console.error('Ошибка сохранения лога:', err));
     if (!data.logs) data.logs = [];
     data.logs.push(logEntry);
+    saveToLocalStorage();
 }
 
 // ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
@@ -226,8 +243,22 @@ function loadData() {
         }
     });
 
-    db.ref('data').once('value', (snapshot) => {
-        if (!snapshot.val()) { initDefaultData(); }
+    if (logsListener) logsListener.off();
+    logsListener = db.ref('logs');
+    logsListener.on('value', (snapshot) => {
+        const logsData = snapshot.val();
+        if (logsData) {
+            const logsArray = Object.values(logsData).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            data.logs = logsArray;
+            saveToLocalStorage();
+            const adminContent = document.getElementById('adminSectionContent');
+            if (adminContent && adminContent.closest('.admin-modal') && adminContent.closest('.admin-modal').classList.contains('visible')) {
+                const section = adminContent.dataset.currentSection;
+                if (section === 'logs') {
+                    renderAdminLogs(adminContent);
+                }
+            }
+        }
     });
 
     if (syncInterval) clearInterval(syncInterval);
@@ -280,11 +311,23 @@ function loadData() {
 }
 
 function migrateData() {
-    data.users.forEach(u => { if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; });
+    data.users.forEach(u => { 
+        if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; 
+        if (u.extraQuestion === undefined) u.extraQuestion = '';
+        // Если пароль не хеш (и не пустой), то при следующем входе он будет обновлён (но мы не можем обновить автоматически, только при логине)
+    });
     ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers','logs'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
-    if (!data.users || data.users.length === 0) data.users.push({ id: nextId.user++, username: 'Makar', password: 'Makar27.05.2014', role: 'developer', permissions: ['all'] });
+    // Если нет пользователей, создаём с хешированным паролем
+    if (!data.users || data.users.length === 0) {
+        hashPassword('Makar27.05.2014').then(hash => {
+            data.users.push({ id: nextId.user++, username: 'Makar', password: hash, role: 'developer', permissions: ['all'], extraQuestion: '' });
+            saveData();
+        });
+    } else {
+        // Если у существующего пользователя пароль не хеш, оставляем как есть, но при логине он будет захеширован (если пароль совпадает)
+    }
     setDefaultPhotos();
 }
 
@@ -335,7 +378,7 @@ function initDefaultData() {
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
         faq: [],
-        users: [ { id:1, username:'Makar', password:'Makar27.05.2014', role:'developer', permissions:['all'] } ],
+        users: [], // будет создан при миграции
         opechenie: [
             { id: 1, name: 'Паллиативный хоспис, д.\u00A0Волковичи', responsible: 'настоятель', description: '', templeId: 0 },
             { id: 2, name: 'Дзержинская районная центральная библиотека', responsible: 'настоятель', description: '', templeId: 0 },
@@ -362,8 +405,9 @@ function initDefaultData() {
         ],
         logs: []
     };
-    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:2, opechenie:23, teacher:4 };
+    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:1, opechenie:23, teacher:4 };
     setDefaultPhotos();
+    // Пользователь будет создан в migrateData (асинхронно)
     saveData();
     renderCurrentPage();
     applyTranslations();
@@ -435,6 +479,7 @@ function rebuildNav() {
         visibility: hidden;
         opacity: 0;
         transition: opacity 0.3s ease, visibility 0.3s ease;
+        pointer-events: none;
     `;
     const modalContent = document.createElement('div');
     modalContent.className = 'menu-modal-content';
@@ -450,6 +495,7 @@ function rebuildNav() {
         box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         transform: scale(0.9);
         transition: transform 0.3s ease;
+        pointer-events: auto;
     `;
     const closeBtn = document.createElement('button');
     closeBtn.className = 'menu-modal-close';
@@ -465,6 +511,7 @@ function rebuildNav() {
         color: #333;
         z-index: 10;
         padding: 0 0.5rem;
+        pointer-events: auto;
     `;
     closeBtn.setAttribute('aria-label', 'Закрыть меню');
     modalContent.appendChild(closeBtn);
@@ -506,6 +553,7 @@ function rebuildNav() {
             text-decoration: none;
             border: 1px solid var(--border, #e8ddd0);
             transition: background 0.2s, transform 0.2s;
+            pointer-events: auto;
         `;
         a.addEventListener('mouseenter', () => {
             a.style.background = 'var(--gold, #c9aa5f)';
@@ -535,6 +583,7 @@ function rebuildNav() {
     function openModal(e) {
         e.preventDefault();
         modalEl.style.display = 'flex';
+        modalEl.style.pointerEvents = 'auto';
         requestAnimationFrame(() => {
             modalEl.style.visibility = 'visible';
             modalEl.style.opacity = '1';
@@ -547,6 +596,7 @@ function rebuildNav() {
         if (e) e.preventDefault();
         modalEl.style.opacity = '0';
         modalEl.style.visibility = 'hidden';
+        modalEl.style.pointerEvents = 'none';
         modalEl.querySelector('.menu-modal-content').style.transform = 'scale(0.9)';
         setTimeout(() => {
             modalEl.style.display = 'none';
@@ -572,6 +622,12 @@ function rebuildNav() {
         }
     });
 
+    modalEl.querySelectorAll('a[data-page]').forEach(a => {
+        a.addEventListener('click', function(e) {
+            closeModal(e);
+        });
+    });
+
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
@@ -589,6 +645,7 @@ function rebuildNav() {
         }
     }
     updateNavVisibility();
+    window.addEventListener('resize', updateNavVisibility);
 }
 
 // ========== РЕНДЕРИНГ СТРАНИЦ ==========
@@ -652,7 +709,7 @@ function updateNavActive(page) {
     }
 }
 
-// ---------- ГЛАВНАЯ ----------
+// ---------- ГЛАВНАЯ (с бесконечной каруселью) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -664,15 +721,11 @@ function renderMainPage() {
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
-        <div class="carousel">
-            <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
-            <div class="carousel-track" id="carouselTrack">`;
-    data.temples.forEach(t => {
-        if (t.id === 1) return;
-        const imgSrc = getTemplePhoto(t);
-        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
-    });
-    html += `</div><button class="carousel-btn right" onclick="scrollCarousel(1)">›</button></div>`;
+        <div class="carousel" id="mainCarousel">
+            <button class="carousel-btn left" id="carouselPrev">‹</button>
+            <div class="carousel-track" id="carouselTrack"></div>
+            <button class="carousel-btn right" id="carouselNext">›</button>
+        </div>`;
     // Новости
     html += `<div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
@@ -699,9 +752,109 @@ function renderMainPage() {
     }
     html += `</div>`;
     container.innerHTML = html;
-    container.querySelectorAll('.carousel-item').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
+
+    initInfiniteCarousel();
 }
-function scrollCarousel(direction) { const track = document.getElementById('carouselTrack'); if (track) track.scrollBy({ left: direction * 280, behavior: 'smooth' }); }
+
+function initInfiniteCarousel() {
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    if (!prevBtn || !nextBtn) return;
+
+    const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
+        const imgSrc = getTemplePhoto(t);
+        return `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
+    });
+
+    const totalItems = templeItems.length;
+    if (totalItems === 0) {
+        track.innerHTML = '<p>Нет храмов для отображения</p>';
+        return;
+    }
+
+    const cloneFirst = templeItems.slice(0, 2).join('');
+    const cloneLast = templeItems.slice(-2).join('');
+    const allItems = cloneLast + templeItems.join('') + cloneFirst;
+
+    track.innerHTML = allItems;
+
+    let currentIndex = 2;
+    let isTransitioning = false;
+
+    function getItemWidth() {
+        const firstItem = track.querySelector('.carousel-item');
+        if (!firstItem) return 240;
+        const style = window.getComputedStyle(firstItem);
+        const width = parseFloat(style.flexBasis) || parseFloat(style.width) || 240;
+        const marginRight = parseFloat(style.marginRight) || 0;
+        return width + marginRight;
+    }
+
+    function getGap() {
+        const style = window.getComputedStyle(track);
+        return parseFloat(style.gap) || 16;
+    }
+
+    function updateCarousel(animate = true) {
+        const width = getItemWidth();
+        const gap = getGap();
+        const offset = currentIndex * (width + gap);
+        track.style.transition = animate ? 'transform 0.5s ease' : 'none';
+        track.style.transform = `translateX(-${offset}px)`;
+    }
+
+    function goTo(index, animate = true) {
+        if (isTransitioning) return;
+        isTransitioning = true;
+        currentIndex = index;
+        updateCarousel(animate);
+        setTimeout(() => {
+            isTransitioning = false;
+            const totalRealItems = totalItems;
+            if (currentIndex >= totalRealItems + 2) {
+                currentIndex = 2;
+                updateCarousel(false);
+            } else if (currentIndex < 2) {
+                currentIndex = totalRealItems + 1;
+                updateCarousel(false);
+            }
+        }, 500);
+    }
+
+    function next() {
+        goTo(currentIndex + 1);
+    }
+
+    function prev() {
+        goTo(currentIndex - 1);
+    }
+
+    nextBtn.addEventListener('click', next);
+    prevBtn.addEventListener('click', prev);
+
+    track.querySelectorAll('.carousel-item').forEach(el => {
+        el.addEventListener('click', function() {
+            const id = this.dataset.id;
+            if (id) window.location.href = `temple-${id}.html`;
+        });
+    });
+
+    let autoplayInterval = setInterval(next, 4000);
+    track.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
+    track.addEventListener('mouseleave', () => {
+        autoplayInterval = setInterval(next, 4000);
+    });
+
+    window.addEventListener('resize', () => {
+        updateCarousel(false);
+    });
+
+    setTimeout(() => {
+        updateCarousel(false);
+    }, 100);
+}
 
 // ---------- СПИСОК ХРАМОВ ----------
 function renderTemplesList(container) {
@@ -717,7 +870,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (с фото 300×300 через класс) ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -897,6 +1050,7 @@ function renderClergyList(container) {
     container.innerHTML = html;
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
+
 function renderClergyDetail(id) {
     if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
@@ -923,6 +1077,7 @@ function getScheduleHTML() {
     html += `</select></div><div id="scheduleDisplay"></div>`;
     return html;
 }
+
 function initScheduleSelect(container) {
     const select = container.querySelector('#scheduleTempleSelect');
     if (!select) return;
@@ -1041,12 +1196,40 @@ function renderSundaySchoolDetail(id) {
 
 // ---------- О БЛАГОЧИНИИ ----------
 function renderAboutPage(container) {
-    let html = `<h2>О благочинии</h2>
-        <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
+    let html = `
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="font-size: 2.8rem; font-family: 'Cormorant Uncial', Georgia, serif; color: var(--primary); margin-bottom: 0.5rem; font-weight: 700;">Дзержинское благочиние: Духовное Сердце Города с Семи Храмами</h1>
+            <div style="width: 100px; height: 3px; background: var(--gold); margin: 0 auto 1.5rem;"></div>
+        </div>
+        <div class="card">
+            <div style="white-space: pre-line; font-size: 1.05rem; line-height: 1.8;">
+                Добро пожаловать на страницу Дзержинского благочиния — места, где вера и любовь Христова наполняют жизнь нашего города. Мы рады приветствовать вас и приглашаем познакомиться с духовным центром, который объединяет верующих в молитве и добрых делах.
+
+                Наш благочинный: Протоиерей Борис Полторжицкий. Под его мудрым руководством благочиние развивается, храмы оживают, а приходская жизнь становится богаче и содержательнее.
+
+                История и настоящее:
+                Дзержинское благочиние — это не просто территория, объединяющая несколько храмов. Это живой организм, где каждый приход имеет свою уникальную историю и традиции. Наши храмы — это архитектурные жемчужины, но главное — это дома Божии, где каждый может найти утешение, поддержку и обрести духовный мир.
+
+                Жизнь благочиния:
+                Богослужения: Регулярные богослужения, Таинства Церкви, молитвенные собрания — всё это составляет основу духовной жизни наших прихожан.
+                Миссионерская деятельность: Мы стремимся нести свет Христовой истины каждому человеку, организуя просветительские беседы, воскресные школы и мероприятия для детей и взрослых.
+                Социальное служение: Особое внимание уделяется помощи нуждающимся. Мы заботимся о престарелых, малоимущих, детях-сиротах, участвуя в различных благотворительных акциях.
+                Культурно-просветительская работа: Проводятся лекции, концерты, выставки, направленные на духовное и культурное развитие нашей паствы.
+
+                Наше духовное созвездие:
+                Дзержинское благочиние гордится своими семью храмами, каждый из которых является уникальным центром духовной жизни. Благочиннический центр и сердце нашего благочиния — это величественный Храм Покрова Пресвятой Богородицы в Дзержинске.
+
+                Приглашаем вас:
+                Присоединяйтесь к нам! Посетите наши храмы, станьте частью нашего приходского сообщества. Мы верим, что вместе мы можем сделать мир добрее и светлее.
+
+                С любовью во Христе, Дзержинское благочиние.
+            </div>
+        </div>
+    `;
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (со вкладкой "Святые дня" с перезагрузкой) ----------
+// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1067,17 +1250,14 @@ function renderWorshipPage(container) {
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
 
-    // Расписание
     html += `<div class="worship-block ${activeTab === 'schedule' ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
 
-    // Молитвослов
     html += `<div class="worship-block ${activeTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
-    // Святые дня – с перезагрузкой виджета
     html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
     html += `<div class="saints-widget-container">
         <h3>Святые дня</h3>
@@ -1086,14 +1266,12 @@ function renderWorshipPage(container) {
     </div>`;
     html += `</div>`;
 
-    // Толкования
     html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
 
-    // Подготовка к таинствам
     html += `<div class="worship-block ${activeTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
@@ -1105,7 +1283,6 @@ function renderWorshipPage(container) {
 
     initScheduleSelect(container);
 
-    // Функция загрузки виджета святых (перезагрузка при каждом переключении)
     function loadSaintsWidget() {
         const containerEl = document.getElementById('saintsContainer');
         if (!containerEl) return;
@@ -1130,7 +1307,6 @@ function renderWorshipPage(container) {
         document.head.appendChild(el);
     }
 
-    // Переключение вкладок
     container.querySelectorAll('.worship-tab-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const tabId = this.dataset.tab;
@@ -1348,19 +1524,46 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
+// ========== АДМИН-ЛОГИН С ХЕШИРОВАНИЕМ ==========
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
         <input type="password" id="adminPass" placeholder="${t('login-password')}">
         <button id="doLogin" class="btn">${t('login-btn')}</button></div>`;
-    document.getElementById('doLogin').addEventListener('click', function() {
+    document.getElementById('doLogin').addEventListener('click', async function() {
         const login = document.getElementById('adminLogin').value.trim();
         const pass = document.getElementById('adminPass').value.trim();
-        const user = data.users.find(u => u.username === login && u.password === pass);
-        if (user) { currentUser = user; renderAdminDashboard(); } else alert(t('wrong-password'));
+        if (!login || !pass) { alert('Введите логин и пароль'); return; }
+        const user = data.users.find(u => u.username === login);
+        if (!user) { alert(t('wrong-password')); return; }
+        // Если пароль сохранён как хеш, сравниваем хеш
+        let storedPassword = user.password || '';
+        // Если пароль не хеш (и не пустой), то хешируем введённый и сравниваем с открытым (для миграции)
+        // Но лучше просто хешировать введённый и сравнивать с сохранённым хешем, если он есть
+        if (isHash(storedPassword)) {
+            const inputHash = await hashPassword(pass);
+            if (inputHash === storedPassword) {
+                currentUser = user;
+                renderAdminDashboard();
+            } else {
+                alert(t('wrong-password'));
+            }
+        } else {
+            // Старый пароль в открытом виде – миграция
+            if (storedPassword === pass) {
+                // Обновляем пароль на хеш
+                user.password = await hashPassword(pass);
+                saveData();
+                currentUser = user;
+                renderAdminDashboard();
+            } else {
+                alert(t('wrong-password'));
+            }
+        }
     });
 }
 
+// ========== АДМИН-ПАНЕЛЬ (ДАШБОРД) ==========
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
@@ -1392,7 +1595,7 @@ function renderAdminDashboard() {
         <button id="logoutAdmin" class="btn btn-sm">${t('logout')}</button>
         <button id="closeAdminBtn2" class="btn btn-sm">${t('admin-close')}</button></div></div>
         <div class="admin-menu" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem;">${menuButtons}</div>
-        <div id="adminSectionContent"><p>Выберите раздел для управления.</p></div>
+        <div id="adminSectionContent" data-current-section=""><p>Выберите раздел для управления.</p></div>
     </div>`;
     document.getElementById('closeAdminBtn2').addEventListener('click', closeAdminModal);
     document.getElementById('logoutAdmin').addEventListener('click', function() { currentUser = null; renderAdminLogin(); });
@@ -1402,6 +1605,7 @@ function renderAdminDashboard() {
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
+    content.dataset.currentSection = section;
     const permMap = {
         'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy',
         'news':'manage_news','announcements':'manage_announcements',
@@ -2199,7 +2403,7 @@ function renderOpechenieTable() {
     return table;
 }
 
-// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (с русскими правами, генерацией пароля, логами)
+// ========== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (с доп. вопросом и хешированием) ==========
 function renderAdminUsers(container) {
     let html = `<h3>${t('admin-users')}</h3>
         <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
@@ -2209,6 +2413,7 @@ function renderAdminUsers(container) {
             <div class="form-group"><label>${t('username')}</label><input type="text" id="userFormUsername" style="width:100%; padding:0.4rem;"></div>
             <div class="form-group"><label>${t('password')}</label><div style="display:flex; gap:0.5rem;"><input type="text" id="userFormPassword" style="flex:1; padding:0.4rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);" placeholder="${t('password')}"><button id="generatePasswordBtn" class="btn btn-sm">🔑 Сгенерировать</button></div></div>
             <div class="form-group"><label>${t('role')}</label><select id="userFormRole" style="width:100%; padding:0.4rem;"><option value="developer">${t('role-developer')}</option><option value="senior">${t('role-senior')}</option><option value="junior">${t('role-junior')}</option><option value="editor">${t('role-editor')}</option></select></div>
+            <div class="form-group"><label>Дополнительный вопрос</label><input type="text" id="userFormExtraQuestion" style="width:100%; padding:0.4rem;" placeholder="Секретный вопрос, заметка..."></div>
             <div class="form-group"><label>${t('permissions')}</label><div id="userFormPermissions" style="display:flex; flex-wrap:wrap; gap:0.5rem;">${allPermissions.map(p => `<label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;"><input type="checkbox" value="${p}" class="perm-checkbox"> ${t(p)}</label>`).join('')}</div><small style="display:block; margin-top:0.3rem; color:#999;">Если выбрана роль, права будут автоматически заполнены. Можно изменить вручную.</small></div>
             <input type="hidden" id="userFormEditId" value="">
             <button id="userFormSaveBtn" class="btn">${t('save')}</button>
@@ -2229,7 +2434,7 @@ function renderAdminUsers(container) {
         document.getElementById('userFormPassword').value = password;
     });
 
-    container.addEventListener('click', function(e) {
+    container.addEventListener('click', async function(e) {
         const target = e.target;
         if (target.id === 'adminAddUserBtn') {
             const form = document.getElementById('adminUserForm');
@@ -2239,6 +2444,7 @@ function renderAdminUsers(container) {
             document.getElementById('userFormPassword').value = '';
             document.getElementById('userFormRole').value = 'junior';
             document.getElementById('userFormEditId').value = '';
+            document.getElementById('userFormExtraQuestion').value = '';
             const perms = rolePermissions['junior'] || [];
             document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
             form.style.display = 'block';
@@ -2249,6 +2455,7 @@ function renderAdminUsers(container) {
             const username = document.getElementById('userFormUsername').value.trim();
             const password = document.getElementById('userFormPassword').value.trim();
             const role = document.getElementById('userFormRole').value;
+            const extraQuestion = document.getElementById('userFormExtraQuestion').value.trim();
             const checkedPerms = [];
             document.querySelectorAll('.perm-checkbox:checked').forEach(cb => checkedPerms.push(cb.value));
             if (!checkedPerms.length) { alert('Выберите хотя бы одно право'); return; }
@@ -2259,16 +2466,20 @@ function renderAdminUsers(container) {
                 if (u) {
                     const oldUsername = u.username;
                     u.username = username;
-                    if (password) u.password = password;
+                    if (password) {
+                        u.password = await hashPassword(password);
+                    }
                     u.role = role;
                     u.permissions = checkedPerms;
-                    addLog(`Редактирован пользователь ${oldUsername} → ${username}`, `Роль: ${role}, права: ${checkedPerms.join(', ')}`);
+                    u.extraQuestion = extraQuestion;
+                    addLog(`Редактирован пользователь ${oldUsername} → ${username}`, `Роль: ${role}, права: ${checkedPerms.join(', ')}, доп. вопрос: ${extraQuestion}`);
                 }
             } else {
                 if (!password) { alert('Введите пароль'); return; }
-                const newUser = { id: nextId.user++, username, password, role, permissions: checkedPerms };
+                const hashedPassword = await hashPassword(password);
+                const newUser = { id: nextId.user++, username, password: hashedPassword, role, permissions: checkedPerms, extraQuestion };
                 data.users.push(newUser);
-                addLog(`Добавлен пользователь ${username}`, `Роль: ${role}, права: ${checkedPerms.join(', ')}`);
+                addLog(`Добавлен пользователь ${username}`, `Роль: ${role}, права: ${checkedPerms.join(', ')}, доп. вопрос: ${extraQuestion}`);
             }
             saveData();
             document.getElementById('adminUserForm').style.display = 'none';
@@ -2296,6 +2507,7 @@ function renderAdminUsers(container) {
             document.getElementById('userFormPassword').value = '';
             document.getElementById('userFormRole').value = u.role;
             document.getElementById('userFormEditId').value = u.id;
+            document.getElementById('userFormExtraQuestion').value = u.extraQuestion || '';
             const perms = u.permissions || [];
             document.querySelectorAll('.perm-checkbox').forEach(cb => cb.checked = perms.includes(cb.value) || perms.includes('all'));
             form.style.display = 'block';
@@ -2304,18 +2516,19 @@ function renderAdminUsers(container) {
 }
 function renderUserTable() {
     if (!data.users.length) return `<p>${t('no-users')}</p>`;
-    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
+    let table = `<table class="schedule-table"><thead><tr><th>${t('username')}</th><th>${t('role')}</th><th>Доп. вопрос</th><th>${t('permissions')}</th><th>${t('edit')}</th><th>${t('delete')}</th></tr></thead><tbody>`;
     data.users.forEach(u => {
         const roleLabel = t('role-'+u.role) || u.role;
         const permLabels = (u.permissions||[]).map(p => t(p)||p).join(', ');
         const isSelf = u.id === currentUser?.id;
-        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
+        const extra = u.extraQuestion ? escapeHtml(u.extraQuestion.substring(0,30)) + (u.extraQuestion.length>30?'…':'') : '';
+        table += `<tr><td>${escapeHtml(u.username)} ${isSelf ? '👤' : ''}</td><td>${escapeHtml(roleLabel)}</td><td>${extra}</td><td style="font-size:0.85rem;">${escapeHtml(permLabels)}</td><td><button class="btn btn-sm admin-edit-user" data-id="${u.id}">✏️</button></td><td><button class="btn btn-sm btn-danger admin-delete-user" data-id="${u.id}" ${isSelf ? 'disabled' : ''}>🗑️</button></td></tr>`;
     });
     table += `</tbody></table>`;
     return table;
 }
 
-// ЛОГИ
+// ЛОГИ (исправлены)
 function renderAdminLogs(container) {
     let logs = data.logs || [];
     logs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -2358,7 +2571,7 @@ function initVisionToggle() { document.getElementById('visionToggle')?.addEventL
 function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная полная версия');
+    console.log('DOMContentLoaded – финальная полная версия с хешированием');
     loadData();
     initAdminTrigger();
     initVisionToggle();
