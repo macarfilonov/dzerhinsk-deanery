@@ -1,7 +1,8 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ПОЛНАЯ ВЕРСИЯ (всё исправлено, карусель бесконечная)
+//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (меню без модалки, порядок учителей исправлен, скролл сохранён)
 // ============================================================
-console.log('script.js загружен (финальная полная версия)');
+
+console.log('script.js загружен (финальная версия с исправленным меню)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -19,15 +20,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
-
-// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 // ========== НАСТРОЙКИ ИИ (заглушка) ==========
 const AI_API_URL = null;
@@ -60,7 +52,8 @@ let currentUser = null;
 let dataLoaded = false;
 let visionMode = false;
 let syncInterval = null;
-let carouselInterval = null;
+let logsListener = null;
+let savedScrollY = 0;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[m])); }
@@ -72,7 +65,21 @@ function hasPermission(user, permission) { return user?.permissions?.includes('a
 function getStoredTab(key, defaultTab) { return sessionStorage.getItem(key) || defaultTab; }
 function setStoredTab(key, tab) { sessionStorage.setItem(key, tab); }
 
-// ========== ПЕРЕВОДЫ (включая названия прав на русском) ==========
+// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
+async function hashPassword(password) {
+    if (!password) return '';
+    const encoder = new TextEncoder();
+    const dataBytes = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', dataBytes);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function isHash(str) {
+    return /^[a-f0-9]{64}$/.test(str);
+}
+
+// ========== ПЕРЕВОДЫ ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -181,7 +188,7 @@ const translations = {
     }
 };
 
-// ========== РОЛИ И ПРАВА (русские названия уже в переводе) ==========
+// ========== РОЛИ И ПРАВА ==========
 const rolePermissions = {
     developer: ['all'],
     senior: ['manage_temples', 'manage_clergy', 'manage_schedule', 'manage_news', 'manage_announcements', 'manage_sunday_schools', 'manage_about', 'manage_worship', 'manage_ai', 'manage_opechenie', 'manage_users', 'view_logs'],
@@ -201,10 +208,11 @@ function addLog(action, details) {
     db.ref('logs').push(logEntry).catch(err => console.error('Ошибка сохранения лога:', err));
     if (!data.logs) data.logs = [];
     data.logs.push(logEntry);
+    saveToLocalStorage();
 }
 
 // ========== ЗАГРУЗКА / СОХРАНЕНИЕ ==========
-async function loadData() {
+function loadData() {
     if (dataLoaded) return;
     dataLoaded = true;
     const stored = localStorage.getItem('blago_data');
@@ -213,18 +221,19 @@ async function loadData() {
             const parsed = JSON.parse(stored);
             data = parsed.data || data;
             nextId = parsed.nextId || nextId;
-            for (const user of data.users) {
-                if (user.password && !user.password.match(/^[a-f0-9]{64}$/)) {
-                    user.password = await hashPassword(user.password);
-                }
-            }
             migrateData();
+            // Сохраняем скролл перед рендером
+            savedScrollY = window.scrollY;
             renderCurrentPage();
             applyTranslations();
             restoreVisionMode();
             rebuildNav();
-        } catch(e) { console.warn('Ошибка загрузки из localStorage', e); await initDefaultData(); }
-    } else { await initDefaultData(); }
+            // Восстанавливаем скролл после рендера
+            requestAnimationFrame(() => {
+                window.scrollTo(0, savedScrollY);
+            });
+        } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
+    } else { initDefaultData(); }
 
     db.ref('data').on('value', (snapshot) => {
         const val = snapshot.val();
@@ -234,14 +243,32 @@ async function loadData() {
             nextId = val.nextId || nextId;
             migrateData();
             saveToLocalStorage();
+            savedScrollY = window.scrollY;
             renderCurrentPage();
             applyTranslations();
             rebuildNav();
+            requestAnimationFrame(() => {
+                window.scrollTo(0, savedScrollY);
+            });
         }
     });
 
-    db.ref('data').once('value', (snapshot) => {
-        if (!snapshot.val()) { initDefaultData(); }
+    if (logsListener) logsListener.off();
+    logsListener = db.ref('logs');
+    logsListener.on('value', (snapshot) => {
+        const logsData = snapshot.val();
+        if (logsData) {
+            const logsArray = Object.values(logsData).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            data.logs = logsArray;
+            saveToLocalStorage();
+            const adminContent = document.getElementById('adminSectionContent');
+            if (adminContent && adminContent.closest('.admin-modal') && adminContent.closest('.admin-modal').classList.contains('visible')) {
+                const section = adminContent.dataset.currentSection;
+                if (section === 'logs') {
+                    renderAdminLogs(adminContent);
+                }
+            }
+        }
     });
 
     if (syncInterval) clearInterval(syncInterval);
@@ -259,9 +286,13 @@ async function loadData() {
                     nextId = newNextId || nextId;
                     migrateData();
                     saveToLocalStorage();
+                    savedScrollY = window.scrollY;
                     renderCurrentPage();
                     applyTranslations();
                     rebuildNav();
+                    requestAnimationFrame(() => {
+                        window.scrollTo(0, savedScrollY);
+                    });
                 }
             }
         });
@@ -283,9 +314,13 @@ async function loadData() {
                         nextId = newNextId || nextId;
                         migrateData();
                         saveToLocalStorage();
+                        savedScrollY = window.scrollY;
                         renderCurrentPage();
                         applyTranslations();
                         rebuildNav();
+                        requestAnimationFrame(() => {
+                            window.scrollTo(0, savedScrollY);
+                        });
                     }
                 }
             });
@@ -294,16 +329,27 @@ async function loadData() {
 }
 
 function migrateData() {
-    data.users.forEach(u => { if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; });
+    data.users.forEach(u => { 
+        if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; 
+        if (u.extraQuestion === undefined) u.extraQuestion = '';
+    });
     ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers','logs'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
+    // Если нет пользователей, создаём с хешем
     if (!data.users || data.users.length === 0) {
-        (async () => {
-            const hashedPass = await hashPassword('Makar27.05.2014');
-            data.users.push({ id: nextId.user++, username: 'Makar', password: hashedPass, role: 'developer', permissions: ['all'] });
+        hashPassword('Makar27.05.2014').then(hash => {
+            data.users.push({ id: nextId.user++, username: 'Makar', password: hash, role: 'developer', permissions: ['all'], extraQuestion: '' });
             saveData();
-        })();
+        });
+    }
+    // Меняем порядок учителей: сначала Богатко (директор), потом Левшевич (преподаватель)
+    // Находим их по id
+    const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
+    const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
+    if (bogatkoIdx !== -1 && levshevichIdx !== -1 && bogatkoIdx > levshevichIdx) {
+        // Меняем местами
+        [data.teachers[bogatkoIdx], data.teachers[levshevichIdx]] = [data.teachers[levshevichIdx], data.teachers[bogatkoIdx]];
     }
     setDefaultPhotos();
 }
@@ -319,7 +365,7 @@ function setDefaultPhotos() {
 }
 
 // ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
-async function initDefaultData() {
+function initDefaultData() {
     data = {
         temples: [
             { id:1, name:'Храм Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', photo:'pokrov-dzr.jpg', summary:'Храм Покрова Пресвятой Богородицы © Беларусь, Минская область, г.\u00A0Дзержинск.', address:'Минская область, г.\u00A0Дзержинск, ул.\u00A0Покровская, 1', phone:'', email:'', history:'Храм построен в середине XIX века.', localHistory:'Город Дзержинск (Койданово) известен с XVI века.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.132867%2C53.684692&mode=search&oid=229759500085&ol=biz&z=16.84" width="100%" height="300" frameborder="0"></iframe>', isVacant:false },
@@ -349,8 +395,9 @@ async function initDefaultData() {
         ],
         teachers: [
             { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
-            { id: 2, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 }
-            { id: 3, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
+            // Сначала Богатко (директор), потом Левшевич (преподаватель)
+            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 },
+            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 }
         ],
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
@@ -382,26 +429,23 @@ async function initDefaultData() {
         ],
         logs: []
     };
-    const hashedPass = await hashPassword('Makar27.05.2014');
-    data.users = [ { id:1, username:'Makar', password: hashedPass, role:'developer', permissions:['all'] } ];
-    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:2, opechenie:23, teacher:4 };
+    nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:1, opechenie:23, teacher:4 };
     setDefaultPhotos();
     saveData();
+    savedScrollY = 0;
     renderCurrentPage();
     applyTranslations();
     restoreVisionMode();
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ, ССЫЛКИ РАБОТАЮТ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (БЕЗ МОДАЛЬНОГО ОКНА, С ТОГГЛОМ ДЛЯ МОБИЛЬНЫХ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
-    const oldModal = document.getElementById('menuModal');
-    if (oldModal) oldModal.remove();
 
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
@@ -421,258 +465,136 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
+    // Создаём контейнер для ссылок
+    const linksContainer = document.createElement('div');
+    linksContainer.className = 'nav-links';
+    linksContainer.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+    `;
+
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
         a.dataset.page = l.page;
         a.textContent = l.text;
         a.className = 'nav-link';
-        nav.appendChild(a);
+        linksContainer.appendChild(a);
     });
 
-    const menuToggle = document.createElement('button');
-    menuToggle.className = 'menu-toggle';
-    menuToggle.id = 'menuToggle';
-    menuToggle.setAttribute('aria-label', 'Открыть меню');
-    menuToggle.innerHTML = '☰ Меню';
-    nav.appendChild(menuToggle);
+    nav.appendChild(linksContainer);
+
+    // Кнопка-переключатель для мобильных
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'menu-toggle';
+    toggleBtn.id = 'menuToggle';
+    toggleBtn.setAttribute('aria-label', 'Открыть меню');
+    toggleBtn.innerHTML = '☰ Меню';
+    toggleBtn.style.display = 'none';
+    nav.appendChild(toggleBtn);
 
     topBar.insertBefore(nav, tools);
 
-    // Модальное окно
-    const modal = document.createElement('div');
-    modal.className = 'menu-modal';
-    modal.id = 'menuModal';
-    modal.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.6);
-        backdrop-filter: blur(4px);
-        z-index: 200;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        visibility: hidden;
-        opacity: 0;
-        transition: opacity 0.3s ease, visibility 0.3s ease;
-        pointer-events: none;
+    // Добавляем стили для мобильной версии (через CSS)
+    const style = document.createElement('style');
+    style.id = 'navMobileStyle';
+    style.textContent = `
+        @media (max-width: 768px) {
+            .top-bar nav .nav-links {
+                display: none;
+                flex-direction: column;
+                width: 100%;
+                background: white;
+                padding: 0.5rem 0;
+                border-radius: 16px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                position: absolute;
+                top: 100%;
+                left: 0;
+                z-index: 100;
+                gap: 0.3rem;
+            }
+            .top-bar nav .nav-links.open {
+                display: flex;
+            }
+            .top-bar nav .menu-toggle {
+                display: inline-flex !important;
+                background: var(--gold, #c9aa5f);
+                color: white;
+                border: none;
+                padding: 0.4rem 1rem;
+                border-radius: 40px;
+                font-family: inherit;
+                font-size: 0.95rem;
+                cursor: pointer;
+            }
+            .top-bar {
+                position: relative;
+                flex-wrap: wrap;
+            }
+            .top-bar nav {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+            }
+        }
     `;
-    const modalContent = document.createElement('div');
-    modalContent.className = 'menu-modal-content';
-    modalContent.style.cssText = `
-        background: var(--card-bg, #ffffff);
-        width: 95%;
-        max-width: 400px;
-        max-height: 90vh;
-        overflow-y: auto;
-        border-radius: 32px;
-        padding: 1.5rem 1.5rem 2rem;
-        position: relative;
-        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        transform: scale(0.9);
-        transition: transform 0.3s ease;
-        pointer-events: auto;
-    `;
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'menu-modal-close';
-    closeBtn.innerHTML = '✕';
-    closeBtn.style.cssText = `
-        position: sticky;
-        top: 0;
-        float: right;
-        font-size: 2rem;
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #333;
-        z-index: 10;
-        padding: 0 0.5rem;
-    `;
-    closeBtn.setAttribute('aria-label', 'Закрыть меню');
-    modalContent.appendChild(closeBtn);
+    document.head.appendChild(style);
 
-    const title = document.createElement('h3');
-    title.textContent = 'Меню';
-    title.style.cssText = `
-        font-family: 'Cormorant Uncial', Georgia, serif;
-        color: var(--primary, #1a2f40);
-        text-align: center;
-        margin-bottom: 1rem;
-        font-size: 1.6rem;
-        border-bottom: 2px solid var(--gold, #c9aa5f);
-        padding-bottom: 0.5rem;
-    `;
-    modalContent.appendChild(title);
-
-    const linksList = document.createElement('div');
-    linksList.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        gap: 0.8rem;
-        margin-top: 0.5rem;
-    `;
-    links.forEach(l => {
-        const a = document.createElement('a');
-        a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
-        a.dataset.page = l.page;
-        a.textContent = l.text;
-        a.style.cssText = `
-            display: block;
-            padding: 0.7rem 1rem;
-            background: var(--bg, #f9f6ef);
-            border-radius: 16px;
-            text-align: center;
-            font-size: 1.1rem;
-            font-family: var(--font, Georgia, serif);
-            color: var(--text, #2c2a24);
-            text-decoration: none;
-            border: 1px solid var(--border, #e8ddd0);
-            transition: background 0.2s, transform 0.2s;
-        `;
-        a.addEventListener('mouseenter', () => {
-            a.style.background = 'var(--gold, #c9aa5f)';
-            a.style.color = 'white';
-        });
-        a.addEventListener('mouseleave', () => {
-            a.style.background = 'var(--bg, #f9f6ef)';
-            a.style.color = 'var(--text, #2c2a24)';
-        });
-        // Ссылка: закрываем меню и переходим
-        a.addEventListener('click', function(e) {
-            // Не блокируем событие, чтобы переход произошёл
-            closeModalWithoutPrevent(e);
-        });
-        linksList.appendChild(a);
+    // Обработчик для кнопки
+    toggleBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const container = this.previousElementSibling;
+        if (container) {
+            container.classList.toggle('open');
+        }
     });
-    modalContent.appendChild(linksList);
 
-    modal.appendChild(modalContent);
-    document.body.appendChild(modal);
+    // Закрываем меню при клике вне
+    document.addEventListener('click', function(e) {
+        const container = document.querySelector('.nav-links');
+        const toggle = document.getElementById('menuToggle');
+        if (container && toggle) {
+            if (!container.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
+                container.classList.remove('open');
+            }
+        }
+    });
 
-    const toggleBtn = document.getElementById('menuToggle');
-    const modalEl = document.getElementById('menuModal');
-    const closeBtnEl = modalEl.querySelector('.menu-modal-close');
-
-    if (!toggleBtn || !modalEl || !closeBtnEl) {
-        console.error('Не удалось найти элементы меню');
-        return;
-    }
-
-    function openModal(e) {
-        e.preventDefault();
-        modalEl.style.display = 'flex';
-        requestAnimationFrame(() => {
-            modalEl.style.visibility = 'visible';
-            modalEl.style.opacity = '1';
-            modalEl.querySelector('.menu-modal-content').style.transform = 'scale(1)';
+    // Закрываем меню при клике на ссылку
+    document.querySelectorAll('.nav-links a').forEach(a => {
+        a.addEventListener('click', function() {
+            const container = document.querySelector('.nav-links');
+            if (container) container.classList.remove('open');
         });
-        document.body.style.overflow = 'hidden';
-    }
+    });
 
-    function closeModal(e) {
-        if (e) e.preventDefault();
-        modalEl.style.opacity = '0';
-        modalEl.style.visibility = 'hidden';
-        modalEl.querySelector('.menu-modal-content').style.transform = 'scale(0.9)';
-        setTimeout(() => {
-            modalEl.style.display = 'none';
-        }, 300);
-        document.body.style.overflow = '';
-    }
-
-    function closeModalWithoutPrevent(e) {
-        // Не вызываем e.preventDefault()
-        modalEl.style.opacity = '0';
-        modalEl.style.visibility = 'hidden';
-        modalEl.querySelector('.menu-modal-content').style.transform = 'scale(0.9)';
-        setTimeout(() => {
-            modalEl.style.display = 'none';
-        }, 300);
-        document.body.style.overflow = '';
-        // Переход произойдёт автоматически
-    }
-
-    toggleBtn.addEventListener('click', openModal);
-    toggleBtn.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        openModal(e);
-    }, { passive: false });
-
-    closeBtnEl.addEventListener('click', closeModal);
-    closeBtnEl.addEventListener('touchstart', function(e) {
-        e.preventDefault();
-        closeModal(e);
-    }, { passive: false });
-
+    // Активная страница
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
-
-    function updateNavVisibility() {
-        const width = window.innerWidth;
-        const isMobile = width <= 768;
-        nav.querySelectorAll('a.nav-link').forEach(a => {
-            a.style.display = isMobile ? 'none' : 'inline-block';
-        });
-        toggleBtn.style.display = isMobile ? 'inline-flex' : 'none';
-        if (!isMobile && modalEl.style.display === 'flex') {
-            closeModalWithoutPrevent();
-        }
-    }
-    updateNavVisibility();
 }
 
-// ========== КАРУСЕЛЬ (БЕСКОНЕЧНАЯ, ПЛАВНАЯ) ==========
-function initCarousel() {
-    const track = document.getElementById('carouselTrack');
-    if (!track) return;
-    // Удаляем старый интервал
-    if (carouselInterval) clearInterval(carouselInterval);
-    
-    // Клонируем элементы для бесконечности
-    const items = track.querySelectorAll('.carousel-item');
-    if (items.length < 2) return;
-    
-    // Добавляем клоны для плавной прокрутки
-    const cloneCount = items.length;
-    for (let i = 0; i < cloneCount; i++) {
-        const clone = items[i].cloneNode(true);
-        track.appendChild(clone);
-    }
-    
-    let scrollAmount = 0;
-    const itemWidth = items[0].offsetWidth + 16; // ширина + gap
-    
-    function autoScroll() {
-        if (!track) return;
-        const maxScroll = track.scrollWidth / 2; // половина ширины (оригиналы)
-        scrollAmount += 0.5; // скорость прокрутки (плавно)
-        if (scrollAmount >= maxScroll) {
-            // Сброс в начало без рывка
-            track.scrollLeft = 0;
-            scrollAmount = 0;
-        } else {
-            track.scrollLeft = scrollAmount;
-        }
-    }
-    
-    carouselInterval = setInterval(autoScroll, 20); // 20 мс для плавности
-}
-
-// ========== РЕНДЕРИНГ СТРАНИЦ ==========
+// ========== РЕНДЕРИНГ СТРАНИЦ (с сохранением скролла) ==========
 function renderCurrentPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
+
+    // Сохраняем скролл перед рендером (глобально)
+    savedScrollY = window.scrollY;
 
     if (typeof window.templeId !== 'undefined' && window.templeId !== null) {
         renderTempleDetail(container, window.templeId);
         updateNavActive('temples');
         applyTranslations();
         updateVisionUI();
+        requestAnimationFrame(() => {
+            window.scrollTo(0, savedScrollY);
+        });
         return;
     }
 
@@ -693,6 +615,9 @@ function renderCurrentPage() {
             container.innerHTML = '<p>Страница не найдена</p>';
         }
         updateNavActive(page);
+        requestAnimationFrame(() => {
+            window.scrollTo(0, savedScrollY);
+        });
         return;
     }
 
@@ -713,10 +638,11 @@ function renderCurrentPage() {
     updateNavActive(page);
     applyTranslations();
     updateVisionUI();
-    // Запускаем карусель, если это главная
-    if (page === 'main') {
-        setTimeout(initCarousel, 100);
-    }
+
+    // Восстанавливаем скролл после рендера
+    requestAnimationFrame(() => {
+        window.scrollTo(0, savedScrollY);
+    });
 }
 
 function updateNavActive(page) {
@@ -728,7 +654,7 @@ function updateNavActive(page) {
     }
 }
 
-// ---------- ГЛАВНАЯ ----------
+// ---------- ГЛАВНАЯ (с бесконечной каруселью) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -740,15 +666,11 @@ function renderMainPage() {
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
-        <div class="carousel">
-            <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
-            <div class="carousel-track" id="carouselTrack">`;
-    data.temples.forEach(t => {
-        if (t.id === 1) return;
-        const imgSrc = getTemplePhoto(t);
-        html += `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
-    });
-    html += `</div><button class="carousel-btn right" onclick="scrollCarousel(1)">›</button></div>`;
+        <div class="carousel" id="mainCarousel">
+            <button class="carousel-btn left" id="carouselPrev">‹</button>
+            <div class="carousel-track" id="carouselTrack"></div>
+            <button class="carousel-btn right" id="carouselNext">›</button>
+        </div>`;
     // Новости
     html += `<div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
@@ -775,13 +697,108 @@ function renderMainPage() {
     }
     html += `</div>`;
     container.innerHTML = html;
-    container.querySelectorAll('.carousel-item').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
-    // Запускаем карусель
-    setTimeout(initCarousel, 50);
+
+    initInfiniteCarousel();
 }
-function scrollCarousel(direction) { 
-    const track = document.getElementById('carouselTrack'); 
-    if (track) track.scrollBy({ left: direction * 280, behavior: 'smooth' }); 
+
+function initInfiniteCarousel() {
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    if (!prevBtn || !nextBtn) return;
+
+    const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
+        const imgSrc = getTemplePhoto(t);
+        return `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
+    });
+
+    const totalItems = templeItems.length;
+    if (totalItems === 0) {
+        track.innerHTML = '<p>Нет храмов для отображения</p>';
+        return;
+    }
+
+    const cloneFirst = templeItems.slice(0, 2).join('');
+    const cloneLast = templeItems.slice(-2).join('');
+    const allItems = cloneLast + templeItems.join('') + cloneFirst;
+
+    track.innerHTML = allItems;
+
+    let currentIndex = 2;
+    let isTransitioning = false;
+
+    function getItemWidth() {
+        const firstItem = track.querySelector('.carousel-item');
+        if (!firstItem) return 240;
+        const style = window.getComputedStyle(firstItem);
+        const width = parseFloat(style.flexBasis) || parseFloat(style.width) || 240;
+        const marginRight = parseFloat(style.marginRight) || 0;
+        return width + marginRight;
+    }
+
+    function getGap() {
+        const style = window.getComputedStyle(track);
+        return parseFloat(style.gap) || 16;
+    }
+
+    function updateCarousel(animate = true) {
+        const width = getItemWidth();
+        const gap = getGap();
+        const offset = currentIndex * (width + gap);
+        track.style.transition = animate ? 'transform 0.5s ease' : 'none';
+        track.style.transform = `translateX(-${offset}px)`;
+    }
+
+    function goTo(index, animate = true) {
+        if (isTransitioning) return;
+        isTransitioning = true;
+        currentIndex = index;
+        updateCarousel(animate);
+        setTimeout(() => {
+            isTransitioning = false;
+            const totalRealItems = totalItems;
+            if (currentIndex >= totalRealItems + 2) {
+                currentIndex = 2;
+                updateCarousel(false);
+            } else if (currentIndex < 2) {
+                currentIndex = totalRealItems + 1;
+                updateCarousel(false);
+            }
+        }, 500);
+    }
+
+    function next() {
+        goTo(currentIndex + 1);
+    }
+
+    function prev() {
+        goTo(currentIndex - 1);
+    }
+
+    nextBtn.addEventListener('click', next);
+    prevBtn.addEventListener('click', prev);
+
+    track.querySelectorAll('.carousel-item').forEach(el => {
+        el.addEventListener('click', function() {
+            const id = this.dataset.id;
+            if (id) window.location.href = `temple-${id}.html`;
+        });
+    });
+
+    let autoplayInterval = setInterval(next, 4000);
+    track.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
+    track.addEventListener('mouseleave', () => {
+        autoplayInterval = setInterval(next, 4000);
+    });
+
+    window.addEventListener('resize', () => {
+        updateCarousel(false);
+    });
+
+    setTimeout(() => {
+        updateCarousel(false);
+    }, 100);
 }
 
 // ---------- СПИСОК ХРАМОВ ----------
@@ -798,7 +815,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (с фото 300×300) ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -978,6 +995,7 @@ function renderClergyList(container) {
     container.innerHTML = html;
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
+
 function renderClergyDetail(id) {
     if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
@@ -1004,6 +1022,7 @@ function getScheduleHTML() {
     html += `</select></div><div id="scheduleDisplay"></div>`;
     return html;
 }
+
 function initScheduleSelect(container) {
     const select = container.querySelector('#scheduleTempleSelect');
     if (!select) return;
@@ -1122,12 +1141,40 @@ function renderSundaySchoolDetail(id) {
 
 // ---------- О БЛАГОЧИНИИ ----------
 function renderAboutPage(container) {
-    let html = `<h2>О благочинии</h2>
-        <div class="card"><div style="white-space:pre-line;">${escapeHtml(data.aboutText || 'Информация о благочинии не добавлена.')}</div></div>`;
+    let html = `
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="font-size: 2.8rem; font-family: 'Cormorant Uncial', Georgia, serif; color: var(--primary); margin-bottom: 0.5rem; font-weight: 700;">Дзержинское благочиние: Духовное Сердце Города с Семи Храмами</h1>
+            <div style="width: 100px; height: 3px; background: var(--gold); margin: 0 auto 1.5rem;"></div>
+        </div>
+        <div class="card">
+            <div style="white-space: pre-line; font-size: 1.05rem; line-height: 1.8;">
+                Добро пожаловать на страницу Дзержинского благочиния — места, где вера и любовь Христова наполняют жизнь нашего города. Мы рады приветствовать вас и приглашаем познакомиться с духовным центром, который объединяет верующих в молитве и добрых делах.
+
+                Наш благочинный: Протоиерей Борис Полторжицкий. Под его мудрым руководством благочиние развивается, храмы оживают, а приходская жизнь становится богаче и содержательнее.
+
+                История и настоящее:
+                Дзержинское благочиние — это не просто территория, объединяющая несколько храмов. Это живой организм, где каждый приход имеет свою уникальную историю и традиции. Наши храмы — это архитектурные жемчужины, но главное — это дома Божии, где каждый может найти утешение, поддержку и обрести духовный мир.
+
+                Жизнь благочиния:
+                Богослужения: Регулярные богослужения, Таинства Церкви, молитвенные собрания — всё это составляет основу духовной жизни наших прихожан.
+                Миссионерская деятельность: Мы стремимся нести свет Христовой истины каждому человеку, организуя просветительские беседы, воскресные школы и мероприятия для детей и взрослых.
+                Социальное служение: Особое внимание уделяется помощи нуждающимся. Мы заботимся о престарелых, малоимущих, детях-сиротах, участвуя в различных благотворительных акциях.
+                Культурно-просветительская работа: Проводятся лекции, концерты, выставки, направленные на духовное и культурное развитие нашей паствы.
+
+                Наше духовное созвездие:
+                Дзержинское благочиние гордится своими семью храмами, каждый из которых является уникальным центром духовной жизни. Благочиннический центр и сердце нашего благочиния — это величественный Храм Покрова Пресвятой Богородицы в Дзержинске.
+
+                Приглашаем вас:
+                Присоединяйтесь к нам! Посетите наши храмы, станьте частью нашего приходского сообщества. Мы верим, что вместе мы можем сделать мир добрее и светлее.
+
+                С любовью во Христе, Дзержинское благочиние.
+            </div>
+        </div>
+    `;
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (со вкладкой "Святые дня") ----------
+// ---------- БОГОСЛУЖЕНИЯ ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1148,17 +1195,14 @@ function renderWorshipPage(container) {
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
 
-    // Расписание
     html += `<div class="worship-block ${activeTab === 'schedule' ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
 
-    // Молитвослов
     html += `<div class="worship-block ${activeTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
 
-    // Святые дня
     html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
     html += `<div class="saints-widget-container">
         <h3>Святые дня</h3>
@@ -1167,14 +1211,12 @@ function renderWorshipPage(container) {
     </div>`;
     html += `</div>`;
 
-    // Толкования
     html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
 
-    // Подготовка к таинствам
     html += `<div class="worship-block ${activeTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
@@ -1427,6 +1469,7 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
+// ========== АДМИН-ЛОГИН С ХЕШИРОВАНИЕМ ==========
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
@@ -1435,18 +1478,32 @@ function renderAdminLogin() {
     document.getElementById('doLogin').addEventListener('click', async function() {
         const login = document.getElementById('adminLogin').value.trim();
         const pass = document.getElementById('adminPass').value.trim();
+        if (!login || !pass) { alert('Введите логин и пароль'); return; }
         const user = data.users.find(u => u.username === login);
         if (!user) { alert(t('wrong-password')); return; }
-        const hashedInput = await hashPassword(pass);
-        if (hashedInput === user.password) {
-            currentUser = user;
-            renderAdminDashboard();
+        let storedPassword = user.password || '';
+        if (isHash(storedPassword)) {
+            const inputHash = await hashPassword(pass);
+            if (inputHash === storedPassword) {
+                currentUser = user;
+                renderAdminDashboard();
+            } else {
+                alert(t('wrong-password'));
+            }
         } else {
-            alert(t('wrong-password'));
+            if (storedPassword === pass) {
+                user.password = await hashPassword(pass);
+                saveData();
+                currentUser = user;
+                renderAdminDashboard();
+            } else {
+                alert(t('wrong-password'));
+            }
         }
     });
 }
 
+// ========== АДМИН-ПАНЕЛЬ (ДАШБОРД) ==========
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
@@ -1478,7 +1535,7 @@ function renderAdminDashboard() {
         <button id="logoutAdmin" class="btn btn-sm">${t('logout')}</button>
         <button id="closeAdminBtn2" class="btn btn-sm">${t('admin-close')}</button></div></div>
         <div class="admin-menu" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem;">${menuButtons}</div>
-        <div id="adminSectionContent"><p>Выберите раздел для управления.</p></div>
+        <div id="adminSectionContent" data-current-section=""><p>Выберите раздел для управления.</p></div>
     </div>`;
     document.getElementById('closeAdminBtn2').addEventListener('click', closeAdminModal);
     document.getElementById('logoutAdmin').addEventListener('click', function() { currentUser = null; renderAdminLogin(); });
@@ -1488,6 +1545,7 @@ function renderAdminDashboard() {
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
+    content.dataset.currentSection = section;
     const permMap = {
         'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy',
         'news':'manage_news','announcements':'manage_announcements',
@@ -1514,6 +1572,7 @@ function renderAdminSection(section) {
         default: content.innerHTML = '<p>Неизвестный раздел.</p>';
     }
 }
+
 // ========== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ==========
 
 // РАСПИСАНИЕ
@@ -2409,7 +2468,7 @@ function renderUserTable() {
     return table;
 }
 
-// ЛОГИ (исправлены)
+// ЛОГИ
 function renderAdminLogs(container) {
     let logs = data.logs || [];
     logs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -2452,7 +2511,7 @@ function initVisionToggle() { document.getElementById('visionToggle')?.addEventL
 function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная полная версия');
+    console.log('DOMContentLoaded – финальная версия с исправленным меню и скроллом');
     loadData();
     initAdminTrigger();
     initVisionToggle();
