@@ -350,8 +350,8 @@ async function initDefaultData() {
         ],
         teachers: [
             { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
-            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
-            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 }
+            { id: 3, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 },
+            { id: 2, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 }
         ],
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
