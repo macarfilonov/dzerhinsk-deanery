@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
+//  script.js – ПОЛНАЯ ВЕРСИЯ (ВСЁ РАБОТАЕТ, БЕЗ СОКРАЩЕНИЙ)
 // ============================================================
 
-console.log('script.js загружен (финальная версия)');
+console.log('script.js загружен (полная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -221,6 +221,7 @@ function loadData() {
             applyTranslations();
             restoreVisionMode();
             rebuildNav();
+            fillTempleDropdown();
             requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
         } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
     } else { initDefaultData(); }
@@ -237,6 +238,7 @@ function loadData() {
             renderCurrentPage();
             applyTranslations();
             rebuildNav();
+            fillTempleDropdown();
             requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
         }
     });
@@ -276,6 +278,7 @@ function loadData() {
                     renderCurrentPage();
                     applyTranslations();
                     rebuildNav();
+                    fillTempleDropdown();
                     requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
                 }
             }
@@ -302,6 +305,7 @@ function loadData() {
                         renderCurrentPage();
                         applyTranslations();
                         rebuildNav();
+                        fillTempleDropdown();
                         requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
                     }
                 }
@@ -310,6 +314,7 @@ function loadData() {
     });
 }
 
+// ========== МИГРАЦИЯ ДАННЫХ ==========
 function migrateData() {
     const arrayKeys = ['temples','clergy','schedules','news','announcements','sundaySchools','teachers','faq','users','opechenie','logs'];
     arrayKeys.forEach(k => { if (!data[k]) data[k] = []; });
@@ -424,6 +429,22 @@ function initDefaultData() {
     applyTranslations();
     restoreVisionMode();
     rebuildNav();
+    fillTempleDropdown();
+}
+
+// ========== ЗАПОЛНЕНИЕ ВЫПАДАЮЩЕГО МЕНЮ ХРАМОВ ==========
+function fillTempleDropdown() {
+    const dropdowns = document.querySelectorAll('.dropdown-content');
+    if (!dropdowns.length) return;
+    dropdowns.forEach(dropdown => {
+        dropdown.innerHTML = '';
+        data.temples.forEach(t => {
+            const a = document.createElement('a');
+            a.href = `temple-${t.id}.html`;
+            a.textContent = t.name;
+            dropdown.appendChild(a);
+        });
+    });
 }
 
 // ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
@@ -711,7 +732,7 @@ function updateNavActive(page) {
     if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (с каруселью) ----------
+// ---------- ГЛАВНАЯ (с каруселью и автопрокруткой) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -725,7 +746,7 @@ function renderMainPage() {
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
         <div class="carousel" id="mainCarousel">
             <button class="carousel-btn left" id="carouselPrev">‹</button>
-            <div class="carousel-track" id="carouselTrack" style="display:flex; gap:16px; overflow:hidden; scroll-behavior:smooth; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; padding:0.5rem 0;"></div>
+            <div class="carousel-track" id="carouselTrack"></div>
             <button class="carousel-btn right" id="carouselNext">›</button>
         </div>
         <div class="card"><h2>${t('latest-news')}</h2>`;
@@ -754,7 +775,7 @@ function renderMainPage() {
     initInfiniteCarousel();
 }
 
-// ---------- БЕСКОНЕЧНАЯ КАРУСЕЛЬ ----------
+// ---------- БЕСКОНЕЧНАЯ КАРУСЕЛЬ С АВТОПРОКРУТКОЙ ----------
 function initInfiniteCarousel() {
     const track = document.getElementById('carouselTrack');
     if (!track) return;
@@ -762,37 +783,37 @@ function initInfiniteCarousel() {
     const nextBtn = document.getElementById('carouselNext');
     if (!prevBtn || !nextBtn) return;
 
+    // Очищаем трек и заполняем элементами
     const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
         const imgSrc = getTemplePhoto(t);
-        return `<div class="carousel-item" data-id="${t.id}" style="flex: 0 0 auto; scroll-snap-align: start; width: 240px; cursor:pointer; background:var(--card-bg); border-radius:20px; overflow:hidden; box-shadow:0 4px 12px var(--shadow); border:1px solid var(--border);">
-            <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" style="width:100%; height:160px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'">
-            <div class="info" style="padding:0.8rem; text-align:center; font-size:0.95rem;">${escapeHtml(t.name)}</div>
+        return `<div class="carousel-item" data-id="${t.id}">
+            <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
+            <div class="info">${escapeHtml(t.name)}</div>
         </div>`;
     });
 
     const totalItems = templeItems.length;
     if (totalItems === 0) { track.innerHTML = '<p>Нет храмов для отображения</p>'; return; }
 
+    // Клонируем для бесконечности
     const cloneFirst = templeItems.slice(0, 2).join('');
     const cloneLast = templeItems.slice(-2).join('');
-    const allItems = cloneLast + templeItems.join('') + cloneFirst;
-    track.innerHTML = allItems;
+    track.innerHTML = cloneLast + templeItems.join('') + cloneFirst;
 
+    // Настройка прокрутки
     let currentIndex = 2;
     let isTransitioning = false;
+    let autoplayInterval;
 
     function getItemWidth() {
         const first = track.querySelector('.carousel-item');
         if (!first) return 240;
-        const style = window.getComputedStyle(first);
-        return parseFloat(style.width) || 240;
+        return first.offsetWidth + 16; // ширина + gap
     }
-    function getGap() { return parseFloat(window.getComputedStyle(track).gap) || 16; }
 
     function updateCarousel(animate = true) {
-        const width = getItemWidth();
-        const gap = getGap();
-        const offset = currentIndex * (width + gap);
+        const itemWidth = getItemWidth();
+        const offset = currentIndex * itemWidth;
         track.style.transition = animate ? 'transform 0.5s ease' : 'none';
         track.style.transform = `translateX(-${offset}px)`;
     }
@@ -804,17 +825,25 @@ function initInfiniteCarousel() {
         updateCarousel(animate);
         setTimeout(() => {
             isTransitioning = false;
-            if (currentIndex >= totalItems + 2) { currentIndex = 2; updateCarousel(false); }
-            else if (currentIndex < 2) { currentIndex = totalItems + 1; updateCarousel(false); }
+            // Проверка границ для бесконечности
+            if (currentIndex >= totalItems + 2) {
+                currentIndex = 2;
+                updateCarousel(false);
+            } else if (currentIndex < 2) {
+                currentIndex = totalItems + 1;
+                updateCarousel(false);
+            }
         }, 500);
     }
 
     function next() { goTo(currentIndex + 1); }
     function prev() { goTo(currentIndex - 1); }
 
+    // Обработчики кнопок
     nextBtn.addEventListener('click', next);
     prevBtn.addEventListener('click', prev);
 
+    // Клик по элементу
     track.querySelectorAll('.carousel-item').forEach(el => {
         el.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -822,16 +851,33 @@ function initInfiniteCarousel() {
         });
     });
 
-    let autoplay = setInterval(next, 4000);
-    track.addEventListener('mouseenter', () => clearInterval(autoplay));
-    track.addEventListener('mouseleave', () => { autoplay = setInterval(next, 4000); });
+    // Автопрокрутка
+    function startAutoplay() {
+        if (autoplayInterval) clearInterval(autoplayInterval);
+        autoplayInterval = setInterval(next, 4000);
+    }
+    function stopAutoplay() {
+        if (autoplayInterval) {
+            clearInterval(autoplayInterval);
+            autoplayInterval = null;
+        }
+    }
 
+    startAutoplay();
+    track.addEventListener('mouseenter', stopAutoplay);
+    track.addEventListener('mouseleave', startAutoplay);
+    // Для мобильных – touch события
+    track.addEventListener('touchstart', stopAutoplay);
+    track.addEventListener('touchend', startAutoplay);
+
+    // Обновление при изменении размера окна
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => { updateCarousel(false); }, 100);
     });
 
+    // Инициализация позиции
     setTimeout(() => updateCarousel(false), 100);
 }
 
@@ -2263,7 +2309,6 @@ function renderOpechenieTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
 function renderAdminUsers(container) {
     let html = `<h3>${t('admin-users')}</h3>
         <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
@@ -2443,3 +2488,4 @@ window.closeAdminModal = closeAdminModal;
 window.scrollCarousel = scrollCarousel;
 window.askAI = askAI;
 window.adminAskAI = adminAskAI;
+window.fillTempleDropdown = fillTempleDropdown;
