@@ -2,7 +2,6 @@
    style.css – ПОЛНЫЙ ФАЙЛ (без сокращений)
    ============================================================ */
 
-/* ========== ОБЩИЕ ПЕРЕМЕННЫЕ ========== */
 :root {
     --primary: #1a2f40;
     --gold: #c9aa5f;
@@ -14,7 +13,6 @@
     --font: 'Georgia', 'Times New Roman', 'Palatino', serif;
 }
 
-/* ========== СБРОС ========== */
 * {
     margin: 0;
     padding: 0;
@@ -40,7 +38,6 @@ img {
     height: auto;
 }
 
-/* ========== БАННЕР ========== */
 .eparchy-banner {
     background: #1a1a1a;
     padding: 0.8rem 1rem;
@@ -134,7 +131,6 @@ img {
     }
 }
 
-/* ========== ШАПКА (триггер для админки) ========== */
 .header {
     background: #1a1a1a;
     padding: 0.5rem 0;
@@ -143,7 +139,6 @@ img {
     cursor: pointer;
 }
 
-/* ========== НАВИГАЦИЯ (с модальным меню) ========== */
 .top-bar {
     display: flex;
     justify-content: space-between;
@@ -189,12 +184,10 @@ img {
     color: #ac8e54;
 }
 
-/* Кнопка-гамбургер (показывается только на мобильных) */
 .menu-toggle {
     display: none;
 }
 
-/* Модальное меню */
 .menu-modal {
     position: fixed;
     top: 0;
@@ -252,7 +245,6 @@ img {
     pointer-events: auto;
 }
 
-/* Стили для ссылок внутри модального меню */
 .menu-modal-content a[data-page] {
     display: block;
     padding: 0.7rem 1rem;
@@ -273,7 +265,6 @@ img {
     color: white;
 }
 
-/* Адаптив навигации */
 @media (max-width: 768px) {
     .top-bar nav .nav-link {
         display: none;
@@ -318,7 +309,6 @@ img {
     }
 }
 
-/* ========== ПАНЕЛЬ ИНСТРУМЕНТОВ ========== */
 .top-bar .tools {
     display: flex;
     gap: 0.5rem;
@@ -356,7 +346,6 @@ img {
     }
 }
 
-/* ========== КНОПКА ДЛЯ СЛАБОВИДЯЩИХ ========== */
 #visionToggle {
     font-size: 1.2rem;
     padding: 0.5rem 1.2rem;
@@ -387,7 +376,6 @@ img {
     }
 }
 
-/* ========== ВЫПАДАЮЩЕЕ МЕНЮ (для десктопного dropdown, если используется) ========== */
 .dropdown {
     position: relative;
     display: inline-block;
@@ -438,7 +426,6 @@ img {
     }
 }
 
-/* ========== КОНТЕЙНЕР ========== */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -451,7 +438,6 @@ img {
     }
 }
 
-/* ========== КАРТОЧКИ ========== */
 .card {
     background: var(--card-bg);
     border-radius: 24px;
@@ -489,7 +475,6 @@ img {
     }
 }
 
-/* ========== ГАЛЕРЕЯ (сетка) ========== */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -551,10 +536,9 @@ img {
     color: #b45a3b;
 }
 
-/* ========== ДУХОВЕНСТВО – увеличенные фото и адаптив ========== */
 #clergyList .grid-item img {
     height: 400px;
-    object-position: top -50px; /* сдвиг вверх на 50px, чтобы не обрезать головы */
+    object-position: top -50px;
 }
 
 @media (max-width: 700px) {
@@ -584,7 +568,6 @@ img {
     }
 }
 
-/* ========== ДЕТАЛЬНАЯ СТРАНИЦА СВЯЩЕННИКА ========== */
 #clergyDetail .detail-content img {
     width: 100%;
     max-width: 380px;
@@ -605,7 +588,6 @@ img {
     }
 }
 
-/* ========== ВОСКРЕСНЫЕ ШКОЛЫ ========== */
 #sundaySchoolList .grid-item .info .type {
     font-size: 0.85rem;
     color: var(--gold);
@@ -618,7 +600,6 @@ img {
     }
 }
 
-/* ========== FAQ ========== */
 #faqForm input,
 #faqForm textarea {
     width: 100%;
@@ -668,7 +649,6 @@ img {
     color: #999;
 }
 
-/* ========== ФОРМА ОБРАТНОЙ СВЯЗИ ========== */
 #feedbackForm .form-group {
     margin-bottom: 1rem;
 }
@@ -706,7 +686,6 @@ img {
     font-weight: 500;
 }
 
-/* ========== ГЛАВНАЯ (герой-баннер) ========== */
 .hero-banner {
     position: relative;
     height: 100vh;
@@ -761,7 +740,6 @@ img {
     }
 }
 
-/* ========== КАРУСЕЛЬ ========== */
 .carousel {
     position: relative;
     overflow: hidden;
@@ -861,7 +839,6 @@ img {
     }
 }
 
-/* ========== БОГОСЛУЖЕНИЯ ========== */
 .worship-content {
     margin-top: 1rem;
 }
@@ -957,7 +934,6 @@ img {
     }
 }
 
-/* ========== МОДАЛЬНОЕ ОКНО ХРАМА ========== */
 .temple-modal {
     position: fixed;
     top: 0;
@@ -1060,7 +1036,6 @@ img {
     }
 }
 
-/* ========== АДМИН-ПАНЕЛЬ ========== */
 .admin-modal {
     position: fixed;
     top: 0;
@@ -1254,7 +1229,6 @@ img {
     }
 }
 
-/* ========== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ========== */
 body.vision {
     font-size: 20px;
     line-height: 1.8;
@@ -1332,7 +1306,6 @@ body.vision .admin-panel textarea {
     }
 }
 
-/* ========== ФУТЕР ========== */
 footer {
     background: #1a1a1a;
     color: #f2e5c6;
@@ -1360,7 +1333,6 @@ footer a:hover {
     text-decoration: underline;
 }
 
-/* ========== КНОПКА НАВЕРХ ========== */
 .back-to-top {
     position: fixed;
     bottom: 20px;
