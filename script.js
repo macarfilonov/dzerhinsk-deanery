@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ (ВСЁ РАБОТАЕТ)
+//  script.js – ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ============================================================
 
-console.log('script.js загружен (финальная полная версия)');
+console.log('script.js загружен (финальная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -62,7 +62,7 @@ function hasPermission(user, permission) { return user?.permissions?.includes('a
 function getStoredTab(key, defaultTab) { return sessionStorage.getItem(key) || defaultTab; }
 function setStoredTab(key, tab) { sessionStorage.setItem(key, tab); }
 
-// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
+// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ ==========
 async function hashPassword(password) {
     if (!password) return '';
     const encoder = new TextEncoder();
@@ -311,7 +311,6 @@ function loadData() {
 }
 
 function migrateData() {
-    // Проверяем все ключи, которые должны быть массивами
     const arrayKeys = ['temples','clergy','schedules','news','announcements','sundaySchools','teachers','faq','users','opechenie','logs'];
     arrayKeys.forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
@@ -333,7 +332,6 @@ function migrateData() {
         });
     }
 
-    // Меняем порядок учителей: Богатко (директор) перед Левшевич
     if (data.teachers && data.teachers.length) {
         const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
         const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
@@ -428,7 +426,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ, КАК РАНЬШЕ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -465,7 +463,6 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
-    // Кнопка для открытия модального меню (на мобильных)
     const menuToggle = document.createElement('button');
     menuToggle.className = 'menu-toggle';
     menuToggle.id = 'menuToggle';
@@ -475,7 +472,6 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
-    // Создаём модальное окно
     const modal = document.createElement('div');
     modal.className = 'menu-modal';
     modal.id = 'menuModal';
@@ -586,7 +582,6 @@ function rebuildNav() {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
-    // Функции открытия/закрытия
     function openModal(e) {
         e.preventDefault();
         modal.style.display = 'flex';
@@ -611,7 +606,6 @@ function rebuildNav() {
         document.body.style.overflow = '';
     }
 
-    // Обработчики
     const toggleBtn = document.getElementById('menuToggle');
     if (toggleBtn) {
         toggleBtn.addEventListener('click', openModal);
@@ -633,20 +627,17 @@ function rebuildNav() {
         }
     });
 
-    // Закрываем модалку при клике на ссылки внутри
     modal.querySelectorAll('a[data-page]').forEach(a => {
         a.addEventListener('click', function(e) {
             closeModal(e);
         });
     });
 
-    // Активная страница
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
-    // Скрываем/показываем ссылки в зависимости от ширины экрана
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
@@ -1415,7 +1406,7 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
-// ---------- АДМИН-ЛОГИН (с хешированием) ----------
+// ---------- АДМИН-ЛОГИН ----------
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
