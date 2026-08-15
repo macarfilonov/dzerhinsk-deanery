@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ
+//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
 // ============================================================
 
-console.log('script.js загружен (полная версия)');
+console.log('script.js загружен (полная рабочая версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -311,24 +311,31 @@ function loadData() {
 }
 
 function migrateData() {
+    // Проверяем, что все ключи существуют
+    const defaultKeys = ['temples','clergy','schedules','news','announcements','sundaySchools','teachers','faq','users','opechenie','logs'];
+    defaultKeys.forEach(k => { if (!data[k]) data[k] = []; });
+    if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
+    if (!data.aboutText) data.aboutText = '';
+
     data.users.forEach(u => { 
         if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; 
         if (u.extraQuestion === undefined) u.extraQuestion = '';
     });
-    ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers','logs'].forEach(k => { if (!data[k]) data[k] = []; });
-    if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
-    if (!data.aboutText) data.aboutText = '';
+
     if (!data.users || data.users.length === 0) {
         hashPassword('Makar27.05.2014').then(hash => {
             data.users.push({ id: nextId.user++, username: 'Makar', password: hash, role: 'developer', permissions: ['all'], extraQuestion: '' });
             saveData();
         });
     }
+
     // Меняем порядок учителей: Богатко (директор) перед Левшевич
-    const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
-    const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
-    if (bogatkoIdx !== -1 && levshevichIdx !== -1 && bogatkoIdx > levshevichIdx) {
-        [data.teachers[bogatkoIdx], data.teachers[levshevichIdx]] = [data.teachers[levshevichIdx], data.teachers[bogatkoIdx]];
+    if (data.teachers && data.teachers.length) {
+        const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
+        const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
+        if (bogatkoIdx !== -1 && levshevichIdx !== -1 && bogatkoIdx > levshevichIdx) {
+            [data.teachers[bogatkoIdx], data.teachers[levshevichIdx]] = [data.teachers[levshevichIdx], data.teachers[bogatkoIdx]];
+        }
     }
     setDefaultPhotos();
 }
@@ -417,12 +424,13 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОБИЛЬНОЕ МЕНЮ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (старый вариант, без модалки) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
+
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
@@ -441,21 +449,16 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
-    const linksContainer = document.createElement('div');
-    linksContainer.className = 'nav-links';
-    linksContainer.style.cssText = `display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;`;
-
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
         a.dataset.page = l.page;
         a.textContent = l.text;
         a.className = 'nav-link';
-        linksContainer.appendChild(a);
+        nav.appendChild(a);
     });
 
-    nav.appendChild(linksContainer);
-
+    // Кнопка-гамбургер
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'menu-toggle';
     toggleBtn.id = 'menuToggle';
@@ -465,33 +468,36 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
+    // Удаляем старые стили, если есть
     const oldStyle = document.getElementById('navMobileStyle');
     if (oldStyle) oldStyle.remove();
 
+    // Стили для мобильной версии
     const style = document.createElement('style');
     style.id = 'navMobileStyle';
     style.textContent = `
         @media (max-width: 768px) {
-            .top-bar { flex-wrap: wrap; position: relative; }
-            .top-bar nav { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-            .top-bar nav .nav-links {
-                display: none !important;
-                flex-direction: column;
+            .top-bar nav {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: space-between;
                 width: 100%;
-                background: white;
-                padding: 0.5rem 0;
-                border-radius: 16px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                position: absolute;
-                top: 100%;
-                left: 0;
-                z-index: 100;
-                gap: 0.3rem;
-                border: 1px solid var(--border, #e8ddd0);
             }
-            .top-bar nav .nav-links.open { display: flex !important; }
+            .top-bar nav .nav-link {
+                display: none;
+                width: 100%;
+                padding: 0.4rem 1rem;
+                text-align: center;
+                border-radius: 8px;
+            }
+            .top-bar nav .nav-link.active {
+                display: block;
+                background: var(--gold, #c9aa5f);
+                color: white;
+            }
             .top-bar nav .menu-toggle {
-                display: inline-flex !important;
+                display: inline-block !important;
                 background: var(--gold, #c9aa5f);
                 color: white;
                 border: none;
@@ -500,32 +506,39 @@ function rebuildNav() {
                 font-family: inherit;
                 font-size: 0.95rem;
                 cursor: pointer;
-                align-items: center;
-                justify-content: center;
+                margin-left: auto;
             }
-            .top-bar nav .nav-links a { padding: 0.4rem 1rem; width: 100%; text-align: center; border-radius: 8px; }
-            .top-bar nav .nav-links a.active { background: var(--gold, #c9aa5f); color: white; }
+            .top-bar nav.open .nav-link {
+                display: block;
+            }
+            .top-bar nav.open .menu-toggle {
+                background: #b89a4a;
+            }
         }
     `;
     document.head.appendChild(style);
 
+    // Обработчик клика по кнопке
     toggleBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        linksContainer.classList.toggle('open');
+        nav.classList.toggle('open');
     });
 
-    document.addEventListener('click', function(e) {
-        if (linksContainer && !linksContainer.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
-            linksContainer.classList.remove('open');
-        }
-    });
-
-    document.querySelectorAll('.nav-links a').forEach(a => {
+    // Закрываем меню при клике на ссылку
+    nav.querySelectorAll('.nav-link').forEach(a => {
         a.addEventListener('click', function() {
-            linksContainer.classList.remove('open');
+            nav.classList.remove('open');
         });
     });
 
+    // Закрываем меню при клике вне
+    document.addEventListener('click', function(e) {
+        if (!nav.contains(e.target) && e.target !== toggleBtn) {
+            nav.classList.remove('open');
+        }
+    });
+
+    // Активная страница
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
@@ -585,7 +598,11 @@ function renderCurrentPage() {
 
 function updateNavActive(page) {
     const nav = document.querySelector('#mainNav');
-    if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
+    if (nav) {
+        nav.querySelectorAll('a[data-page]').forEach(a => {
+            a.classList.toggle('active', a.dataset.page === page);
+        });
+    }
 }
 
 // ---------- ГЛАВНАЯ ----------
@@ -846,7 +863,7 @@ function renderTempleDetail(container, id) {
     }));
 }
 
-// ---------- ДУХОВЕНСТВО (с object-position для фото) ----------
+// ---------- ДУХОВЕНСТВО (с object-position) ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -1380,7 +1397,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ ----------
+// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (полный набор) ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1439,7 +1456,7 @@ function renderScheduleTable() {
     return table;
 }
 
-// ---------- ХРАМЫ ----------
+// ---------- ХРАМЫ (админка) ----------
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -2310,7 +2327,7 @@ function initBackToTop() { const btn = document.getElementById('backToTop'); if 
 
 // ========== ЗАПУСК ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия');
+    console.log('DOMContentLoaded – полная рабочая версия');
     loadData();
     initAdminTrigger();
     initVisionToggle();
