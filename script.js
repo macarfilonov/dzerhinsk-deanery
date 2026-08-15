@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (меню без модалки, порядок учителей исправлен, скролл сохранён)
+//  script.js – ПОЛНАЯ ВЕРСИЯ
 // ============================================================
 
-console.log('script.js загружен (финальная версия с исправленным меню)');
+console.log('script.js загружен (полная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -20,9 +20,6 @@ if (typeof firebase !== 'undefined' && !firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
-
-// ========== НАСТРОЙКИ ИИ (заглушка) ==========
-const AI_API_URL = null;
 
 // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
 let data = {
@@ -65,7 +62,7 @@ function hasPermission(user, permission) { return user?.permissions?.includes('a
 function getStoredTab(key, defaultTab) { return sessionStorage.getItem(key) || defaultTab; }
 function setStoredTab(key, tab) { sessionStorage.setItem(key, tab); }
 
-// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ (SHA-256) ==========
+// ========== ХЕШИРОВАНИЕ ПАРОЛЕЙ ==========
 async function hashPassword(password) {
     if (!password) return '';
     const encoder = new TextEncoder();
@@ -74,10 +71,7 @@ async function hashPassword(password) {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
-
-function isHash(str) {
-    return /^[a-f0-9]{64}$/.test(str);
-}
+function isHash(str) { return /^[a-f0-9]{64}$/.test(str); }
 
 // ========== ПЕРЕВОДЫ ==========
 const translations = {
@@ -222,16 +216,12 @@ function loadData() {
             data = parsed.data || data;
             nextId = parsed.nextId || nextId;
             migrateData();
-            // Сохраняем скролл перед рендером
             savedScrollY = window.scrollY;
             renderCurrentPage();
             applyTranslations();
             restoreVisionMode();
             rebuildNav();
-            // Восстанавливаем скролл после рендера
-            requestAnimationFrame(() => {
-                window.scrollTo(0, savedScrollY);
-            });
+            requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
         } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
     } else { initDefaultData(); }
 
@@ -247,9 +237,7 @@ function loadData() {
             renderCurrentPage();
             applyTranslations();
             rebuildNav();
-            requestAnimationFrame(() => {
-                window.scrollTo(0, savedScrollY);
-            });
+            requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
         }
     });
 
@@ -264,9 +252,7 @@ function loadData() {
             const adminContent = document.getElementById('adminSectionContent');
             if (adminContent && adminContent.closest('.admin-modal') && adminContent.closest('.admin-modal').classList.contains('visible')) {
                 const section = adminContent.dataset.currentSection;
-                if (section === 'logs') {
-                    renderAdminLogs(adminContent);
-                }
+                if (section === 'logs') renderAdminLogs(adminContent);
             }
         }
     });
@@ -290,9 +276,7 @@ function loadData() {
                     renderCurrentPage();
                     applyTranslations();
                     rebuildNav();
-                    requestAnimationFrame(() => {
-                        window.scrollTo(0, savedScrollY);
-                    });
+                    requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
                 }
             }
         });
@@ -318,9 +302,7 @@ function loadData() {
                         renderCurrentPage();
                         applyTranslations();
                         rebuildNav();
-                        requestAnimationFrame(() => {
-                            window.scrollTo(0, savedScrollY);
-                        });
+                        requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
                     }
                 }
             });
@@ -336,19 +318,16 @@ function migrateData() {
     ['news','announcements','schedules','sundaySchools','faq','temples','clergy','opechenie','teachers','logs'].forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
-    // Если нет пользователей, создаём с хешем
     if (!data.users || data.users.length === 0) {
         hashPassword('Makar27.05.2014').then(hash => {
             data.users.push({ id: nextId.user++, username: 'Makar', password: hash, role: 'developer', permissions: ['all'], extraQuestion: '' });
             saveData();
         });
     }
-    // Меняем порядок учителей: сначала Богатко (директор), потом Левшевич (преподаватель)
-    // Находим их по id
+    // Меняем порядок учителей: Богатко (директор) перед Левшевич
     const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
     const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
     if (bogatkoIdx !== -1 && levshevichIdx !== -1 && bogatkoIdx > levshevichIdx) {
-        // Меняем местами
         [data.teachers[bogatkoIdx], data.teachers[levshevichIdx]] = [data.teachers[levshevichIdx], data.teachers[bogatkoIdx]];
     }
     setDefaultPhotos();
@@ -395,7 +374,6 @@ function initDefaultData() {
         ],
         teachers: [
             { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
-            // Сначала Богатко (директор), потом Левшевич (преподаватель)
             { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 },
             { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 }
         ],
@@ -439,14 +417,12 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (БЕЗ МОДАЛЬНОГО ОКНА, С ТОГГЛОМ ДЛЯ МОБИЛЬНЫХ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОБИЛЬНОЕ МЕНЮ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
-
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
-
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
@@ -465,15 +441,9 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
-    // Создаём контейнер для ссылок
     const linksContainer = document.createElement('div');
     linksContainer.className = 'nav-links';
-    linksContainer.style.cssText = `
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        align-items: center;
-    `;
+    linksContainer.style.cssText = `display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;`;
 
     links.forEach(l => {
         const a = document.createElement('a');
@@ -486,24 +456,26 @@ function rebuildNav() {
 
     nav.appendChild(linksContainer);
 
-    // Кнопка-переключатель для мобильных
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'menu-toggle';
     toggleBtn.id = 'menuToggle';
-    toggleBtn.setAttribute('aria-label', 'Открыть меню');
     toggleBtn.innerHTML = '☰ Меню';
     toggleBtn.style.display = 'none';
     nav.appendChild(toggleBtn);
 
     topBar.insertBefore(nav, tools);
 
-    // Добавляем стили для мобильной версии (через CSS)
+    const oldStyle = document.getElementById('navMobileStyle');
+    if (oldStyle) oldStyle.remove();
+
     const style = document.createElement('style');
     style.id = 'navMobileStyle';
     style.textContent = `
         @media (max-width: 768px) {
+            .top-bar { flex-wrap: wrap; position: relative; }
+            .top-bar nav { display: flex; align-items: center; justify-content: space-between; width: 100%; }
             .top-bar nav .nav-links {
-                display: none;
+                display: none !important;
                 flex-direction: column;
                 width: 100%;
                 background: white;
@@ -515,10 +487,9 @@ function rebuildNav() {
                 left: 0;
                 z-index: 100;
                 gap: 0.3rem;
+                border: 1px solid var(--border, #e8ddd0);
             }
-            .top-bar nav .nav-links.open {
-                display: flex;
-            }
+            .top-bar nav .nav-links.open { display: flex !important; }
             .top-bar nav .menu-toggle {
                 display: inline-flex !important;
                 background: var(--gold, #c9aa5f);
@@ -529,62 +500,42 @@ function rebuildNav() {
                 font-family: inherit;
                 font-size: 0.95rem;
                 cursor: pointer;
-            }
-            .top-bar {
-                position: relative;
-                flex-wrap: wrap;
-            }
-            .top-bar nav {
-                display: flex;
                 align-items: center;
-                justify-content: space-between;
-                width: 100%;
+                justify-content: center;
             }
+            .top-bar nav .nav-links a { padding: 0.4rem 1rem; width: 100%; text-align: center; border-radius: 8px; }
+            .top-bar nav .nav-links a.active { background: var(--gold, #c9aa5f); color: white; }
         }
     `;
     document.head.appendChild(style);
 
-    // Обработчик для кнопки
     toggleBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        const container = this.previousElementSibling;
-        if (container) {
-            container.classList.toggle('open');
-        }
+        linksContainer.classList.toggle('open');
     });
 
-    // Закрываем меню при клике вне
     document.addEventListener('click', function(e) {
-        const container = document.querySelector('.nav-links');
-        const toggle = document.getElementById('menuToggle');
-        if (container && toggle) {
-            if (!container.contains(e.target) && e.target !== toggle && !toggle.contains(e.target)) {
-                container.classList.remove('open');
-            }
+        if (linksContainer && !linksContainer.contains(e.target) && e.target !== toggleBtn && !toggleBtn.contains(e.target)) {
+            linksContainer.classList.remove('open');
         }
     });
 
-    // Закрываем меню при клике на ссылку
     document.querySelectorAll('.nav-links a').forEach(a => {
         a.addEventListener('click', function() {
-            const container = document.querySelector('.nav-links');
-            if (container) container.classList.remove('open');
+            linksContainer.classList.remove('open');
         });
     });
 
-    // Активная страница
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 }
 
-// ========== РЕНДЕРИНГ СТРАНИЦ (с сохранением скролла) ==========
+// ========== РЕНДЕРИНГ СТРАНИЦ ==========
 function renderCurrentPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
-
-    // Сохраняем скролл перед рендером (глобально)
     savedScrollY = window.scrollY;
 
     if (typeof window.templeId !== 'undefined' && window.templeId !== null) {
@@ -592,9 +543,7 @@ function renderCurrentPage() {
         updateNavActive('temples');
         applyTranslations();
         updateVisionUI();
-        requestAnimationFrame(() => {
-            window.scrollTo(0, savedScrollY);
-        });
+        requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
         return;
     }
 
@@ -605,19 +554,12 @@ function renderCurrentPage() {
 
     if (isDetail) {
         const numId = parseInt(id);
-        if (page === 'temples') {
-            renderTempleDetail(container, numId);
-        } else if (page === 'clergy') {
-            renderClergyDetail(numId);
-        } else if (page === 'sunday-school') {
-            renderSundaySchoolDetail(numId);
-        } else {
-            container.innerHTML = '<p>Страница не найдена</p>';
-        }
+        if (page === 'temples') renderTempleDetail(container, numId);
+        else if (page === 'clergy') renderClergyDetail(numId);
+        else if (page === 'sunday-school') renderSundaySchoolDetail(numId);
+        else container.innerHTML = '<p>Страница не найдена</p>';
         updateNavActive(page);
-        requestAnimationFrame(() => {
-            window.scrollTo(0, savedScrollY);
-        });
+        requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
         return;
     }
 
@@ -638,23 +580,15 @@ function renderCurrentPage() {
     updateNavActive(page);
     applyTranslations();
     updateVisionUI();
-
-    // Восстанавливаем скролл после рендера
-    requestAnimationFrame(() => {
-        window.scrollTo(0, savedScrollY);
-    });
+    requestAnimationFrame(() => window.scrollTo(0, savedScrollY));
 }
 
 function updateNavActive(page) {
     const nav = document.querySelector('#mainNav');
-    if (nav) {
-        nav.querySelectorAll('a[data-page]').forEach(a => {
-            a.classList.toggle('active', a.dataset.page === page);
-        });
-    }
+    if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (с бесконечной каруселью) ----------
+// ---------- ГЛАВНАЯ ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -662,17 +596,16 @@ function renderMainPage() {
         <div class="hero-banner" onclick="window.location.href='temple-1.html'">
             <div style="text-align:center; z-index:2; position:relative;">
                 <h1>Храм Покрова Пресвятой Богородицы</h1>
-                <div class="sub">г.\u00A0Дзержинск</div>
+                <div class="sub">г. Дзержинск</div>
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
         <div class="carousel" id="mainCarousel">
             <button class="carousel-btn left" id="carouselPrev">‹</button>
-            <div class="carousel-track" id="carouselTrack"></div>
+            <div class="carousel-track" id="carouselTrack" style="display:flex; gap:16px; overflow:hidden; scroll-behavior:smooth; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; padding:0.5rem 0;"></div>
             <button class="carousel-btn right" id="carouselNext">›</button>
-        </div>`;
-    // Новости
-    html += `<div class="card"><h2>${t('latest-news')}</h2>`;
+        </div>
+        <div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
     if (!news.length) html += `<p>${t('no-news')}</p>`;
     else {
@@ -686,9 +619,7 @@ function renderMainPage() {
         });
         html += `<a href="news.html" style="color:var(--gold);">${t('all-news')}</a>`;
     }
-    html += `</div>`;
-    // Объявления
-    html += `<div class="card"><h2>${t('latest-announcements')}</h2>`;
+    html += `</div><div class="card"><h2>${t('latest-announcements')}</h2>`;
     const ann = [...data.announcements].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
     if (!ann.length) html += `<p>${t('no-announcements')}</p>`;
     else {
@@ -697,10 +628,10 @@ function renderMainPage() {
     }
     html += `</div>`;
     container.innerHTML = html;
-
     initInfiniteCarousel();
 }
 
+// ---------- КАРУСЕЛЬ ----------
 function initInfiniteCarousel() {
     const track = document.getElementById('carouselTrack');
     if (!track) return;
@@ -710,37 +641,30 @@ function initInfiniteCarousel() {
 
     const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
         const imgSrc = getTemplePhoto(t);
-        return `<div class="carousel-item" data-id="${t.id}"><img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'"><div class="info">${escapeHtml(t.name)}</div></div>`;
+        return `<div class="carousel-item" data-id="${t.id}" style="flex: 0 0 auto; scroll-snap-align: start; width: 240px; cursor:pointer; background:var(--card-bg); border-radius:20px; overflow:hidden; box-shadow:0 4px 12px var(--shadow); border:1px solid var(--border);">
+            <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" style="width:100%; height:160px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'">
+            <div class="info" style="padding:0.8rem; text-align:center; font-size:0.95rem;">${escapeHtml(t.name)}</div>
+        </div>`;
     });
 
     const totalItems = templeItems.length;
-    if (totalItems === 0) {
-        track.innerHTML = '<p>Нет храмов для отображения</p>';
-        return;
-    }
+    if (totalItems === 0) { track.innerHTML = '<p>Нет храмов для отображения</p>'; return; }
 
     const cloneFirst = templeItems.slice(0, 2).join('');
     const cloneLast = templeItems.slice(-2).join('');
     const allItems = cloneLast + templeItems.join('') + cloneFirst;
-
     track.innerHTML = allItems;
 
     let currentIndex = 2;
     let isTransitioning = false;
 
     function getItemWidth() {
-        const firstItem = track.querySelector('.carousel-item');
-        if (!firstItem) return 240;
-        const style = window.getComputedStyle(firstItem);
-        const width = parseFloat(style.flexBasis) || parseFloat(style.width) || 240;
-        const marginRight = parseFloat(style.marginRight) || 0;
-        return width + marginRight;
+        const first = track.querySelector('.carousel-item');
+        if (!first) return 240;
+        const style = window.getComputedStyle(first);
+        return parseFloat(style.width) || 240;
     }
-
-    function getGap() {
-        const style = window.getComputedStyle(track);
-        return parseFloat(style.gap) || 16;
-    }
+    function getGap() { return parseFloat(window.getComputedStyle(track).gap) || 16; }
 
     function updateCarousel(animate = true) {
         const width = getItemWidth();
@@ -757,24 +681,13 @@ function initInfiniteCarousel() {
         updateCarousel(animate);
         setTimeout(() => {
             isTransitioning = false;
-            const totalRealItems = totalItems;
-            if (currentIndex >= totalRealItems + 2) {
-                currentIndex = 2;
-                updateCarousel(false);
-            } else if (currentIndex < 2) {
-                currentIndex = totalRealItems + 1;
-                updateCarousel(false);
-            }
+            if (currentIndex >= totalItems + 2) { currentIndex = 2; updateCarousel(false); }
+            else if (currentIndex < 2) { currentIndex = totalItems + 1; updateCarousel(false); }
         }, 500);
     }
 
-    function next() {
-        goTo(currentIndex + 1);
-    }
-
-    function prev() {
-        goTo(currentIndex - 1);
-    }
+    function next() { goTo(currentIndex + 1); }
+    function prev() { goTo(currentIndex - 1); }
 
     nextBtn.addEventListener('click', next);
     prevBtn.addEventListener('click', prev);
@@ -786,19 +699,17 @@ function initInfiniteCarousel() {
         });
     });
 
-    let autoplayInterval = setInterval(next, 4000);
-    track.addEventListener('mouseenter', () => clearInterval(autoplayInterval));
-    track.addEventListener('mouseleave', () => {
-        autoplayInterval = setInterval(next, 4000);
-    });
+    let autoplay = setInterval(next, 4000);
+    track.addEventListener('mouseenter', () => clearInterval(autoplay));
+    track.addEventListener('mouseleave', () => { autoplay = setInterval(next, 4000); });
 
+    let resizeTimeout;
     window.addEventListener('resize', () => {
-        updateCarousel(false);
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => { updateCarousel(false); }, 100);
     });
 
-    setTimeout(() => {
-        updateCarousel(false);
-    }, 100);
+    setTimeout(() => updateCarousel(false), 100);
 }
 
 // ---------- СПИСОК ХРАМОВ ----------
@@ -815,26 +726,18 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
+// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ----------
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'templeModal';
         modal.className = 'temple-modal';
-        modal.innerHTML = `
-            <div class="temple-modal-content">
-                <button class="temple-modal-close">&times;</button>
-                <div id="templeModalBody"></div>
-            </div>
-        `;
+        modal.innerHTML = `<div class="temple-modal-content"><button class="temple-modal-close">&times;</button><div id="templeModalBody"></div></div>`;
         document.body.appendChild(modal);
         modal.querySelector('.temple-modal-close').addEventListener('click', closeTempleModal);
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) closeTempleModal();
-        });
+        modal.addEventListener('click', function(e) { if (e.target === this) closeTempleModal(); });
     }
-
     const body = document.getElementById('templeModalBody');
     const temple = data.temples.find(t => t.id === templeId);
     if (!temple) { body.innerHTML = '<p>Храм не найден</p>'; return; }
@@ -846,13 +749,9 @@ function openTempleModal(tab, templeId) {
             const schedules = data.schedules.filter(s => s.templeId === templeId);
             if (schedules.length) {
                 content += `<table class="schedule-table"><thead><tr><th>${t('date')}</th><th>${t('event')}</th></tr></thead><tbody>`;
-                schedules.forEach(s => {
-                    content += `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`;
-                });
+                schedules.forEach(s => content += `<tr><td>${escapeHtml(s.date)}</td><td>${escapeHtml(s.event)}</td></tr>`);
                 content += `</tbody></table>`;
-            } else {
-                content += `<p>${t('no-schedule')}</p>`;
-            }
+            } else content += `<p>${t('no-schedule')}</p>`;
             break;
         case 'contacts':
             content = `<h3>Контакты</h3>`;
@@ -868,65 +767,41 @@ function openTempleModal(tab, templeId) {
             if (clergy.length) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
-                    content += `
-                        <div class="clergy-card" data-id="${c.id}">
-                            <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo">
-                            <div class="clergy-name">${escapeHtml(c.name)}</div>
-                            <div class="clergy-rank">${escapeHtml(c.rank)}</div>
-                        </div>
-                    `;
+                    content += `<div class="clergy-card" data-id="${c.id}">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo" style="object-position: top -50px;">
+                        <div class="clergy-name">${escapeHtml(c.name)}</div>
+                        <div class="clergy-rank">${escapeHtml(c.rank)}</div>
+                    </div>`;
                 });
                 content += `</div>`;
-            } else {
-                content += `<p>${t('no-clergy')}</p>`;
-            }
+            } else content += `<p>${t('no-clergy')}</p>`;
             break;
         case 'schools':
             content = `<h3>Воскресные школы</h3>`;
             const schools = data.sundaySchools.filter(s => s.templeId === templeId);
             if (schools.length) {
-                schools.forEach(s => {
-                    content += `<div style="margin-bottom:0.5rem;"><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.type)})<br>${escapeHtml(s.description||'')}</div>`;
-                });
-            } else {
-                content += `<p>${t('no-sunday-schools')}</p>`;
-            }
+                schools.forEach(s => content += `<div style="margin-bottom:0.5rem;"><strong>${escapeHtml(s.name)}</strong> (${escapeHtml(s.type)})<br>${escapeHtml(s.description||'')}</div>`);
+            } else content += `<p>${t('no-sunday-schools')}</p>`;
             break;
-        default:
-            content = '<p>Нет данных</p>';
+        default: content = '<p>Нет данных</p>';
     }
     body.innerHTML = content;
-
-    body.querySelectorAll('.clergy-card').forEach(el => {
-        el.addEventListener('click', function() {
-            const cid = parseInt(this.dataset.id);
-            window.location.href = `clergy-detail.html?id=${cid}`;
-        });
-    });
-
+    body.querySelectorAll('.clergy-card').forEach(el => el.addEventListener('click', function() {
+        const cid = parseInt(this.dataset.id);
+        window.location.href = `clergy-detail.html?id=${cid}`;
+    }));
     modal.classList.add('visible');
 }
-
-function closeTempleModal() {
-    const modal = document.getElementById('templeModal');
-    if (modal) modal.classList.remove('visible');
-}
+function closeTempleModal() { const modal = document.getElementById('templeModal'); if (modal) modal.classList.remove('visible'); }
 
 // ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
-    if (!data.temples || data.temples.length === 0) {
-        setTimeout(() => renderTempleDetail(container, id), 300);
-        return;
-    }
+    if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 300); return; }
     const temple = data.temples.find(t => t.id === id);
-    if (!temple) {
-        container.innerHTML = '<p>Храм не найден</p>';
-        return;
-    }
+    if (!temple) { container.innerHTML = '<p>Храм не найден</p>'; return; }
     const photoSrc = getTemplePhoto(temple);
     const phoneNumber = temple.phone || '+375291234567';
     const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
-
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
         <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}'); min-height: 70vh; height: 500px; background-size: cover; background-position: center; border-radius: 24px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative;">
@@ -957,37 +832,26 @@ function renderTempleDetail(container, id) {
         </div>
     `;
     container.innerHTML = html;
-
-    container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tab = this.dataset.tab;
-            openTempleModal(tab, id);
-        });
-    });
-
+    container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => btn.addEventListener('click', function() { openTempleModal(this.dataset.tab, id); }));
     const historyBtns = container.querySelectorAll('.history-btn');
     const historyTabs = {
         'history': document.getElementById('tab-history'),
         'local-history': document.getElementById('tab-local-history')
     };
-    historyBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const tab = this.dataset.tab;
-            historyBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            Object.keys(historyTabs).forEach(key => {
-                historyTabs[key].style.display = key === tab ? 'block' : 'none';
-            });
-        });
-    });
+    historyBtns.forEach(btn => btn.addEventListener('click', function() {
+        const tab = this.dataset.tab;
+        historyBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        Object.keys(historyTabs).forEach(key => historyTabs[key].style.display = key === tab ? 'block' : 'none');
+    }));
 }
 
-// ---------- ДУХОВЕНСТВО ----------
+// ---------- ДУХОВЕНСТВО (с object-position для фото) ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
         html += `<div class="grid-item" data-id="${c.id}" data-type="clergy">
-            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" style="border-radius:20px; height:400px; object-fit:cover;">
+            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" style="border-radius:20px; height:400px; object-fit:cover; object-position: top -50px;">
             <div class="info"><h3>${escapeHtml(c.name)}</h3><div class="status">${escapeHtml(c.rank)}</div><div style="font-size:0.8rem;color:#999;">${getTempleNames(c.templeIds)}</div></div>
         </div>`;
     });
@@ -1003,7 +867,7 @@ function renderClergyDetail(id) {
     const container = document.getElementById('mainContent');
     container.innerHTML = `<div class="detail-back" onclick="window.location.href='clergy.html'">${t('back')}</div>
     <div class="detail-content">
-        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="border-radius:20px; width:100%; max-width:400px; height:auto; object-fit:cover; margin:0 auto 1rem; display:block;">
+        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="border-radius:20px; width:100%; max-width:400px; height:auto; object-fit:cover; object-position: top -50px; margin:0 auto 1rem; display:block;">
         <h2>${escapeHtml(c.name)}</h2>
         <p><strong>${t('clergy-rank')}:</strong> ${escapeHtml(c.rank)}</p>
         <p><strong>${t('temple')}:</strong> ${getTempleNames(c.templeIds)}</p>
@@ -1013,16 +877,11 @@ function renderClergyDetail(id) {
 
 // ---------- РАСПИСАНИЕ ----------
 function getScheduleHTML() {
-    let html = `<h2>${t('schedule-title')}</h2>
-        <div class="card">
-            <h3>${t('select-temple')}</h3>
-            <select id="scheduleTempleSelect" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border);">
-                <option value="">${t('choose-temple')}</option>`;
+    let html = `<h2>${t('schedule-title')}</h2><div class="card"><h3>${t('select-temple')}</h3><select id="scheduleTempleSelect" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border);"><option value="">${t('choose-temple')}</option>`;
     data.temples.forEach(t => html += `<option value="${t.id}">${escapeHtml(t.name)}</option>`);
     html += `</select></div><div id="scheduleDisplay"></div>`;
     return html;
 }
-
 function initScheduleSelect(container) {
     const select = container.querySelector('#scheduleTempleSelect');
     if (!select) return;
@@ -1041,8 +900,7 @@ function initScheduleSelect(container) {
 
 // ---------- НОВОСТИ ----------
 function renderNewsList(container) {
-    let html = `<h2>${t('news-title')}</h2>`;
-    html += `<div style="margin-bottom: 1rem;"><a href="https://t.me/dzrzh_blag" target="_blank" class="btn-telegram" style="background: #0088cc; color: white; padding: 0.5rem 1.2rem; border-radius: 40px; text-decoration: none; display: inline-block; font-weight: bold;">📢 Подписаться на Telegram-канал</a></div>`;
+    let html = `<h2>${t('news-title')}</h2><div style="margin-bottom: 1rem;"><a href="https://t.me/dzrzh_blag" target="_blank" class="btn-telegram" style="background: #0088cc; color: white; padding: 0.5rem 1.2rem; border-radius: 40px; text-decoration: none; display: inline-block; font-weight: bold;">📢 Подписаться на Telegram-канал</a></div>`;
     const news = data.news||[];
     if (!news.length) html += `<p>${t('no-news')}</p>`;
     else {
@@ -1094,18 +952,14 @@ function renderSundaySchoolsList(container) {
 }
 
 function renderSundaySchoolDetail(id) {
-    if (!data.sundaySchools || data.sundaySchools.length === 0) {
-        setTimeout(() => renderSundaySchoolDetail(id), 300);
-        return;
-    }
+    if (!data.sundaySchools || data.sundaySchools.length === 0) { setTimeout(() => renderSundaySchoolDetail(id), 300); return; }
     const school = data.sundaySchools.find(s => s.id === id);
-    if (!school) {
-        document.getElementById('mainContent').innerHTML = '<p>Школа не найдена</p>';
-        return;
-    }
+    if (!school) { document.getElementById('mainContent').innerHTML = '<p>Школа не найдена</p>'; return; }
     const container = document.getElementById('mainContent');
     const temple = data.temples.find(t => t.id === school.templeId);
-    const teachers = data.teachers.filter(t => t.schoolId === id);
+    let teachers = data.teachers.filter(t => t.schoolId === id);
+    const roleOrder = { 'Директор': 1, 'Преподаватель': 2, 'Воспитатель': 3 };
+    teachers.sort((a,b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99));
 
     let teachersHtml = '';
     if (teachers.length) {
@@ -1189,41 +1043,28 @@ function renderWorshipPage(container) {
     let html = `<h2>${t('nav-worship')}</h2>
         <div class="card">
             <div class="tabs worship-tabs" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">`;
-    tabs.forEach((tab) => {
+    tabs.forEach(tab => {
         const isActive = (activeTab === tab.id);
         html += `<button class="tab-btn worship-tab-btn ${isActive ? 'active' : ''}" data-tab="${tab.id}" style="padding:0.6rem 1.2rem; border:2px solid var(--gold); border-radius:40px; background:${isActive ? 'var(--gold)' : 'transparent'}; color:${isActive ? 'white' : 'var(--primary)'}; font-weight:600; cursor:pointer; transition:all 0.3s; font-family:inherit; font-size:0.95rem;">${tab.label}</button>`;
     });
     html += `</div><div class="worship-content" id="worshipContent">`;
-
     html += `<div class="worship-block ${activeTab === 'schedule' ? 'active' : ''}" id="worship-schedule">${getScheduleHTML()}</div>`;
-
     html += `<div class="worship-block ${activeTab === 'prayers' ? 'active' : ''}" id="worship-prayers">`;
     const prayers = data.worship?.prayers || [];
     if (!prayers.length) html += `<p>Молитвы не добавлены.</p>`;
     else prayers.forEach(p => html += `<div class="prayer-item"><strong>${escapeHtml(p.title)}</strong><p>${escapeHtml(p.text)}</p></div>`);
     html += `</div>`;
-
-    html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints">`;
-    html += `<div class="saints-widget-container">
-        <h3>Святые дня</h3>
-        <div id="saintsContainer"></div>
-        <p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Список святых на сегодня по церковному календарю (Азбука.ру)</p>
-    </div>`;
-    html += `</div>`;
-
+    html += `<div class="worship-block ${activeTab === 'saints' ? 'active' : ''}" id="worship-saints"><div class="saints-widget-container"><h3>Святые дня</h3><div id="saintsContainer"></div><p style="margin-top:0.5rem; font-size:0.85rem; color:#999;">Список святых на сегодня по церковному календарю (Азбука.ру)</p></div></div>`;
     html += `<div class="worship-block ${activeTab === 'interpretations' ? 'active' : ''}" id="worship-interpretations">`;
     const interpretations = data.worship?.interpretations || [];
     if (!interpretations.length) html += `<p>Толкования не добавлены.</p>`;
     else interpretations.forEach(i => html += `<div class="interpretation-item"><strong>${escapeHtml(i.title)}</strong><p>${escapeHtml(i.text)}</p></div>`);
     html += `</div>`;
-
     html += `<div class="worship-block ${activeTab === 'sacraments' ? 'active' : ''}" id="worship-sacraments">`;
     const sacraments = data.worship?.sacraments || [];
     if (!sacraments.length) html += `<p>Подготовка к таинствам не добавлена.</p>`;
     else sacraments.forEach(s => html += `<div class="sacrament-item"><strong>${escapeHtml(s.title)}</strong><p>${escapeHtml(s.text)}</p></div>`);
-    html += `</div>`;
-
-    html += `</div></div>`;
+    html += `</div></div></div>`;
     container.innerHTML = html;
 
     initScheduleSelect(container);
@@ -1235,17 +1076,10 @@ function renderWorshipPage(container) {
         const widgetDiv = document.createElement('div');
         widgetDiv.className = 'azbyka-saints';
         containerEl.appendChild(widgetDiv);
-
         const oldScript = document.querySelector('script[src="https://azbyka.ru/days/js/api.min.js"]');
         if (oldScript) oldScript.remove();
-
-        window.___azcfg = {
-            api: 'https://azbyka.ru/days/widgets',
-            css: 'https://azbyka.ru/days/css/api.min.css',
-            image: '1',
-            prevNextLinks: '1'
-        };
-        var el = document.createElement('script');
+        window.___azcfg = { api: 'https://azbyka.ru/days/widgets', css: 'https://azbyka.ru/days/css/api.min.css', image: '1', prevNextLinks: '1' };
+        const el = document.createElement('script');
         el.type = 'text/javascript';
         el.async = true;
         el.src = 'https://azbyka.ru/days/js/api.min.js';
@@ -1257,7 +1091,6 @@ function renderWorshipPage(container) {
             const tabId = this.dataset.tab;
             setStoredTab(storageKey, tabId);
             activeTab = tabId;
-
             container.querySelectorAll('.worship-tab-btn').forEach(b => {
                 b.classList.remove('active');
                 b.style.background = 'transparent';
@@ -1266,27 +1099,17 @@ function renderWorshipPage(container) {
             this.classList.add('active');
             this.style.background = 'var(--gold)';
             this.style.color = 'white';
-
             container.querySelectorAll('.worship-block').forEach(block => block.classList.remove('active'));
             const target = document.getElementById('worship-'+tabId);
             if (target) target.classList.add('active');
-
-            if (tabId === 'saints') {
-                setTimeout(loadSaintsWidget, 100);
-            }
+            if (tabId === 'saints') setTimeout(loadSaintsWidget, 100);
         });
     });
 
-    if (activeTab === 'saints') {
-        setTimeout(loadSaintsWidget, 200);
-    }
-
+    if (activeTab === 'saints') setTimeout(loadSaintsWidget, 200);
     const activeBtn = container.querySelector(`.worship-tab-btn[data-tab="${activeTab}"]`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-        activeBtn.style.background = 'var(--gold)';
-        activeBtn.style.color = 'white';
-    } else if (container.querySelector('.worship-tab-btn')) {
+    if (activeBtn) { activeBtn.classList.add('active'); activeBtn.style.background = 'var(--gold)'; activeBtn.style.color = 'white'; }
+    else if (container.querySelector('.worship-tab-btn')) {
         const firstBtn = container.querySelector('.worship-tab-btn');
         firstBtn.classList.add('active');
         firstBtn.style.background = 'var(--gold)';
@@ -1377,7 +1200,7 @@ function renderFaqPage(container) {
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ---------- ИИ (ЗАГЛУШКА) ----------
+// ---------- ИИ ----------
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -1388,11 +1211,8 @@ async function askAI() {
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = '⏳ ИИ думает...';
-    setTimeout(() => {
-        contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
-    }, 1000);
+    setTimeout(() => { contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.'; }, 1000);
 }
-
 async function adminAskAI() {
     const questionInput = document.getElementById('adminAIQuestion');
     if (!questionInput) return;
@@ -1403,11 +1223,8 @@ async function adminAskAI() {
     if (!answerDiv || !contentDiv) return;
     answerDiv.style.display = 'block';
     contentDiv.textContent = '⏳ ИИ думает...';
-    setTimeout(() => {
-        contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.';
-    }, 1000);
+    setTimeout(() => { contentDiv.textContent = '🤖 ИИ временно недоступен. Пожалуйста, попробуйте позже.'; }, 1000);
 }
-
 function renderAdminAI(container) {
     container.innerHTML = `
         <h3>🤖 ИИ-помощник (заглушка)</h3>
@@ -1448,17 +1265,14 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ========== АДМИН-ПАНЕЛЬ (ПОЛНАЯ) ==========
+// ========== АДМИН-ПАНЕЛЬ ==========
 let adminModal = null, adminModalContent = null;
 function ensureAdminModal() {
     if (!document.getElementById('adminModal')) {
         const modalDiv = document.createElement('div');
         modalDiv.id = 'adminModal';
         modalDiv.className = 'admin-modal';
-        modalDiv.innerHTML = `<div class="admin-panel">
-            <div class="admin-header"><h3 data-i18n="admin-title">🛠 Администрирование</h3><button id="closeAdminBtn" class="btn btn-sm" data-i18n="admin-close">Закрыть</button></div>
-            <div id="adminContent"></div>
-        </div>`;
+        modalDiv.innerHTML = `<div class="admin-panel"><div class="admin-header"><h3 data-i18n="admin-title">🛠 Администрирование</h3><button id="closeAdminBtn" class="btn btn-sm" data-i18n="admin-close">Закрыть</button></div><div id="adminContent"></div></div>`;
         document.body.appendChild(modalDiv);
         document.getElementById('closeAdminBtn').addEventListener('click', closeAdminModal);
         modalDiv.addEventListener('click', function(e) { if (e.target === this) closeAdminModal(); });
@@ -1469,7 +1283,7 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
-// ========== АДМИН-ЛОГИН С ХЕШИРОВАНИЕМ ==========
+// ---------- АДМИН-ЛОГИН ----------
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
@@ -1484,26 +1298,20 @@ function renderAdminLogin() {
         let storedPassword = user.password || '';
         if (isHash(storedPassword)) {
             const inputHash = await hashPassword(pass);
-            if (inputHash === storedPassword) {
-                currentUser = user;
-                renderAdminDashboard();
-            } else {
-                alert(t('wrong-password'));
-            }
+            if (inputHash === storedPassword) { currentUser = user; renderAdminDashboard(); }
+            else alert(t('wrong-password'));
         } else {
             if (storedPassword === pass) {
                 user.password = await hashPassword(pass);
                 saveData();
                 currentUser = user;
                 renderAdminDashboard();
-            } else {
-                alert(t('wrong-password'));
-            }
+            } else alert(t('wrong-password'));
         }
     });
 }
 
-// ========== АДМИН-ПАНЕЛЬ (ДАШБОРД) ==========
+// ---------- АДМИН-ДАШБОРД ----------
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
@@ -1542,6 +1350,7 @@ function renderAdminDashboard() {
     document.querySelectorAll('.admin-menu-btn').forEach(btn => btn.addEventListener('click', function() { renderAdminSection(this.dataset.section); }));
 }
 
+// ---------- РЕНДЕРИНГ РАЗДЕЛОВ АДМИНКИ ----------
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
@@ -1553,9 +1362,7 @@ function renderAdminSection(section) {
         'worship':'manage_worship','ai':'manage_ai','users':'manage_users',
         'opechenie':'manage_opechenie','logs':'view_logs'
     };
-    if (permMap[section] && !hasPermission(currentUser, permMap[section])) {
-        content.innerHTML = '<p>Доступ запрещён.</p>'; return;
-    }
+    if (permMap[section] && !hasPermission(currentUser, permMap[section])) { content.innerHTML = '<p>Доступ запрещён.</p>'; return; }
     switch (section) {
         case 'schedule': renderAdminSchedule(content); break;
         case 'temples': renderAdminTemples(content); break;
@@ -1573,9 +1380,7 @@ function renderAdminSection(section) {
     }
 }
 
-// ========== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ==========
-
-// РАСПИСАНИЕ
+// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1634,7 +1439,7 @@ function renderScheduleTable() {
     return table;
 }
 
-// ХРАМЫ
+// ---------- ХРАМЫ ----------
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -1725,7 +1530,7 @@ function renderTemplesTable() {
     return table;
 }
 
-// ДУХОВЕНСТВО
+// ---------- ДУХОВЕНСТВО (админка) ----------
 function renderAdminClergy(container) {
     let html = `<h3>Управление духовенством</h3>
         <button id="adminClergyAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
@@ -1807,7 +1612,7 @@ function renderClergyTable() {
     return table;
 }
 
-// НОВОСТИ
+// ---------- НОВОСТИ (админка) ----------
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1888,7 +1693,7 @@ function renderNewsTable() {
     return table;
 }
 
-// ОБЪЯВЛЕНИЯ
+// ---------- ОБЪЯВЛЕНИЯ (админка) ----------
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1961,7 +1766,7 @@ function renderAnnounceTable() {
     return table;
 }
 
-// ВОСКРЕСНЫЕ ШКОЛЫ
+// ---------- ВОСКРЕСНЫЕ ШКОЛЫ (админка) ----------
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -2120,7 +1925,7 @@ function renderTeacherTable() {
     return table;
 }
 
-// О БЛАГОЧИНИИ
+// ---------- О БЛАГОЧИНИИ (админка) ----------
 function renderAdminAbout(container) {
     let html = `<h3>Редактирование страницы "О благочинии"</h3>
         <div class="form-group"><label>Текст (поддерживается перенос строк)</label>
@@ -2136,7 +1941,7 @@ function renderAdminAbout(container) {
     });
 }
 
-// БОГОСЛУЖЕНИЯ
+// ---------- БОГОСЛУЖЕНИЯ (админка) ----------
 function renderAdminWorship(container) {
     let html = `<h3>Управление богослужениями</h3>
         <div class="card"><h4>Молитвослов</h4>
@@ -2264,7 +2069,7 @@ function renderSacramentsTable() {
     return table;
 }
 
-// ОКОРМЛЕНИЕ
+// ---------- ОКОРМЛЕНИЕ (админка) ----------
 function renderAdminOpechenie(container) {
     let html = `<h3>Управление окормлением</h3>
         <button id="adminOpechenieAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объект</button>
@@ -2343,7 +2148,7 @@ function renderOpechenieTable() {
     return table;
 }
 
-// ========== УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (с доп. вопросом и хешированием) ==========
+// ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
 function renderAdminUsers(container) {
     let html = `<h3>${t('admin-users')}</h3>
         <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
@@ -2468,7 +2273,7 @@ function renderUserTable() {
     return table;
 }
 
-// ЛОГИ
+// ---------- ЛОГИ ----------
 function renderAdminLogs(container) {
     let logs = data.logs || [];
     logs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -2491,27 +2296,21 @@ function renderAdminLogs(container) {
     container.innerHTML = html;
 }
 
-// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
-function applyTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(el => {
-        const key = el.dataset.i18n;
-        el.textContent = t(key);
-    });
-}
-
-// ========== ВЕРСИЯ ДЛЯ СЛАБОВИДЯЩИХ ==========
+// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ, РЕЖИМ СЛАБОВИДЯЩИХ ==========
+function applyTranslations() { document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.dataset.i18n; el.textContent = t(key); }); }
 function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
 function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
 function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
-// ========== ТРИГГЕРЫ И СТАРТ ==========
+// ========== ТРИГГЕРЫ ==========
 let clickCount = 0, clickTimer = null;
 function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if (clickCount >= 5) { clickCount = 0; clearTimeout(clickTimer); openAdminModal(); } }); }
 function initVisionToggle() { document.getElementById('visionToggle')?.addEventListener('click', toggleVisionMode); }
 function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
+// ========== ЗАПУСК ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия с исправленным меню и скроллом');
+    console.log('DOMContentLoaded – финальная версия');
     loadData();
     initAdminTrigger();
     initVisionToggle();
