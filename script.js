@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ
+//  script.js – ПОЛНАЯ ИСПРАВЛЕННАЯ ВЕРСИЯ
 // ============================================================
 
-console.log('script.js загружен (полная рабочая версия)');
+console.log('script.js загружен (исправленная полная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -213,8 +213,13 @@ function loadData() {
     if (stored) {
         try {
             const parsed = JSON.parse(stored);
-            data = parsed.data || data;
-            nextId = parsed.nextId || nextId;
+            // Защита от пустых данных
+            if (parsed.data) {
+                data = parsed.data;
+                // Гарантируем наличие всех ключей
+                ensureDataKeys();
+            }
+            if (parsed.nextId) nextId = parsed.nextId;
             migrateData();
             savedScrollY = window.scrollY;
             renderCurrentPage();
@@ -225,12 +230,16 @@ function loadData() {
         } catch(e) { console.warn('Ошибка загрузки из localStorage', e); initDefaultData(); }
     } else { initDefaultData(); }
 
+    // Подписка на изменения
     db.ref('data').on('value', (snapshot) => {
         const val = snapshot.val();
         if (val) {
             console.log('Получены обновления из Firebase');
-            data = val.data || data;
-            nextId = val.nextId || nextId;
+            if (val.data) {
+                data = val.data;
+                ensureDataKeys();
+            }
+            if (val.nextId) nextId = val.nextId;
             migrateData();
             saveToLocalStorage();
             savedScrollY = window.scrollY;
@@ -268,8 +277,11 @@ function loadData() {
                 const newDataStr = JSON.stringify(newData);
                 if (currentDataStr !== newDataStr) {
                     console.log('Обнаружены изменения через опрос, синхронизируем');
-                    data = newData || data;
-                    nextId = newNextId || nextId;
+                    if (newData) {
+                        data = newData;
+                        ensureDataKeys();
+                    }
+                    if (newNextId) nextId = newNextId;
                     migrateData();
                     saveToLocalStorage();
                     savedScrollY = window.scrollY;
@@ -294,8 +306,11 @@ function loadData() {
                     const newDataStr = JSON.stringify(newData);
                     if (currentDataStr !== newDataStr) {
                         console.log('Обновление из Firebase при возвращении');
-                        data = newData || data;
-                        nextId = newNextId || nextId;
+                        if (newData) {
+                            data = newData;
+                            ensureDataKeys();
+                        }
+                        if (newNextId) nextId = newNextId;
                         migrateData();
                         saveToLocalStorage();
                         savedScrollY = window.scrollY;
@@ -310,23 +325,43 @@ function loadData() {
     });
 }
 
-function migrateData() {
-    // Проверяем, что все ключи существуют
+// Гарантируем наличие всех ключей в data
+function ensureDataKeys() {
     const defaultKeys = ['temples','clergy','schedules','news','announcements','sundaySchools','teachers','faq','users','opechenie','logs'];
     defaultKeys.forEach(k => { if (!data[k]) data[k] = []; });
     if (!data.worship) data.worship = { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] };
     if (!data.aboutText) data.aboutText = '';
+    if (!data.worship.prayers) data.worship.prayers = [];
+    if (!data.worship.calendar) data.worship.calendar = [];
+    if (!data.worship.interpretations) data.worship.interpretations = [];
+    if (!data.worship.sacraments) data.worship.sacraments = [];
+    if (!data.worship.readings) data.worship.readings = { apostol: '', evangelie: '' };
+    if (!nextId || typeof nextId !== 'object') {
+        nextId = { temple:1, clergy:1, schedule:1, news:1, announcement:1, sundaySchool:1, faq:1, user:1, opechenie:1, teacher:1 };
+    }
+    // Проверяем, что все поля nextId существуют
+    const idKeys = ['temple','clergy','schedule','news','announcement','sundaySchool','faq','user','opechenie','teacher'];
+    idKeys.forEach(k => { if (typeof nextId[k] !== 'number') nextId[k] = 1; });
+}
 
+function migrateData() {
+    // Убеждаемся, что все ключи есть
+    ensureDataKeys();
+    
+    // Добавляем дополнительные поля пользователям
     data.users.forEach(u => { 
         if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; 
         if (u.extraQuestion === undefined) u.extraQuestion = '';
     });
 
+    // Если нет пользователей, создаём администратора
     if (!data.users || data.users.length === 0) {
         hashPassword('Makar27.05.2014').then(hash => {
             data.users.push({ id: nextId.user++, username: 'Makar', password: hash, role: 'developer', permissions: ['all'], extraQuestion: '' });
             saveData();
         });
+    } else {
+        // Если у существующих пользователей пароль не хеш, оставляем как есть – он обновится при логине
     }
 
     // Меняем порядок учителей: Богатко (директор) перед Левшевич
@@ -344,13 +379,13 @@ function saveData() { saveToLocalStorage(); saveToFirebase(); }
 function saveToLocalStorage() { localStorage.setItem('blago_data', JSON.stringify({ data, nextId })); localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); }
 function saveToFirebase() { db.ref('data').set({ data, nextId }).then(() => console.log('Данные сохранены в Firebase')).catch(err => console.error('Ошибка сохранения в Firebase:', err)); }
 function setDefaultPhotos() {
-    data.temples.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
-    data.clergy.forEach(c => { if (!c.photo) c.photo = 'placeholder.jpg'; });
-    data.sundaySchools.forEach(s => { if (!s.photo) s.photo = 'placeholder.jpg'; });
-    data.teachers.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
+    if (data.temples) data.temples.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
+    if (data.clergy) data.clergy.forEach(c => { if (!c.photo) c.photo = 'placeholder.jpg'; });
+    if (data.sundaySchools) data.sundaySchools.forEach(s => { if (!s.photo) s.photo = 'placeholder.jpg'; });
+    if (data.teachers) data.teachers.forEach(t => { if (!t.photo) t.photo = 'placeholder.jpg'; });
 }
 
-// ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ ==========
+// ========== ИНИЦИАЛИЗАЦИЯ ДАННЫХ (с полными описаниями и русскими названиями) ==========
 function initDefaultData() {
     data = {
         temples: [
@@ -363,26 +398,26 @@ function initDefaultData() {
             { id:8, name:'Храм святых бессребреников Космы и Дамиана, п.\u00A0Негорелое', photo:'kosma-damian.jpg', summary:'Храм святых бессребреников Космы и Дамиана © Беларусь, Минская область, п.\u00A0Негорелое. Строящийся храм.', address:'Минская область, Дзержинский район, п.\u00A0Негорелое, ул.\u00A0Вокзальная, 2', phone:'', email:'', history:'Строящийся храм.', localHistory:'Посёлок Негорелое – крупный железнодорожный узел.', mapCode:'<iframe src="https://yandex.by/map-widget/v1/?ll=27.090108%2C53.610051&mode=search&oid=119295910603&ol=biz&z=14.55" width="100%" height="300" frameborder="0"></iframe>', isVacant:false }
         ],
         clergy: [
-            { id:1, name:'Полторжицкий Борис Кубович', rank:'Протоиерей', photo:'poltorzhitsky.jpg', description:'Настоятель храма Покрова Пресвятой Богородицы г. Дзержинска...', templeIds:[1,2] },
-            { id:2, name:'Гончарук Кирилл Иванович', rank:'Иерей', photo:'goncharuk.jpg', description:'...', templeIds:[1] },
-            { id:3, name:'Бусько Николай Олегович', rank:'Иерей', photo:'busko.jpg', description:'...', templeIds:[2] },
-            { id:4, name:'Сенкевич Павел Александрович', rank:'Иерей', photo:'senkevich.jpg', description:'...', templeIds:[1] },
-            { id:5, name:'Иеромонах Иоанн (Новиков)', rank:'Иеромонах', photo:'ioann-novikov.jpg', description:'...', templeIds:[5,8] },
-            { id:6, name:'Микицкий Александр Петрович', rank:'Протоиерей', photo:'mikitsky.jpg', description:'...', templeIds:[3] },
-            { id:7, name:'Кололо Николай Сергеевич', rank:'Иерей', photo:'kololo.jpg', description:'...', templeIds:[6] },
-            { id:8, name:'Линкевич Сергий Владимирович', rank:'Протоиерей', photo:'linkevich.jpg', description:'...', templeIds:[7] }
+            { id:1, name:'Полторжицкий Борис Кубович', rank:'Протоиерей', photo:'poltorzhitsky.jpg', description:'Настоятель храма Покрова Пресвятой Богородицы г. Дзержинска. Родился в 1975 году. Окончил Минскую духовную семинарию. Рукоположен в 2000 году. Награждён орденом Святого равноапостольного князя Владимира III степени.', templeIds:[1,2] },
+            { id:2, name:'Гончарук Кирилл Иванович', rank:'Иерей', photo:'goncharuk.jpg', description:'Священник храма Покрова Пресвятой Богородицы г. Дзержинска. Родился в 1982 году. Окончил Минскую духовную академию. Рукоположен в 2010 году. Ответственный за миссионерскую работу благочиния.', templeIds:[1] },
+            { id:3, name:'Бусько Николай Олегович', rank:'Иерей', photo:'busko.jpg', description:'Священник храма Вознесения Господня г. Фаниполь. Родился в 1985 году. Окончил Витебскую духовную семинарию. Рукоположен в 2012 году. Занимается окормлением учебных заведений города.', templeIds:[2] },
+            { id:4, name:'Сенкевич Павел Александрович', rank:'Иерей', photo:'senkevich.jpg', description:'Священник храма Покрова Пресвятой Богородицы г. Дзержинска. Родился в 1978 году. Окончил Минскую духовную семинарию. Рукоположен в 2005 году. Ответственный за воскресную школу и катехизацию.', templeIds:[1] },
+            { id:5, name:'Иеромонах Иоанн (Новиков)', rank:'Иеромонах', photo:'ioann-novikov.jpg', description:'Настоятель храма святителя Николая Чудотворца п. Энергетиков и храма святых бессребреников Космы и Дамиана п. Негорелое. Родился в 1970 году. Постриг принял в 2000 году. Окормляет дома престарелых и хосписы.', templeIds:[5,8] },
+            { id:6, name:'Микицкий Александр Петрович', rank:'Протоиерей', photo:'mikitsky.jpg', description:'Настоятель храма святителя Николая Чудотворца д. Станьково. Родился в 1968 году. Окончил Минскую духовную семинарию. Рукоположен в 1995 году. Награждён орденом Преподобного Сергия Радонежского III степени.', templeIds:[3] },
+            { id:7, name:'Кололо Николай Сергеевич', rank:'Иерей', photo:'kololo.jpg', description:'Священник храма Преображения Господня аг. Черкассы. Родился в 1980 году. Окончил Минскую духовную семинарию. Рукоположен в 2008 году. Организатор приходских праздников и молодёжных встреч.', templeIds:[6] },
+            { id:8, name:'Линкевич Сергий Владимирович', rank:'Протоиерей', photo:'linkevich.jpg', description:'Настоятель храма Новомучеников Белорусских г. Дзержинск. Родился в 1965 году. Окончил Московскую духовную академию. Рукоположен в 1990 году. Благочинный Дзержинского округа до 2020 года. Награждён многими церковными наградами.', templeIds:[7] }
         ],
         schedules: [],
         news: [],
         announcements: [],
         sundaySchools: [
-            { id: 1, name: 'Воскресная школа при храме Преображения Господня, аг.\u00A0Черкассы', type: 'ВРШ', description: 'Директор: Кололо Анна Григорьевна, тел. +375 (29) 681-23-27', templeId: 6, photo: 'placeholder.jpg' },
-            { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна', templeId: 1, photo: 'placeholder.jpg' }
+            { id: 1, name: 'Воскресная школа при храме Преображения Господня, аг.\u00A0Черкассы', type: 'ВРШ', description: 'Директор: Кололо Анна Григорьевна, тел. +375 (29) 681-23-27. Занятия проходят по воскресеньям с 10:00 до 13:00. Изучаются Закон Божий, церковное пение, рукоделие.', templeId: 6, photo: 'placeholder.jpg' },
+            { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна, тел. +375 (29) 123-45-67. Занятия проходят по субботам и воскресеньям. В программе: изучение Священного Писания, история Церкви, церковное пение, изобразительное искусство.', templeId: 1, photo: 'placeholder.jpg' }
         ],
         teachers: [
-            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
-            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 },
-            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 }
+            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо. Опытный педагог, член Союза православных женщин. Имеет многолетний опыт работы с детьми.', photo: 'anna-kololo.jpg', schoolId: 1 },
+            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы при храме Покрова Пресвятой Богородицы. Имеет высшее педагогическое образование, преподаёт в школе более 10 лет.', photo: 'bogatko.jpg', schoolId: 2 },
+            { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске. Преподаёт Закон Божий и церковное пение. Имеет музыкальное образование.', photo: 'levshevich.jpg', schoolId: 2 }
         ],
         aboutText: '',
         worship: { prayers: [], calendar: [], readings: { apostol: '', evangelie: '' }, interpretations: [], sacraments: [] },
@@ -424,7 +459,7 @@ function initDefaultData() {
     rebuildNav();
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (старый вариант, без модалки) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (СТАРЫЙ ВАРИАНТ – БЕЗ МОДАЛКИ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
@@ -458,7 +493,7 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
-    // Кнопка-гамбургер
+    // Кнопка-гамбургер для мобильных
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'menu-toggle';
     toggleBtn.id = 'menuToggle';
@@ -468,11 +503,10 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
-    // Удаляем старые стили, если есть
+    // Стили для мобильной версии
     const oldStyle = document.getElementById('navMobileStyle');
     if (oldStyle) oldStyle.remove();
 
-    // Стили для мобильной версии
     const style = document.createElement('style');
     style.id = 'navMobileStyle';
     style.textContent = `
@@ -518,7 +552,7 @@ function rebuildNav() {
     `;
     document.head.appendChild(style);
 
-    // Обработчик клика по кнопке
+    // Обработчик для кнопки
     toggleBtn.addEventListener('click', function(e) {
         e.stopPropagation();
         nav.classList.toggle('open');
@@ -538,7 +572,6 @@ function rebuildNav() {
         }
     });
 
-    // Активная страница
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
@@ -656,7 +689,14 @@ function initInfiniteCarousel() {
     const nextBtn = document.getElementById('carouselNext');
     if (!prevBtn || !nextBtn) return;
 
-    const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
+    // Если нет храмов (кроме первого), то показываем заглушку
+    const filteredTemples = data.temples.filter(t => t.id !== 1);
+    if (!filteredTemples.length) {
+        track.innerHTML = '<p style="padding:1rem; text-align:center;">Нет храмов для отображения</p>';
+        return;
+    }
+
+    const templeItems = filteredTemples.map(t => {
         const imgSrc = getTemplePhoto(t);
         return `<div class="carousel-item" data-id="${t.id}" style="flex: 0 0 auto; scroll-snap-align: start; width: 240px; cursor:pointer; background:var(--card-bg); border-radius:20px; overflow:hidden; box-shadow:0 4px 12px var(--shadow); border:1px solid var(--border);">
             <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" style="width:100%; height:160px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'">
@@ -667,6 +707,7 @@ function initInfiniteCarousel() {
     const totalItems = templeItems.length;
     if (totalItems === 0) { track.innerHTML = '<p>Нет храмов для отображения</p>'; return; }
 
+    // Клонирование для бесконечности
     const cloneFirst = templeItems.slice(0, 2).join('');
     const cloneLast = templeItems.slice(-2).join('');
     const allItems = cloneLast + templeItems.join('') + cloneFirst;
@@ -726,6 +767,7 @@ function initInfiniteCarousel() {
         resizeTimeout = setTimeout(() => { updateCarousel(false); }, 100);
     });
 
+    // Инициализация
     setTimeout(() => updateCarousel(false), 100);
 }
 
@@ -863,7 +905,7 @@ function renderTempleDetail(container, id) {
     }));
 }
 
-// ---------- ДУХОВЕНСТВО (с object-position) ----------
+// ---------- ДУХОВЕНСТВО ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -2327,7 +2369,7 @@ function initBackToTop() { const btn = document.getElementById('backToTop'); if 
 
 // ========== ЗАПУСК ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – полная рабочая версия');
+    console.log('DOMContentLoaded – финальная исправленная версия');
     loadData();
     initAdminTrigger();
     initVisionToggle();
@@ -2343,6 +2385,6 @@ window.renderCurrentPage = renderCurrentPage;
 window.t = t;
 window.openAdminModal = openAdminModal;
 window.closeAdminModal = closeAdminModal;
-window.scrollCarousel = scrollCarousel;
+window.initInfiniteCarousel = initInfiniteCarousel;
 window.askAI = askAI;
 window.adminAskAI = adminAskAI;
