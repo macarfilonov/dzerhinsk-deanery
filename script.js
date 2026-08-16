@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ (ВСЁ РАБОТАЕТ, БЕЗ СОКРАЩЕНИЙ)
+//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (КАРУСЕЛЬ, НАВИГАЦИЯ, ВСЁ)
 // ============================================================
 
-console.log('script.js загружен (полная версия)');
+console.log('script.js загружен (рабочая версия с каруселью)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -732,7 +732,7 @@ function updateNavActive(page) {
     if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (с каруселью и автопрокруткой) ----------
+// ---------- ГЛАВНАЯ (С КАРУСЕЛЬЮ) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -745,9 +745,9 @@ function renderMainPage() {
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
         <div class="carousel" id="mainCarousel">
-            <button class="carousel-btn left" id="carouselPrev">‹</button>
+            <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
             <div class="carousel-track" id="carouselTrack"></div>
-            <button class="carousel-btn right" id="carouselNext">›</button>
+            <button class="carousel-btn right" onclick="scrollCarousel(1)">›</button>
         </div>
         <div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
@@ -775,15 +775,25 @@ function renderMainPage() {
     initInfiniteCarousel();
 }
 
-// ---------- БЕСКОНЕЧНАЯ КАРУСЕЛЬ С АВТОПРОКРУТКОЙ ----------
+// ---------- ФУНКЦИЯ SCROLLCAROUSEL ДЛЯ КНОПОК ----------
+function scrollCarousel(direction) {
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    const itemWidth = track.querySelector('.carousel-item')?.offsetWidth + 16 || 240;
+    const scrollAmount = direction * itemWidth;
+    const currentScroll = track.scrollLeft;
+    const maxScroll = track.scrollWidth - track.clientWidth;
+    let newScroll = currentScroll + scrollAmount;
+    if (newScroll < 0) newScroll = 0;
+    if (newScroll > maxScroll) newScroll = maxScroll;
+    track.scrollTo({ left: newScroll, behavior: 'smooth' });
+}
+
+// ---------- БЕСКОНЕЧНАЯ КАРУСЕЛЬ ----------
 function initInfiniteCarousel() {
     const track = document.getElementById('carouselTrack');
     if (!track) return;
-    const prevBtn = document.getElementById('carouselPrev');
-    const nextBtn = document.getElementById('carouselNext');
-    if (!prevBtn || !nextBtn) return;
 
-    // Очищаем трек и заполняем элементами
     const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
         const imgSrc = getTemplePhoto(t);
         return `<div class="carousel-item" data-id="${t.id}">
@@ -839,9 +849,11 @@ function initInfiniteCarousel() {
     function next() { goTo(currentIndex + 1); }
     function prev() { goTo(currentIndex - 1); }
 
-    // Обработчики кнопок
-    nextBtn.addEventListener('click', next);
-    prevBtn.addEventListener('click', prev);
+    // Обработчики кнопок (переопределяем onclick)
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    if (prevBtn) prevBtn.onclick = function(e) { e.preventDefault(); prev(); };
+    if (nextBtn) nextBtn.onclick = function(e) { e.preventDefault(); next(); };
 
     // Клик по элементу
     track.querySelectorAll('.carousel-item').forEach(el => {
@@ -1452,7 +1464,7 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
-// ---------- АДМИН-ЛОГИН ----------
+// ---------- АДМИН-ЛОГИН (с хешированием) ----------
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
