@@ -933,7 +933,6 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ----------
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -975,7 +974,7 @@ function openTempleModal(tab, templeId) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
                     content += `<div class="clergy-card" data-id="${c.id}">
-                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo" style="object-position: top -50px; width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo-modal">
                         <div class="clergy-name">${escapeHtml(c.name)}</div>
                         <div class="clergy-rank">${escapeHtml(c.rank)}</div>
                     </div>`;
