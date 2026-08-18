@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ БЕЗ КАРУСЕЛИ (всё работает)
+//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (карусель и всё работает)
 // ============================================================
 
-console.log('script.js загружен (полная версия без карусели)');
+console.log('script.js загружен (финальная рабочая версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -732,7 +732,7 @@ function updateNavActive(page) {
     if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (БЕЗ КАРУСЕЛИ) ----------
+// ---------- ГЛАВНАЯ (С ПРОСТОЙ КАРУСЕЛЬЮ) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -744,14 +744,11 @@ function renderMainPage() {
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
-        <div class="grid">`;
-    data.temples.forEach(t => {
-        html += `<div class="grid-item" data-id="${t.id}" data-type="temple">
-            <img src="${escapeHtml(getTemplePhoto(t))}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
-            <div class="info"><h3 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</h3>${t.isVacant ? `<div class="status vacant">${t('vacant')}</div>` : ''}</div>
-        </div>`;
-    });
-    html += `</div>
+        <div class="carousel" id="mainCarousel">
+            <button class="carousel-btn left" id="carouselPrev">‹</button>
+            <div class="carousel-track" id="carouselTrack"></div>
+            <button class="carousel-btn right" id="carouselNext">›</button>
+        </div>
         <div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
     if (!news.length) html += `<p>${t('no-news')}</p>`;
@@ -775,13 +772,139 @@ function renderMainPage() {
     }
     html += `</div>`;
     container.innerHTML = html;
+    initSimpleCarousel();
+}
 
-    container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => {
-        el.addEventListener('click', function() {
+// ========== ПРОСТАЯ КАРУСЕЛЬ (БЕЗ АНИМАЦИИ, БЕЗ БЕСКОНЕЧНОСТИ) ==========
+function initSimpleCarousel() {
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    const prevBtn = document.getElementById('carouselPrev');
+    const nextBtn = document.getElementById('carouselNext');
+    if (!prevBtn || !nextBtn) return;
+
+    // Заполняем трек карточками храмов (кроме первого)
+    const items = data.temples.filter(t => t.id !== 1).map(t => {
+        const imgSrc = getTemplePhoto(t);
+        return `<div class="carousel-item" data-id="${t.id}">
+            <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
+            <div class="info">${escapeHtml(t.name)}</div>
+        </div>`;
+    }).join('');
+    track.innerHTML = items;
+
+    // Получаем все карточки
+    const cards = track.querySelectorAll('.carousel-item');
+    const total = cards.length;
+    if (total === 0) return;
+
+    // Определяем ширину одной карточки + отступ
+    function getCardWidth() {
+        if (cards.length === 0) return 240;
+        const first = cards[0];
+        const style = window.getComputedStyle(first);
+        const width = parseFloat(style.width) || 240;
+        const margin = parseFloat(style.marginRight) || 0;
+        return width + margin;
+    }
+
+    let currentIndex = 0;
+    let autoplayInterval = null;
+
+    function scrollToIndex(index) {
+        if (index < 0) index = 0;
+        if (index >= total) index = total - 1;
+        currentIndex = index;
+        const cardWidth = getCardWidth();
+        track.style.transition = 'none';
+        track.style.transform = `translateX(-${currentIndex * cardWidth}px)`;
+    }
+
+    function next() {
+        if (currentIndex < total - 1) {
+            scrollToIndex(currentIndex + 1);
+        } else {
+            // Если дошли до конца – останавливаемся
+            clearInterval(autoplayInterval);
+            autoplayInterval = null;
+        }
+    }
+
+    function prev() {
+        if (currentIndex > 0) {
+            scrollToIndex(currentIndex - 1);
+        }
+    }
+
+    // Обработчики кнопок
+    nextBtn.addEventListener('click', next);
+    prevBtn.addEventListener('click', prev);
+
+    // Клик по карточке – переход на страницу храма
+    cards.forEach(card => {
+        card.addEventListener('click', function() {
             const id = this.dataset.id;
             if (id) window.location.href = `temple-${id}.html`;
         });
     });
+
+    // Автопрокрутка
+    function startAutoplay() {
+        if (autoplayInterval) clearInterval(autoplayInterval);
+        autoplayInterval = setInterval(next, 4000);
+    }
+
+    function stopAutoplay() {
+        if (autoplayInterval) {
+            clearInterval(autoplayInterval);
+            autoplayInterval = null;
+        }
+    }
+
+    startAutoplay();
+
+    // Остановка при наведении
+    track.addEventListener('mouseenter', stopAutoplay);
+    track.addEventListener('mouseleave', startAutoplay);
+    // Для мобильных
+    track.addEventListener('touchstart', stopAutoplay);
+    track.addEventListener('touchend', startAutoplay);
+
+    // Пересчёт при изменении размера
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+            scrollToIndex(currentIndex);
+        }, 100);
+    });
+
+    // Инициализация позиции
+    scrollToIndex(0);
+}
+
+// ---------- ФУНКЦИЯ ДЛЯ СОВМЕСТИМОСТИ (scrollCarousel) ----------
+function scrollCarousel(direction) {
+    // Эта функция нужна для обратной совместимости с onclick в HTML
+    const track = document.getElementById('carouselTrack');
+    if (!track) return;
+    const total = track.querySelectorAll('.carousel-item').length;
+    if (total === 0) return;
+    const cardWidth = track.querySelector('.carousel-item')?.offsetWidth + 16 || 240;
+    let currentIndex = 0;
+    // Попробуем определить текущий индекс по transform
+    const transform = track.style.transform;
+    if (transform) {
+        const match = transform.match(/translateX\(-(\d+)px\)/);
+        if (match) {
+            currentIndex = Math.round(parseInt(match[1]) / cardWidth);
+        }
+    }
+    let newIndex = currentIndex + direction;
+    if (newIndex < 0) newIndex = 0;
+    if (newIndex >= total) newIndex = total - 1;
+    track.style.transition = 'none';
+    track.style.transform = `translateX(-${newIndex * cardWidth}px)`;
 }
 
 // ---------- СПИСОК ХРАМОВ ----------
@@ -1355,6 +1478,7 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
+// ---------- АДМИН-ЛОГИН ----------
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
@@ -1382,6 +1506,7 @@ function renderAdminLogin() {
     });
 }
 
+// ---------- АДМИН-ДАШБОРД ----------
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
@@ -2369,7 +2494,7 @@ function initBackToTop() { const btn = document.getElementById('backToTop'); if 
 
 // ========== ЗАПУСК ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия без карусели');
+    console.log('DOMContentLoaded – финальная рабочая версия');
     loadData();
     initAdminTrigger();
     initVisionToggle();
@@ -2385,6 +2510,7 @@ window.renderCurrentPage = renderCurrentPage;
 window.t = t;
 window.openAdminModal = openAdminModal;
 window.closeAdminModal = closeAdminModal;
+window.scrollCarousel = scrollCarousel;
 window.askAI = askAI;
 window.adminAskAI = adminAskAI;
 window.fillTempleDropdown = fillTempleDropdown;
