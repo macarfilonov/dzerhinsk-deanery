@@ -1090,14 +1090,13 @@ function renderClergyDetail(id) {
     const container = document.getElementById('mainContent');
     container.innerHTML = `<div class="detail-back" onclick="window.location.href='clergy.html'">${t('back')}</div>
     <div class="detail-content">
-        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="border-radius:20px; width:100%; max-width:400px; height:auto; object-fit:cover; object-position: top -50px; margin:0 auto 1rem; display:block;">
+        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo-detail">
         <h2>${escapeHtml(c.name)}</h2>
         <p><strong>${t('clergy-rank')}:</strong> ${escapeHtml(c.rank)}</p>
         <p><strong>${t('temple')}:</strong> ${getTempleNames(c.templeIds)}</p>
         <p><strong>${t('clergy-desc')}:</strong> ${escapeHtml(c.description) || 'Описание отсутствует.'}</p>
     </div>`;
 }
-
 // ---------- РАСПИСАНИЕ ----------
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2><div class="card"><h3>${t('select-temple')}</h3><select id="scheduleTempleSelect" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border);"><option value="">${t('choose-temple')}</option>`;
