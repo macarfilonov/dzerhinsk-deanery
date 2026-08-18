@@ -1071,12 +1071,11 @@ function renderTempleDetail(container, id) {
     });
 }
 
-// ---------- ДУХОВЕНСТВО (фото 300x300) ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
         html += `<div class="grid-item" data-id="${c.id}" data-type="clergy">
-            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" style="border-radius:20px; height:400px; object-fit:cover; object-position: top -50px;">
+            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" class="clergy-photo">
             <div class="info"><h3>${escapeHtml(c.name)}</h3><div class="status">${escapeHtml(c.rank)}</div><div style="font-size:0.8rem;color:#999;">${getTempleNames(c.templeIds)}</div></div>
         </div>`;
     });
@@ -1084,7 +1083,6 @@ function renderClergyList(container) {
     container.innerHTML = html;
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
-
 function renderClergyDetail(id) {
     if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
