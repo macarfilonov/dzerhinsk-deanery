@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (все кнопки работают)
+//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (все кнопки меню работают, карусель работает)
 // ============================================================
 
-console.log('script.js загружен (финальная рабочая версия)');
+console.log('script.js загружен (финальная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -447,11 +447,12 @@ function fillTempleDropdown() {
     });
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
+    // Удаляем старую навигацию и модальное окно, если есть
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
     const oldModal = document.getElementById('menuModal');
@@ -460,9 +461,7 @@ function rebuildNav() {
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
-    const nav = document.createElement('nav');
-    nav.id = 'mainNav';
-
+    // Список страниц и их названий
     const links = [
         { page: 'main', text: 'Главная' },
         { page: 'temples', text: 'Храмы' },
@@ -475,15 +474,33 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
+    // ---- СОЗДАЁМ ОСНОВНУЮ НАВИГАЦИЮ (top-bar) ----
+    const nav = document.createElement('nav');
+    nav.id = 'mainNav';
+
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
         a.dataset.page = l.page;
         a.textContent = l.text;
         a.className = 'nav-link';
+        // Добавляем обработчик для предотвращения перехода, если это текущая страница
+        a.addEventListener('click', function(e) {
+            // Если это текущая страница – ничего не делаем (или можно закрыть модалку, если она открыта)
+            const currentPage = document.body.dataset.page || 'main';
+            if (this.dataset.page === currentPage) {
+                e.preventDefault();
+                // Закрываем модалку, если она видна
+                const modal = document.getElementById('menuModal');
+                if (modal && modal.style.display === 'flex') {
+                    closeModal();
+                }
+            }
+        });
         nav.appendChild(a);
     });
 
+    // Кнопка-гамбургер
     const menuToggle = document.createElement('button');
     menuToggle.className = 'menu-toggle';
     menuToggle.id = 'menuToggle';
@@ -493,6 +510,7 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
+    // ---- СОЗДАЁМ МОДАЛЬНОЕ ОКНО ----
     const modal = document.createElement('div');
     modal.className = 'menu-modal';
     modal.id = 'menuModal';
@@ -595,7 +613,11 @@ function rebuildNav() {
             a.style.background = 'var(--bg, #f9f6ef)';
             a.style.color = 'var(--text, #2c2a24)';
         });
-        a.addEventListener('click', function(e) { closeModal(e); });
+        // При клике на ссылку закрываем модалку и переходим по ссылке
+        a.addEventListener('click', function(e) {
+            closeModal();
+            // Разрешаем стандартный переход
+        });
         linksList.appendChild(a);
     });
     modalContent.appendChild(linksList);
@@ -603,8 +625,9 @@ function rebuildNav() {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
+    // Функции открытия/закрытия модалки
     function openModal(e) {
-        e.preventDefault();
+        if (e) e.preventDefault();
         modal.style.display = 'flex';
         modal.style.pointerEvents = 'auto';
         requestAnimationFrame(() => {
@@ -615,8 +638,7 @@ function rebuildNav() {
         document.body.style.overflow = 'hidden';
     }
 
-    function closeModal(e) {
-        if (e) e.preventDefault();
+    function closeModal() {
         modal.style.opacity = '0';
         modal.style.visibility = 'hidden';
         modal.style.pointerEvents = 'none';
@@ -627,6 +649,7 @@ function rebuildNav() {
         document.body.style.overflow = '';
     }
 
+    // Обработчики
     const toggleBtn = document.getElementById('menuToggle');
     if (toggleBtn) {
         toggleBtn.addEventListener('click', openModal);
@@ -639,26 +662,25 @@ function rebuildNav() {
     closeBtn.addEventListener('click', closeModal);
     closeBtn.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        closeModal(e);
+        closeModal();
     }, { passive: false });
 
+    // Закрытие при клике вне модального содержимого
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
-            closeModal(e);
+            closeModal();
         }
     });
 
-    modal.querySelectorAll('a[data-page]').forEach(a => {
-        a.addEventListener('click', function(e) {
-            closeModal(e);
-        });
-    });
-
+    // Обновляем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
-        if (a.dataset.page === currentPage) a.classList.add('active');
+        if (a.dataset.page === currentPage) {
+            a.classList.add('active');
+        }
     });
 
+    // Адаптив: скрываем/показываем ссылки в зависимости от ширины
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
@@ -775,7 +797,7 @@ function renderMainPage() {
     initSimpleCarousel();
 }
 
-// ========== ПРОСТАЯ КАРУСЕЛЬ (БЕЗ АНИМАЦИИ, БЕЗ БЕСКОНЕЧНОСТИ) ==========
+// ========== ПРОСТАЯ КАРУСЕЛЬ ==========
 function initSimpleCarousel() {
     const track = document.getElementById('carouselTrack');
     if (!track) return;
@@ -783,7 +805,6 @@ function initSimpleCarousel() {
     const nextBtn = document.getElementById('carouselNext');
     if (!prevBtn || !nextBtn) return;
 
-    // Заполняем трек карточками храмов (кроме первого)
     const items = data.temples.filter(t => t.id !== 1).map(t => {
         const imgSrc = getTemplePhoto(t);
         return `<div class="carousel-item" data-id="${t.id}">
@@ -793,12 +814,13 @@ function initSimpleCarousel() {
     }).join('');
     track.innerHTML = items;
 
-    // Получаем все карточки
     const cards = track.querySelectorAll('.carousel-item');
     const total = cards.length;
     if (total === 0) return;
 
-    // Определяем ширину одной карточки + отступ
+    let currentIndex = 0;
+    let autoplayInterval = null;
+
     function getCardWidth() {
         if (cards.length === 0) return 240;
         const first = cards[0];
@@ -807,9 +829,6 @@ function initSimpleCarousel() {
         const margin = parseFloat(style.marginRight) || 0;
         return width + margin;
     }
-
-    let currentIndex = 0;
-    let autoplayInterval = null;
 
     function scrollToIndex(index) {
         if (index < 0) index = 0;
@@ -824,7 +843,6 @@ function initSimpleCarousel() {
         if (currentIndex < total - 1) {
             scrollToIndex(currentIndex + 1);
         }
-        // Если достигнут конец – ничего не делаем (или можно сбросить в начало? оставим как есть)
     }
 
     function prev() {
@@ -833,11 +851,9 @@ function initSimpleCarousel() {
         }
     }
 
-    // Обработчики кнопок
     nextBtn.addEventListener('click', next);
     prevBtn.addEventListener('click', prev);
 
-    // Клик по карточке – переход на страницу храма
     cards.forEach(card => {
         card.addEventListener('click', function() {
             const id = this.dataset.id;
@@ -845,14 +861,12 @@ function initSimpleCarousel() {
         });
     });
 
-    // Автопрокрутка
     function startAutoplay() {
         if (autoplayInterval) clearInterval(autoplayInterval);
         autoplayInterval = setInterval(() => {
             if (currentIndex < total - 1) {
                 next();
             } else {
-                // Если дошли до конца – останавливаем автопрокрутку
                 clearInterval(autoplayInterval);
                 autoplayInterval = null;
             }
@@ -867,15 +881,11 @@ function initSimpleCarousel() {
     }
 
     startAutoplay();
-
-    // Остановка при наведении
     track.addEventListener('mouseenter', stopAutoplay);
     track.addEventListener('mouseleave', startAutoplay);
-    // Для мобильных
     track.addEventListener('touchstart', stopAutoplay);
     track.addEventListener('touchend', startAutoplay);
 
-    // Пересчёт при изменении размера
     let resizeTimeout;
     window.addEventListener('resize', () => {
         clearTimeout(resizeTimeout);
@@ -884,20 +894,17 @@ function initSimpleCarousel() {
         }, 100);
     });
 
-    // Инициализация позиции
     scrollToIndex(0);
 }
 
-// ---------- ФУНКЦИЯ ДЛЯ СОВМЕСТИМОСТИ (scrollCarousel) ----------
+// ---------- ФУНКЦИЯ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ (scrollCarousel) ----------
 function scrollCarousel(direction) {
-    // Эта функция нужна для обратной совместимости с onclick в HTML
     const track = document.getElementById('carouselTrack');
     if (!track) return;
     const total = track.querySelectorAll('.carousel-item').length;
     if (total === 0) return;
     const cardWidth = track.querySelector('.carousel-item')?.offsetWidth + 16 || 240;
     let currentIndex = 0;
-    // Попробуем определить текущий индекс по transform
     const transform = track.style.transform;
     if (transform) {
         const match = transform.match(/translateX\(-(\d+)px\)/);
@@ -994,7 +1001,7 @@ function openTempleModal(tab, templeId) {
 }
 function closeTempleModal() { const modal = document.getElementById('templeModal'); if (modal) modal.classList.remove('visible'); }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (ИСПРАВЛЕНА) ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -1040,7 +1047,6 @@ function renderTempleDetail(container, id) {
     `;
     container.innerHTML = html;
 
-    // ИСПРАВЛЕНИЕ: вешаем обработчики на кнопки после рендера
     container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', function() {
             const tab = this.dataset.tab;
