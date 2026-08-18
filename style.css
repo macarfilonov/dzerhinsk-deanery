@@ -1,5 +1,5 @@
 /* ============================================================
-   style.css – ПОЛНЫЙ ФАЙЛ (исправлены кнопки и тексты)
+   style.css – ПОЛНАЯ ВЕРСИЯ (круглые фото, кнопки, тексты)
    ============================================================ */
 
 /* ========== ОБЩИЕ ПЕРЕМЕННЫЕ ========== */
@@ -550,57 +550,44 @@ img {
     color: #b45a3b;
 }
 
-/* ========== ДУХОВЕНСТВО – увеличенные фото и адаптив ========== */
-#clergyList .grid-item img {
-    height: 400px;
-    object-position: top -50px;
-}
-
-@media (max-width: 700px) {
-    #clergyList .grid-item img {
-        height: 320px;
-    }
-}
-
-@media (max-width: 480px) {
-    #clergyList .grid-item img {
-        height: 400px;
-        width: 100%;
-        object-fit: cover;
-        object-position: top -50px;
-    }
-    #clergyList .grid-item .info {
-        padding: 0.6rem;
-    }
-    #clergyList .grid-item .info h3 {
-        font-size: 0.95rem;
-    }
-    #clergyList .grid-item .info .status {
-        font-size: 0.85rem;
-    }
-    #clergyList .grid-item .info div[style*="color:#999"] {
-        font-size: 0.75rem !important;
-    }
-}
-
-/* ========== ДЕТАЛЬНАЯ СТРАНИЦА СВЯЩЕННИКА ========== */
-#clergyDetail .detail-content img {
+/* ========== ДУХОВЕНСТВО – круглые фото ========== */
+#clergyList .grid-item img.clergy-photo {
     width: 100%;
-    max-width: 380px;
-    height: auto;
-    aspect-ratio: 2 / 3;
+    aspect-ratio: 1 / 1;
     object-fit: cover;
-    object-position: top -50px;
-    border-radius: 0 !important;
+    border-radius: 50% !important;
+    background: #e9e1d4;
+}
+
+/* Детальная страница священника */
+#clergyDetail .detail-content img.clergy-photo-detail {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 50% !important;
     display: block;
     margin: 0 auto 1rem;
 }
 
+/* Модалка храма – карточки священников */
+.temple-modal-content .clergy-card img.clergy-photo-modal {
+    width: 120px;
+    height: 120px;
+    border-radius: 50% !important;
+    object-fit: cover;
+    margin: 0 auto 0.5rem;
+    display: block;
+}
+
 @media (max-width: 480px) {
-    #clergyDetail .detail-content img {
-        max-width: 100%;
-        aspect-ratio: 3 / 4;
-        object-position: top -50px;
+    .temple-modal-content .clergy-card img.clergy-photo-modal {
+        width: 100px;
+        height: 100px;
+    }
+    #clergyList .grid-item img.clergy-photo {
+        max-width: 300px;
+        margin: 0 auto;
     }
 }
 
@@ -1024,15 +1011,6 @@ img {
     background: var(--bg);
 }
 
-.temple-modal-content .clergy-card img {
-    width: 120px;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 50%;
-    margin-bottom: 0.5rem;
-    object-position: top -20px;
-}
-
 .temple-modal-content .clergy-card .clergy-name {
     font-weight: bold;
 }
@@ -1051,10 +1029,6 @@ img {
     .temple-modal-content .clergy-card {
         width: 100%;
         padding: 0.6rem;
-    }
-    .temple-modal-content .clergy-card img {
-        width: 100px;
-        height: 100px;
     }
 }
 
@@ -1135,7 +1109,7 @@ img {
     }
 }
 
-/* ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (общие стили) ========== */
+/* ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ========== */
 .temple-detail-hero {
     position: relative;
     border-radius: 24px;
