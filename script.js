@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (карусель и всё работает)
+//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (все кнопки работают)
 // ============================================================
 
 console.log('script.js загружен (финальная рабочая версия)');
@@ -823,11 +823,8 @@ function initSimpleCarousel() {
     function next() {
         if (currentIndex < total - 1) {
             scrollToIndex(currentIndex + 1);
-        } else {
-            // Если дошли до конца – останавливаемся
-            clearInterval(autoplayInterval);
-            autoplayInterval = null;
         }
+        // Если достигнут конец – ничего не делаем (или можно сбросить в начало? оставим как есть)
     }
 
     function prev() {
@@ -851,7 +848,15 @@ function initSimpleCarousel() {
     // Автопрокрутка
     function startAutoplay() {
         if (autoplayInterval) clearInterval(autoplayInterval);
-        autoplayInterval = setInterval(next, 4000);
+        autoplayInterval = setInterval(() => {
+            if (currentIndex < total - 1) {
+                next();
+            } else {
+                // Если дошли до конца – останавливаем автопрокрутку
+                clearInterval(autoplayInterval);
+                autoplayInterval = null;
+            }
+        }, 4000);
     }
 
     function stopAutoplay() {
@@ -963,7 +968,7 @@ function openTempleModal(tab, templeId) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
                     content += `<div class="clergy-card" data-id="${c.id}">
-                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo" style="object-position: top -50px;">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo" style="object-position: top -50px; width: 200px; height: 200px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto;">
                         <div class="clergy-name">${escapeHtml(c.name)}</div>
                         <div class="clergy-rank">${escapeHtml(c.rank)}</div>
                     </div>`;
@@ -989,14 +994,21 @@ function openTempleModal(tab, templeId) {
 }
 function closeTempleModal() { const modal = document.getElementById('templeModal'); if (modal) modal.classList.remove('visible'); }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (ИСПРАВЛЕНА) ----------
 function renderTempleDetail(container, id) {
-    if (!data.temples || data.temples.length === 0) { setTimeout(() => renderTempleDetail(container, id), 300); return; }
+    if (!data.temples || data.temples.length === 0) {
+        setTimeout(() => renderTempleDetail(container, id), 300);
+        return;
+    }
     const temple = data.temples.find(t => t.id === id);
-    if (!temple) { container.innerHTML = '<p>Храм не найден</p>'; return; }
+    if (!temple) {
+        container.innerHTML = '<p>Храм не найден</p>';
+        return;
+    }
     const photoSrc = getTemplePhoto(temple);
     const phoneNumber = temple.phone || '+375291234567';
     const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
+
     let html = `
         <div class="detail-back" onclick="history.back()">${t('back')}</div>
         <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}'); min-height: 70vh; height: 500px; background-size: cover; background-position: center; border-radius: 24px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative;">
@@ -1027,21 +1039,33 @@ function renderTempleDetail(container, id) {
         </div>
     `;
     container.innerHTML = html;
-    container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => btn.addEventListener('click', function() { openTempleModal(this.dataset.tab, id); }));
+
+    // ИСПРАВЛЕНИЕ: вешаем обработчики на кнопки после рендера
+    container.querySelectorAll('.temple-action-btn[data-tab]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            openTempleModal(tab, id);
+        });
+    });
+
     const historyBtns = container.querySelectorAll('.history-btn');
     const historyTabs = {
         'history': document.getElementById('tab-history'),
         'local-history': document.getElementById('tab-local-history')
     };
-    historyBtns.forEach(btn => btn.addEventListener('click', function() {
-        const tab = this.dataset.tab;
-        historyBtns.forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        Object.keys(historyTabs).forEach(key => historyTabs[key].style.display = key === tab ? 'block' : 'none');
-    }));
+    historyBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const tab = this.dataset.tab;
+            historyBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            Object.keys(historyTabs).forEach(key => {
+                historyTabs[key].style.display = key === tab ? 'block' : 'none';
+            });
+        });
+    });
 }
 
-// ---------- ДУХОВЕНСТВО ----------
+// ---------- ДУХОВЕНСТВО (фото 300x300) ----------
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -1478,7 +1502,6 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
-// ---------- АДМИН-ЛОГИН ----------
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
@@ -1506,7 +1529,6 @@ function renderAdminLogin() {
     });
 }
 
-// ---------- АДМИН-ДАШБОРД ----------
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
