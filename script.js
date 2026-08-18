@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (КАРУСЕЛЬ, НАВИГАЦИЯ, ВСЁ)
+//  script.js – ПОЛНАЯ ВЕРСИЯ БЕЗ КАРУСЕЛИ (всё работает)
 // ============================================================
 
-console.log('script.js загружен (рабочая версия с каруселью)');
+console.log('script.js загружен (полная версия без карусели)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -732,7 +732,7 @@ function updateNavActive(page) {
     if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (С КАРУСЕЛЬЮ) ----------
+// ---------- ГЛАВНАЯ (БЕЗ КАРУСЕЛИ) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -744,11 +744,14 @@ function renderMainPage() {
             </div>
         </div>
         <h2 style="margin:1.5rem 0 0.5rem; text-align:center; font-family:'Cormorant Uncial', serif;">Наши храмы</h2>
-        <div class="carousel" id="mainCarousel">
-            <button class="carousel-btn left" onclick="scrollCarousel(-1)">‹</button>
-            <div class="carousel-track" id="carouselTrack"></div>
-            <button class="carousel-btn right" onclick="scrollCarousel(1)">›</button>
-        </div>
+        <div class="grid">`;
+    data.temples.forEach(t => {
+        html += `<div class="grid-item" data-id="${t.id}" data-type="temple">
+            <img src="${escapeHtml(getTemplePhoto(t))}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
+            <div class="info"><h3 style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</h3>${t.isVacant ? `<div class="status vacant">${t('vacant')}</div>` : ''}</div>
+        </div>`;
+    });
+    html += `</div>
         <div class="card"><h2>${t('latest-news')}</h2>`;
     const news = [...data.news].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
     if (!news.length) html += `<p>${t('no-news')}</p>`;
@@ -772,125 +775,13 @@ function renderMainPage() {
     }
     html += `</div>`;
     container.innerHTML = html;
-    initInfiniteCarousel();
-}
 
-// ---------- ФУНКЦИЯ SCROLLCAROUSEL ДЛЯ КНОПОК ----------
-function scrollCarousel(direction) {
-    const track = document.getElementById('carouselTrack');
-    if (!track) return;
-    const itemWidth = track.querySelector('.carousel-item')?.offsetWidth + 16 || 240;
-    const scrollAmount = direction * itemWidth;
-    const currentScroll = track.scrollLeft;
-    const maxScroll = track.scrollWidth - track.clientWidth;
-    let newScroll = currentScroll + scrollAmount;
-    if (newScroll < 0) newScroll = 0;
-    if (newScroll > maxScroll) newScroll = maxScroll;
-    track.scrollTo({ left: newScroll, behavior: 'smooth' });
-}
-
-// ---------- БЕСКОНЕЧНАЯ КАРУСЕЛЬ ----------
-function initInfiniteCarousel() {
-    const track = document.getElementById('carouselTrack');
-    if (!track) return;
-
-    const templeItems = data.temples.filter(t => t.id !== 1).map(t => {
-        const imgSrc = getTemplePhoto(t);
-        return `<div class="carousel-item" data-id="${t.id}">
-            <img src="${escapeHtml(imgSrc)}" alt="${escapeHtml(t.name)}" loading="lazy" onerror="this.style.display='none'">
-            <div class="info">${escapeHtml(t.name)}</div>
-        </div>`;
-    });
-
-    const totalItems = templeItems.length;
-    if (totalItems === 0) { track.innerHTML = '<p>Нет храмов для отображения</p>'; return; }
-
-    // Клонируем для бесконечности
-    const cloneFirst = templeItems.slice(0, 2).join('');
-    const cloneLast = templeItems.slice(-2).join('');
-    track.innerHTML = cloneLast + templeItems.join('') + cloneFirst;
-
-    // Настройка прокрутки
-    let currentIndex = 2;
-    let isTransitioning = false;
-    let autoplayInterval;
-
-    function getItemWidth() {
-        const first = track.querySelector('.carousel-item');
-        if (!first) return 240;
-        return first.offsetWidth + 16; // ширина + gap
-    }
-
-    function updateCarousel(animate = true) {
-        const itemWidth = getItemWidth();
-        const offset = currentIndex * itemWidth;
-        track.style.transition = animate ? 'transform 0.5s ease' : 'none';
-        track.style.transform = `translateX(-${offset}px)`;
-    }
-
-    function goTo(index, animate = true) {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        currentIndex = index;
-        updateCarousel(animate);
-        setTimeout(() => {
-            isTransitioning = false;
-            // Проверка границ для бесконечности
-            if (currentIndex >= totalItems + 2) {
-                currentIndex = 2;
-                updateCarousel(false);
-            } else if (currentIndex < 2) {
-                currentIndex = totalItems + 1;
-                updateCarousel(false);
-            }
-        }, 500);
-    }
-
-    function next() { goTo(currentIndex + 1); }
-    function prev() { goTo(currentIndex - 1); }
-
-    // Обработчики кнопок (переопределяем onclick)
-    const prevBtn = document.getElementById('carouselPrev');
-    const nextBtn = document.getElementById('carouselNext');
-    if (prevBtn) prevBtn.onclick = function(e) { e.preventDefault(); prev(); };
-    if (nextBtn) nextBtn.onclick = function(e) { e.preventDefault(); next(); };
-
-    // Клик по элементу
-    track.querySelectorAll('.carousel-item').forEach(el => {
+    container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => {
         el.addEventListener('click', function() {
             const id = this.dataset.id;
             if (id) window.location.href = `temple-${id}.html`;
         });
     });
-
-    // Автопрокрутка
-    function startAutoplay() {
-        if (autoplayInterval) clearInterval(autoplayInterval);
-        autoplayInterval = setInterval(next, 4000);
-    }
-    function stopAutoplay() {
-        if (autoplayInterval) {
-            clearInterval(autoplayInterval);
-            autoplayInterval = null;
-        }
-    }
-
-    startAutoplay();
-    track.addEventListener('mouseenter', stopAutoplay);
-    track.addEventListener('mouseleave', startAutoplay);
-    // Для мобильных – touch события
-    track.addEventListener('touchstart', stopAutoplay);
-    track.addEventListener('touchend', startAutoplay);
-
-    // Обновление при изменении размера окна
-    let resizeTimeout;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => { updateCarousel(false); }, 100);
-    });
-
-    // Инициализация позиции
-    setTimeout(() => updateCarousel(false), 100);
 }
 
 // ---------- СПИСОК ХРАМОВ ----------
@@ -1464,7 +1355,6 @@ function ensureAdminModal() {
 function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
 function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
 
-// ---------- АДМИН-ЛОГИН (с хешированием) ----------
 function renderAdminLogin() {
     adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
         <input type="text" id="adminLogin" placeholder="${t('username')}">
@@ -1492,7 +1382,6 @@ function renderAdminLogin() {
     });
 }
 
-// ---------- АДМИН-ДАШБОРД ----------
 function renderAdminDashboard() {
     const hasUsersPerm = hasPermission(currentUser, 'manage_users');
     const hasLogsPerm = hasPermission(currentUser, 'view_logs');
@@ -1531,7 +1420,6 @@ function renderAdminDashboard() {
     document.querySelectorAll('.admin-menu-btn').forEach(btn => btn.addEventListener('click', function() { renderAdminSection(this.dataset.section); }));
 }
 
-// ---------- РЕНДЕРИНГ РАЗДЕЛОВ АДМИНКИ ----------
 function renderAdminSection(section) {
     const content = document.getElementById('adminSectionContent');
     if (!content) return;
@@ -2481,7 +2369,7 @@ function initBackToTop() { const btn = document.getElementById('backToTop'); if 
 
 // ========== ЗАПУСК ==========
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная полная версия');
+    console.log('DOMContentLoaded – финальная версия без карусели');
     loadData();
     initAdminTrigger();
     initVisionToggle();
@@ -2497,7 +2385,6 @@ window.renderCurrentPage = renderCurrentPage;
 window.t = t;
 window.openAdminModal = openAdminModal;
 window.closeAdminModal = closeAdminModal;
-window.scrollCarousel = scrollCarousel;
 window.askAI = askAI;
 window.adminAskAI = adminAskAI;
 window.fillTempleDropdown = fillTempleDropdown;
