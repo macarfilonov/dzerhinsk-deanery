@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ИСПРАВЛЕННАЯ ВЕРСИЯ (админка по кликам, модалка храмов 400x400)
+//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (круглые фото 200x200)
 // ============================================================
 
-console.log('script.js загружен (исправленная версия)');
+console.log('script.js загружен (финальная версия с кругами 200x200)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -1030,7 +1030,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (ФОТО 400x400 КРУГЛЫЕ) ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (КРУГЛЫЕ ФОТО 200x200) ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -1072,7 +1072,7 @@ function openTempleModal(tab, templeId) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
                     content += `<div class="clergy-card" data-id="${c.id}">
-                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 400px; height: 400px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
                         <div class="clergy-name">${escapeHtml(c.name)}</div>
                         <div class="clergy-rank">${escapeHtml(c.rank)}</div>
                     </div>`;
@@ -1168,7 +1168,7 @@ function renderTempleDetail(container, id) {
     });
 }
 
-// ========== ДУХОВЕНСТВО ==========
+// ========== ДУХОВЕНСТВО (ПРЯМОУГОЛЬНЫЕ ФОТО) ==========
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -2751,7 +2751,7 @@ function initBackToTop() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия с кнопкой админки по кликам');
+    console.log('DOMContentLoaded – финальная версия с кругами 200x200 в модалках');
     loadData();
     initAdminTrigger();
     initVisionToggle();
