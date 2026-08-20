@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ ВЕРСИЯ С ИСПРАВЛЕНИЯМИ (финальная)
+//  script.js – ИСПРАВЛЕННАЯ ВЕРСИЯ (всё работает)
 // ============================================================
 
-console.log('script.js загружен (финальная версия с исправлениями)');
+console.log('script.js загружен (исправленная версия)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -341,12 +341,6 @@ function migrateData() {
 
     // Упорядочиваем преподавателей (Богатко на первом месте)
     if (data.teachers && data.teachers.length) {
-        const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
-        const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
-        if (bogatkoIdx !== -1 && levshevichIdx !== -1 && bogatkoIdx > levshevichIdx) {
-            [data.teachers[bogatkoIdx], data.teachers[levshevichIdx]] = [data.teachers[levshevichIdx], data.teachers[bogatkoIdx]];
-        }
-        // Также сортируем по роли: сначала директор, потом остальные
         data.teachers.sort((a,b) => {
             if (a.id === 3) return -1;
             if (b.id === 3) return 1;
@@ -824,62 +818,65 @@ function renderMainPage() {
     initSimpleCarousel();
 }
 
-// Функция для генерации кнопок каналов
+// Функция для генерации кнопок каналов с SVG (без внешних иконок)
 function getChannelButtons() {
     const channels = [
-        { name: 'Протоиерей Алексей Уминский', url: 'https://youtube.com/@alexeyuminskiy', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Протоиерей Андрей Ткачев (Сосновец)', url: 'https://youtube.com/@soskovets', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Протоиерей Олег Стеняев', url: 'https://youtube.com/@oleg_steniaev', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Православное видео (pravideo4)', url: 'https://youtube.com/@pravideo4', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Студия Храм Рождества Христова', url: 'https://youtube.com/@studiahramarozdestvahristova', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Епископ Августин (Беляев)', url: 'https://youtube.com/@bishop-augustine', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Священник Евгений Халиманков', url: 'https://youtube.com/@halimankov', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Андрей Десницкий', url: 'https://youtube.com/@desnitsky_official', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
-        { name: 'Богословские беседы (канал)', url: 'https://youtube.com/channel/UCbDQNPZ86XQUG1FmbyYKfqw', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' }
+        { name: 'Протоиерей Алексей Уминский', url: 'https://youtube.com/@alexeyuminskiy' },
+        { name: 'Протоиерей Андрей Ткачев (Сосновец)', url: 'https://youtube.com/@soskovets' },
+        { name: 'Протоиерей Олег Стеняев', url: 'https://youtube.com/@oleg_steniaev' },
+        { name: 'Православное видео (pravideo4)', url: 'https://youtube.com/@pravideo4' },
+        { name: 'Студия Храм Рождества Христова', url: 'https://youtube.com/@studiahramarozdestvahristova' },
+        { name: 'Епископ Августин (Беляев)', url: 'https://youtube.com/@bishop-augustine' },
+        { name: 'Священник Евгений Халиманков', url: 'https://youtube.com/@halimankov' },
+        { name: 'Андрей Десницкий', url: 'https://youtube.com/@desnitsky_official' },
+        { name: 'Богословские беседы (канал)', url: 'https://youtube.com/channel/UCbDQNPZ86XQUG1FmbyYKfqw' }
     ];
 
     let html = '';
     channels.forEach(ch => {
         html += `
-            <a href="${ch.url}" target="_blank" class="channel-btn youtube-btn" data-title="${ch.name}" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 80px; text-align: center;">
-                <img src="${ch.icon}" alt="YouTube" style="width: 48px; height: 48px; display: block; margin: 0 auto; transition: transform 0.3s;">
+            <a href="${ch.url}" target="_blank" class="channel-btn youtube-btn" data-title="${ch.name}" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 90px; text-align: center;">
+                <svg viewBox="0 0 24 24" width="48" height="48" style="display: block; margin: 0 auto; fill: #FF0000; transition: fill 0.3s;">
+                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                </svg>
                 <span style="font-size: 0.7rem; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ch.name}</span>
             </a>
         `;
     });
 
-    // Добавляем Telegram канал
+    // Telegram канал
     html += `
-        <a href="https://t.me/blagovestitel" target="_blank" class="channel-btn telegram-btn" data-title="Благовеститель" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 80px; text-align: center;">
-            <img src="https://telegram.org/img/favicon.ico" alt="Telegram" style="width: 48px; height: 48px; display: block; margin: 0 auto; transition: transform 0.3s;">
+        <a href="https://t.me/blagovestitel" target="_blank" class="channel-btn telegram-btn" data-title="Благовеститель" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 90px; text-align: center;">
+            <svg viewBox="0 0 24 24" width="48" height="48" style="display: block; margin: 0 auto; fill: #0088cc; transition: fill 0.3s;">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+            </svg>
             <span style="font-size: 0.7rem; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Благовеститель</span>
         </a>
     `;
 
-    // Добавляем CSS для hover эффекта (красный цвет)
+    // Добавляем CSS для hover эффекта
     const style = document.createElement('style');
     style.textContent = `
+        .channel-btn {
+            transition: all 0.3s ease;
+        }
         .channel-btn:hover {
             background: #ff0000 !important;
             border-color: #ff0000 !important;
             transform: scale(1.05);
         }
-        .channel-btn:hover img {
-            filter: brightness(0) invert(1);
+        .channel-btn:hover svg {
+            fill: white !important;
         }
         .channel-btn:hover span {
             color: white !important;
-        }
-        .channel-btn.youtube-btn:hover {
-            background: #ff0000 !important;
-            border-color: #ff0000 !important;
         }
         .channel-btn.telegram-btn:hover {
             background: #0088cc !important;
             border-color: #0088cc !important;
         }
-        .channel-btn:hover .channel-name {
-            color: white !important;
+        .channel-btn.telegram-btn:hover svg {
+            fill: white !important;
         }
     `;
     document.head.appendChild(style);
