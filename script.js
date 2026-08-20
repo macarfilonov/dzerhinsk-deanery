@@ -1,5 +1,5 @@
 // ============================================================
-//  script.js – ИСПРАВЛЕННАЯ ВЕРСИЯ (всё работает)
+//  script.js – ИСПРАВЛЕННАЯ ВЕРСИЯ (админка по кликам, модалка храмов 400x400)
 // ============================================================
 
 console.log('script.js загружен (исправленная версия)');
@@ -626,7 +626,6 @@ function rebuildNav() {
             e.preventDefault();
             closeModal();
             const page = this.dataset.page;
-            // SPA-переход без перезагрузки
             const url = page === 'main' ? 'index.html' : page + '.html';
             window.history.pushState({ page: page }, '', url);
             document.body.dataset.page = page;
@@ -764,7 +763,20 @@ function updateNavActive(page) {
     if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (С ПРОСТОЙ КАРУСЕЛЬЮ И РЕКОМЕНДУЕМЫМИ КАНАЛАМИ) ----------
+// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ ==========
+function applyTranslations() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.dataset.i18n;
+        el.textContent = t(key);
+    });
+}
+
+// ========== РЕЖИМ ДЛЯ СЛАБОВИДЯЩИХ ==========
+function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
+function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
+function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
+
+// ========== ГЛАВНАЯ (С КАРУСЕЛЬЮ И КАНАЛАМИ) ==========
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -804,7 +816,7 @@ function renderMainPage() {
     }
     html += `</div>`;
 
-    // БЛОК РЕКОМЕНДУЕМЫХ КАНАЛОВ
+    // Рекомендуемые каналы
     html += `
         <div class="card" style="margin-top: 2rem;">
             <h2>📺 Рекомендуемые каналы</h2>
@@ -818,7 +830,7 @@ function renderMainPage() {
     initSimpleCarousel();
 }
 
-// Функция для генерации кнопок каналов с SVG (без внешних иконок)
+// ========== КНОПКИ КАНАЛОВ ==========
 function getChannelButtons() {
     const channels = [
         { name: 'Протоиерей Алексей Уминский', url: 'https://youtube.com/@alexeyuminskiy' },
@@ -844,7 +856,6 @@ function getChannelButtons() {
         `;
     });
 
-    // Telegram канал
     html += `
         <a href="https://t.me/blagovestitel" target="_blank" class="channel-btn telegram-btn" data-title="Благовеститель" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 90px; text-align: center;">
             <svg viewBox="0 0 24 24" width="48" height="48" style="display: block; margin: 0 auto; fill: #0088cc; transition: fill 0.3s;">
@@ -854,7 +865,6 @@ function getChannelButtons() {
         </a>
     `;
 
-    // Добавляем CSS для hover эффекта
     const style = document.createElement('style');
     style.textContent = `
         .channel-btn {
@@ -884,7 +894,7 @@ function getChannelButtons() {
     return html;
 }
 
-// ========== ПРОСТАЯ КАРУСЕЛЬ ==========
+// ========== КАРУСЕЛЬ ==========
 function initSimpleCarousel() {
     const track = document.getElementById('carouselTrack');
     if (!track) return;
@@ -1006,7 +1016,7 @@ function scrollCarousel(direction) {
     track.style.transform = `translateX(-${newIndex * cardWidth}px)`;
 }
 
-// ---------- СПИСОК ХРАМОВ ----------
+// ========== СПИСОК ХРАМОВ ==========
 function renderTemplesList(container) {
     let html = `<h2>${t('temples-title')}</h2><div class="grid">`;
     data.temples.forEach(t => {
@@ -1020,7 +1030,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ----------
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (ФОТО 400x400 КРУГЛЫЕ) ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -1062,7 +1072,7 @@ function openTempleModal(tab, templeId) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
                     content += `<div class="clergy-card" data-id="${c.id}">
-                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 400px; height: 400px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
                         <div class="clergy-name">${escapeHtml(c.name)}</div>
                         <div class="clergy-rank">${escapeHtml(c.rank)}</div>
                     </div>`;
@@ -1088,7 +1098,7 @@ function openTempleModal(tab, templeId) {
 }
 function closeTempleModal() { const modal = document.getElementById('templeModal'); if (modal) modal.classList.remove('visible'); }
 
-// ---------- ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ----------
+// ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ==========
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -1158,7 +1168,7 @@ function renderTempleDetail(container, id) {
     });
 }
 
-// ========== ДУХОВЕНСТВО (ПРЯМОУГОЛЬНЫЕ ФОТО) ==========
+// ========== ДУХОВЕНСТВО ==========
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
@@ -1188,7 +1198,7 @@ function renderClergyDetail(id) {
     </div>`;
 }
 
-// ---------- РАСПИСАНИЕ ----------
+// ========== РАСПИСАНИЕ ==========
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2><div class="card"><h3>${t('select-temple')}</h3><select id="scheduleTempleSelect" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border);"><option value="">${t('choose-temple')}</option>`;
     data.temples.forEach(t => html += `<option value="${t.id}">${escapeHtml(t.name)}</option>`);
@@ -1211,7 +1221,7 @@ function initScheduleSelect(container) {
     });
 }
 
-// ---------- НОВОСТИ ----------
+// ========== НОВОСТИ ==========
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2><div style="margin-bottom: 1rem;"><a href="https://t.me/dzrzh_blag" target="_blank" class="btn-telegram" style="background: #0088cc; color: white; padding: 0.5rem 1.2rem; border-radius: 40px; text-decoration: none; display: inline-block; font-weight: bold;">📢 Подписаться на Telegram-канал</a></div>`;
     const news = data.news||[];
@@ -1230,7 +1240,7 @@ function renderNewsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ОБЪЯВЛЕНИЯ ----------
+// ========== ОБЪЯВЛЕНИЯ ==========
 function renderAnnouncementsList(container) {
     let html = `<h2>${t('announcements-title')}</h2>`;
     const ann = data.announcements||[];
@@ -1242,7 +1252,7 @@ function renderAnnouncementsList(container) {
     container.innerHTML = html;
 }
 
-// ---------- ВОСКРЕСНЫЕ ШКОЛЫ ----------
+// ========== ВОСКРЕСНЫЕ ШКОЛЫ ==========
 function renderSundaySchoolsList(container) {
     let html = `<h2>${t('sunday-school-title')}</h2>
         <div class="card"><p><strong>Важно:</strong> Ввиду изменения в законодательстве РБ в данном опросе под воскресными школами (ВШ) подразумеваются все возможные формы организации религиозного просвещения детей и взрослых на приходах Белорусского Экзархата.</p>
@@ -1271,10 +1281,8 @@ function renderSundaySchoolDetail(id) {
     const container = document.getElementById('mainContent');
     const temple = data.temples.find(t => t.id === school.templeId);
     let teachers = data.teachers.filter(t => t.schoolId === id);
-    // Сортировка: сначала директор (Богатко), потом остальные по роли
     const roleOrder = { 'Директор': 1, 'Преподаватель': 2, 'Воспитатель': 3 };
     teachers.sort((a,b) => {
-        // Сначала идёт Богатко (id=3) всегда первой
         if (a.id === 3 && b.id !== 3) return -1;
         if (b.id === 3 && a.id !== 3) return 1;
         return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
@@ -1312,7 +1320,7 @@ function renderSundaySchoolDetail(id) {
     `;
 }
 
-// ---------- О БЛАГОЧИНИИ ----------
+// ========== О БЛАГОЧИНИИ ==========
 function renderAboutPage(container) {
     let html = `
         <div style="text-align: center; margin-bottom: 2rem;">
@@ -1347,7 +1355,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ (ИСПРАВЛЕНЫ) ----------
+// ========== БОГОСЛУЖЕНИЯ ==========
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1440,7 +1448,7 @@ function renderWorshipPage(container) {
     }
 }
 
-// ---------- FAQ ----------
+// ========== FAQ ==========
 function renderFaqPage(container) {
     let html = `<h2>${t('faq-title')}</h2>
         <div id="faqForm" class="card"><h3>${t('ask-question')}</h3>
@@ -1519,7 +1527,7 @@ function renderFaqPage(container) {
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ---------- ИИ (заглушка) ----------
+// ========== ИИ (ЗАГЛУШКА) ==========
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -1559,7 +1567,7 @@ function renderAdminAI(container) {
     document.getElementById('adminAskAIBtn').addEventListener('click', adminAskAI);
 }
 
-// ---------- ОКОРМЛЕНИЕ ----------
+// ========== ОКОРМЛЕНИЕ ==========
 function renderOpecheniePage(container) {
     let html = `<h2>Окормление</h2>`;
     if (!data.opechenie || data.opechenie.length === 0) {
@@ -2588,7 +2596,7 @@ function renderAdminOCR(container) {
 }
 
 // ======================================================================
-//  ОТКРЫТИЕ / ЗАКРЫТИЕ АДМИН-ПАНЕЛИ (С УЧЁТОМ OCR)
+//  ОТКРЫТИЕ / ЗАКРЫТИЕ АДМИН-ПАНЕЛИ (ПО СТАРОМУ СПОСОБУ)
 // ======================================================================
 
 function openAdminModal() {
@@ -2643,7 +2651,6 @@ function openAdminModal() {
         });
         modal.addEventListener('click', function(e) { if (e.target === this) closeAdminModal(); });
 
-        // Логин
         document.getElementById('adminLoginBtn').addEventListener('click', async function() {
             const password = document.getElementById('adminPassword').value;
             if (!password) { document.getElementById('adminLoginMessage').textContent = 'Введите пароль'; return; }
@@ -2656,7 +2663,6 @@ function openAdminModal() {
                 document.getElementById('adminLoginMessage').textContent = '';
                 document.getElementById('adminPassword').value = '';
                 addLog('Вход в админку', `Пользователь ${user.username}`);
-                // Загружаем первую секцию
                 const firstBtn = document.querySelector('.admin-menu-btn');
                 if (firstBtn) firstBtn.click();
             } else {
@@ -2664,7 +2670,6 @@ function openAdminModal() {
             }
         });
 
-        // Меню
         document.querySelectorAll('.admin-menu-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const section = this.dataset.section;
@@ -2707,26 +2712,56 @@ function closeAdminModal() {
 }
 
 // ======================================================================
-//  ОСТАЛЬНЫЕ ТРИГГЕРЫ И ЗАПУСК
+//  ТРИГГЕР АДМИНКИ ПО 5 КЛИКАМ НА ШАПКЕ
 // ======================================================================
 
 let clickCount = 0, clickTimer = null;
-function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if (clickCount >= 5) { clickCount = 0; clearTimeout(clickTimer); openAdminModal(); } }); }
-function initVisionToggle() { document.getElementById('visionToggle')?.addEventListener('click', toggleVisionMode); }
-function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
-function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
-function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
-function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
+function initAdminTrigger() {
+    const trigger = document.getElementById('secretAdminTrigger');
+    if (!trigger) return;
+    trigger.addEventListener('click', function(e) {
+        e.preventDefault();
+        clickCount++;
+        clearTimeout(clickTimer);
+        clickTimer = setTimeout(() => { clickCount = 0; }, 2000);
+        if (clickCount >= 5) {
+            clickCount = 0;
+            clearTimeout(clickTimer);
+            openAdminModal();
+        }
+    });
+}
+
+// ======================================================================
+//  ЗАПУСК
+// ======================================================================
+
+function initVisionToggle() {
+    const btn = document.getElementById('visionToggle');
+    if (btn) btn.addEventListener('click', toggleVisionMode);
+}
+
+function initBackToTop() {
+    const btn = document.getElementById('backToTop');
+    if (btn) {
+        window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300));
+        btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия с исправлениями');
+    console.log('DOMContentLoaded – финальная версия с кнопкой админки по кликам');
     loadData();
     initAdminTrigger();
     initVisionToggle();
     initBackToTop();
     restoreVisionMode();
 });
+
+// ======================================================================
+//  ЭКСПОРТ ГЛОБАЛЬНЫХ ФУНКЦИЙ
+// ======================================================================
 
 window.renderTempleDetail = renderTempleDetail;
 window.renderClergyDetail = renderClergyDetail;
