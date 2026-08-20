@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ПОЛНАЯ РАБОЧАЯ ВЕРСИЯ (все кнопки меню работают, карусель работает)
+//  script.js – ПОЛНАЯ ВЕРСИЯ С ИСПРАВЛЕНИЯМИ (финальная)
 // ============================================================
 
-console.log('script.js загружен (финальная версия)');
+console.log('script.js загружен (финальная версия с исправлениями)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -73,7 +73,7 @@ async function hashPassword(password) {
 }
 function isHash(str) { return /^[a-f0-9]{64}$/.test(str); }
 
-// ========== ПЕРЕВОДЫ ==========
+// ========== ПЕРЕВОДЫ (ВСЕ ТЕКСТЫ НА РУССКОМ) ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -178,7 +178,9 @@ const translations = {
         'ai-thinking': 'ИИ думает...',
         'ai-error': 'Ошибка при обращении к ИИ',
         'all': 'Все права',
-        'logs': 'Логи'
+        'logs': 'Логи',
+        'clergy-rank': 'Сан',
+        'clergy-desc': 'Описание'
     }
 };
 
@@ -337,14 +339,45 @@ function migrateData() {
         });
     }
 
+    // Упорядочиваем преподавателей (Богатко на первом месте)
     if (data.teachers && data.teachers.length) {
         const bogatkoIdx = data.teachers.findIndex(t => t.id === 3);
         const levshevichIdx = data.teachers.findIndex(t => t.id === 2);
         if (bogatkoIdx !== -1 && levshevichIdx !== -1 && bogatkoIdx > levshevichIdx) {
             [data.teachers[bogatkoIdx], data.teachers[levshevichIdx]] = [data.teachers[levshevichIdx], data.teachers[bogatkoIdx]];
         }
+        // Также сортируем по роли: сначала директор, потом остальные
+        data.teachers.sort((a,b) => {
+            if (a.id === 3) return -1;
+            if (b.id === 3) return 1;
+            const roles = { 'Директор': 1, 'Преподаватель': 2, 'Воспитатель': 3 };
+            return (roles[a.role] || 99) - (roles[b.role] || 99);
+        });
     }
     setDefaultPhotos();
+
+    // Добавляем объявления о центре "Анастасис", если их ещё нет
+    const existingAnnounce = data.announcements.some(a => a.text && a.text.includes('Анастасис'));
+    if (!existingAnnounce) {
+        const announcements = [
+            {
+                id: nextId.announcement++,
+                text: 'УСЛОВИЯ ПРИЕМА НА РЕАБИЛИТАЦИЮ\n\nВ центр принимаются мужчины и женщины в возрасте 18-60 лет, изъявившие желание жить трезво.\n\nПри себе необходимо иметь:\n• паспорт\n• флюорографию\n\nС поступающим проводится предварительное собеседование по телефону и непосредственно при поступлении.\n\nРеабилитанты обеспечиваются трехразовым питанием, постельными принадлежностями, комплектом материалов, необходимых для прохождения Программы.\n\nНАШИ КОНТАКТЫ:\n230514 Республика Беларусь, Гродненская область, Слонимский район, д. Сосновка, ул. Школьная, 2\n+375(1562) 4 77 46, +375(1562) 4 76 04, +375(29) 784 18 20\nСАЙТ: www.anastasis.by\n\nБАНКОВСКИЕ РЕКВИЗИТЫ:\nр/с № BY36AKBB30150432732234100000\nОАО «АСБ Беларусбанк» г. Минск\nБИК AKBBBY2X\nУНП 590318569\n\nУЧРЕЖДЕНИЕ "ЦЕНТР РЕАБИЛИТАЦИИ ЗАВИСИМЫХ ОТ АЛКОГОЛЯ И НАРКОТИКОВ"',
+                date: new Date().toISOString().slice(0,10)
+            },
+            {
+                id: nextId.announcement++,
+                text: '# АНАСТАСИС\n## СООБЩЕСТВО\n\nУЧРЕЖДЕНИЕ "ЦЕНТР РЕАБИЛИТАЦИИ ЗАВИСИМЫХ ОТ АЛКОГОЛЯ И НАРКОТИКОВ "АНАСТАСИС СОСНОВКА"\n\nРЕАБИЛИТАЦИЯ РЕАЛИЗУЕТСЯ В СООТВЕТСТВИИ С ТРАДИЦИЯМИ ПРАВОСЛАВНОГО ВЕРОУЧЕНИЯ:\n- регулярное участие в богослужениях и церковных таинствах,\n- изучение святоотеческой литературы,\n- развитие духовных потребностей,\n- изменение морально-нравственных ориентиров с использованием нравственного богословия.\n\nВСЮ ИНФОРМАЦИЮ МОЖНО УЗНАТЬ ПО ТЕЛЕФОНАМ:\n+375 (1562) 4 77 46\n+375 (1562) 4 76 04\n+375 (29) 784 18 20\n+375 (29) 557 86 41\n\nНАШ САЙТ: WWW.ANASTASIS.BY\n\nГродненская область, Слонимский район, д. Сосновка, ул. Школьная, 2\n\nдуховная, психологическая и социальная помощь в избавлении от наркотической, алкогольной, игровой и прочих зависимостей; помощь семьям зависимых.\n\nВ ЦЕНТР ПРИНИМАЮТСЯ МУЖЧИНЫ И ЖЕНЩИНЫ В ВОЗРАСТЕ 18-60 ЛЕТ, ИЗЪЯВИВШИЕ ЖЕЛАНИЕ ЖИТЬ ТРЕЗВО.\n\n- необходимо иметь с собой паспорт, флюорографию\n- с поступающим проводится предварительное собеседование по телефону и непосредственно при поступлении\n- реабилитанты обеспечиваются:\n  - трехразовым питанием,\n  - постельными принадлежностями,\n  - комплектом, необходимым для реабилитации.',
+                date: new Date().toISOString().slice(0,10)
+            },
+            {
+                id: nextId.announcement++,
+                text: 'ЦЕЛИ ПРОГРАММЫ ПРАВОСЛАВНОГО ЦЕНТРА РЕАБИЛИТАЦИИ "АНАСТАСИС СОСНОВКА"\n\nоказание духовной, психологической и социальной помощи людям в избавлении от наркотической, алкогольной, игровой и прочих зависимостей, а также их семьям.\n\nЗАДАЧИ НАСТОЯЩЕЙ ПРОГРАММЫ:\n- информационное сопровождение процесса реабилитации, раскрывающее проблемы зависимости и созависимости, их причины и последствия,\n- устранение психической зависимости от наркотиков путем решения глубино-личностных, духовных, мировоззренческих и нравственных проблем,\n- содействие в формировании социальной компетентности,\n- социальная реабилитация,\n- содействие ресоциализации и реадаптации,\n- работа с близкими реабилитантов.\n\nОсновной целью реабилитации является создание личности зависимого человека, обучение его навыкам полноценной, трезвой жизни в социуме.\n\nВ основу программы помощи заложен комплексный подход к используемым методикам на основе христианского мировоззрения и христианской антропологии.\n\nОрганизация жизни реабилитационного центра, построенная в соответствии с православным вероучением, позволяет организовать процесс реабилитации поэтапно и последовательно, даже при минимальном уровне мотивации на начальном этапе.\n\nВ центре на постоянной основе трудится команда сотрудников:\n- психотерапевт-нарколог\n- психолог\n- православный священник\n- волонтеры, прошедшие реабилитацию.\n\nВ работе используются различные психологические и психотерапевтические методики с учетом опыта других центров, в частности, координационного центра по противодействию наркомании отдела по церковной благотворительности и социального служения Русской Православной Церкви.',
+                date: new Date().toISOString().slice(0,10)
+            }
+        ];
+        data.announcements.push(...announcements);
+    }
 }
 
 function saveData() { saveToLocalStorage(); saveToFirebase(); }
@@ -387,8 +420,8 @@ function initDefaultData() {
             { id: 2, name: 'Воскресная школа при храме Покрова Пресвятой Богородицы, г.\u00A0Дзержинск', type: 'ВРШ', description: 'Директор: Богатко Зинаида Николаевна', templeId: 1, photo: 'placeholder.jpg' }
         ],
         teachers: [
-            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор воскресной школы', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
-            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор воскресной школы', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 },
+            { id: 3, name: 'Богатко Зинаида Николаевна', role: 'Директор', description: 'Директор воскресной школы в Дзержинске', photo: 'bogatko.jpg', schoolId: 2 },
+            { id: 1, name: 'Кололо Анна Григорьевна', role: 'Директор', description: 'Матушка Анна Кололо', photo: 'anna-kololo.jpg', schoolId: 1 },
             { id: 2, name: 'Левшевич Наталья Александровна', role: 'Преподаватель', description: 'Преподаватель воскресной школы в Дзержинске', photo: 'levshevich.jpg', schoolId: 2 }
         ],
         aboutText: '',
@@ -447,12 +480,11 @@ function fillTempleDropdown() {
     });
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (ИСПРАВЛЕННАЯ ВЕРСИЯ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
-    // Удаляем старую навигацию и модальное окно, если есть
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
     const oldModal = document.getElementById('menuModal');
@@ -461,7 +493,9 @@ function rebuildNav() {
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
-    // Список страниц и их названий
+    const nav = document.createElement('nav');
+    nav.id = 'mainNav';
+
     const links = [
         { page: 'main', text: 'Главная' },
         { page: 'temples', text: 'Храмы' },
@@ -474,33 +508,15 @@ function rebuildNav() {
         { page: 'opechenie', text: 'Окормление' }
     ];
 
-    // ---- СОЗДАЁМ ОСНОВНУЮ НАВИГАЦИЮ (top-bar) ----
-    const nav = document.createElement('nav');
-    nav.id = 'mainNav';
-
     links.forEach(l => {
         const a = document.createElement('a');
         a.href = l.page === 'main' ? 'index.html' : l.page + '.html';
         a.dataset.page = l.page;
         a.textContent = l.text;
         a.className = 'nav-link';
-        // Добавляем обработчик для предотвращения перехода, если это текущая страница
-        a.addEventListener('click', function(e) {
-            // Если это текущая страница – ничего не делаем (или можно закрыть модалку, если она открыта)
-            const currentPage = document.body.dataset.page || 'main';
-            if (this.dataset.page === currentPage) {
-                e.preventDefault();
-                // Закрываем модалку, если она видна
-                const modal = document.getElementById('menuModal');
-                if (modal && modal.style.display === 'flex') {
-                    closeModal();
-                }
-            }
-        });
         nav.appendChild(a);
     });
 
-    // Кнопка-гамбургер
     const menuToggle = document.createElement('button');
     menuToggle.className = 'menu-toggle';
     menuToggle.id = 'menuToggle';
@@ -510,7 +526,6 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
-    // ---- СОЗДАЁМ МОДАЛЬНОЕ ОКНО ----
     const modal = document.createElement('div');
     modal.className = 'menu-modal';
     modal.id = 'menuModal';
@@ -613,10 +628,18 @@ function rebuildNav() {
             a.style.background = 'var(--bg, #f9f6ef)';
             a.style.color = 'var(--text, #2c2a24)';
         });
-        // При клике на ссылку закрываем модалку и переходим по ссылке
         a.addEventListener('click', function(e) {
+            e.preventDefault();
             closeModal();
-            // Разрешаем стандартный переход
+            const page = this.dataset.page;
+            // SPA-переход без перезагрузки
+            const url = page === 'main' ? 'index.html' : page + '.html';
+            window.history.pushState({ page: page }, '', url);
+            document.body.dataset.page = page;
+            renderCurrentPage();
+            applyTranslations();
+            fillTempleDropdown();
+            updateNavActive(page);
         });
         linksList.appendChild(a);
     });
@@ -625,9 +648,8 @@ function rebuildNav() {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
-    // Функции открытия/закрытия модалки
     function openModal(e) {
-        if (e) e.preventDefault();
+        e.preventDefault();
         modal.style.display = 'flex';
         modal.style.pointerEvents = 'auto';
         requestAnimationFrame(() => {
@@ -649,7 +671,6 @@ function rebuildNav() {
         document.body.style.overflow = '';
     }
 
-    // Обработчики
     const toggleBtn = document.getElementById('menuToggle');
     if (toggleBtn) {
         toggleBtn.addEventListener('click', openModal);
@@ -662,25 +683,20 @@ function rebuildNav() {
     closeBtn.addEventListener('click', closeModal);
     closeBtn.addEventListener('touchstart', function(e) {
         e.preventDefault();
-        closeModal();
+        closeModal(e);
     }, { passive: false });
 
-    // Закрытие при клике вне модального содержимого
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
-            closeModal();
+            closeModal(e);
         }
     });
 
-    // Обновляем активную страницу
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
-        if (a.dataset.page === currentPage) {
-            a.classList.add('active');
-        }
+        if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
-    // Адаптив: скрываем/показываем ссылки в зависимости от ширины
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
@@ -754,7 +770,7 @@ function updateNavActive(page) {
     if (nav) nav.querySelectorAll('a[data-page]').forEach(a => a.classList.toggle('active', a.dataset.page === page));
 }
 
-// ---------- ГЛАВНАЯ (С ПРОСТОЙ КАРУСЕЛЬЮ) ----------
+// ---------- ГЛАВНАЯ (С ПРОСТОЙ КАРУСЕЛЬЮ И РЕКОМЕНДУЕМЫМИ КАНАЛАМИ) ----------
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -793,8 +809,82 @@ function renderMainPage() {
         html += `<a href="announcements.html" style="color:var(--gold);">${t('all-announcements')}</a>`;
     }
     html += `</div>`;
+
+    // БЛОК РЕКОМЕНДУЕМЫХ КАНАЛОВ
+    html += `
+        <div class="card" style="margin-top: 2rem;">
+            <h2>📺 Рекомендуемые каналы</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 1rem;">
+                ${getChannelButtons()}
+            </div>
+        </div>
+    `;
+
     container.innerHTML = html;
     initSimpleCarousel();
+}
+
+// Функция для генерации кнопок каналов
+function getChannelButtons() {
+    const channels = [
+        { name: 'Протоиерей Алексей Уминский', url: 'https://youtube.com/@alexeyuminskiy', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Протоиерей Андрей Ткачев (Сосновец)', url: 'https://youtube.com/@soskovets', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Протоиерей Олег Стеняев', url: 'https://youtube.com/@oleg_steniaev', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Православное видео (pravideo4)', url: 'https://youtube.com/@pravideo4', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Студия Храм Рождества Христова', url: 'https://youtube.com/@studiahramarozdestvahristova', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Епископ Августин (Беляев)', url: 'https://youtube.com/@bishop-augustine', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Священник Евгений Халиманков', url: 'https://youtube.com/@halimankov', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Андрей Десницкий', url: 'https://youtube.com/@desnitsky_official', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' },
+        { name: 'Богословские беседы (канал)', url: 'https://youtube.com/channel/UCbDQNPZ86XQUG1FmbyYKfqw', icon: 'https://www.youtube.com/s/desktop/3d05e007/img/favicon_144x144.png' }
+    ];
+
+    let html = '';
+    channels.forEach(ch => {
+        html += `
+            <a href="${ch.url}" target="_blank" class="channel-btn youtube-btn" data-title="${ch.name}" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 80px; text-align: center;">
+                <img src="${ch.icon}" alt="YouTube" style="width: 48px; height: 48px; display: block; margin: 0 auto; transition: transform 0.3s;">
+                <span style="font-size: 0.7rem; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${ch.name}</span>
+            </a>
+        `;
+    });
+
+    // Добавляем Telegram канал
+    html += `
+        <a href="https://t.me/blagovestitel" target="_blank" class="channel-btn telegram-btn" data-title="Благовеститель" style="display: inline-block; padding: 0.5rem; background: #f1f1f1; border-radius: 12px; transition: all 0.3s; text-decoration: none; color: #333; border: 2px solid transparent; width: 80px; text-align: center;">
+            <img src="https://telegram.org/img/favicon.ico" alt="Telegram" style="width: 48px; height: 48px; display: block; margin: 0 auto; transition: transform 0.3s;">
+            <span style="font-size: 0.7rem; display: block; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Благовеститель</span>
+        </a>
+    `;
+
+    // Добавляем CSS для hover эффекта (красный цвет)
+    const style = document.createElement('style');
+    style.textContent = `
+        .channel-btn:hover {
+            background: #ff0000 !important;
+            border-color: #ff0000 !important;
+            transform: scale(1.05);
+        }
+        .channel-btn:hover img {
+            filter: brightness(0) invert(1);
+        }
+        .channel-btn:hover span {
+            color: white !important;
+        }
+        .channel-btn.youtube-btn:hover {
+            background: #ff0000 !important;
+            border-color: #ff0000 !important;
+        }
+        .channel-btn.telegram-btn:hover {
+            background: #0088cc !important;
+            border-color: #0088cc !important;
+        }
+        .channel-btn:hover .channel-name {
+            color: white !important;
+        }
+    `;
+    document.head.appendChild(style);
+
+    return html;
 }
 
 // ========== ПРОСТАЯ КАРУСЕЛЬ ==========
@@ -818,9 +908,6 @@ function initSimpleCarousel() {
     const total = cards.length;
     if (total === 0) return;
 
-    let currentIndex = 0;
-    let autoplayInterval = null;
-
     function getCardWidth() {
         if (cards.length === 0) return 240;
         const first = cards[0];
@@ -829,6 +916,9 @@ function initSimpleCarousel() {
         const margin = parseFloat(style.marginRight) || 0;
         return width + margin;
     }
+
+    let currentIndex = 0;
+    let autoplayInterval = null;
 
     function scrollToIndex(index) {
         if (index < 0) index = 0;
@@ -881,6 +971,7 @@ function initSimpleCarousel() {
     }
 
     startAutoplay();
+
     track.addEventListener('mouseenter', stopAutoplay);
     track.addEventListener('mouseleave', startAutoplay);
     track.addEventListener('touchstart', stopAutoplay);
@@ -897,7 +988,6 @@ function initSimpleCarousel() {
     scrollToIndex(0);
 }
 
-// ---------- ФУНКЦИЯ ДЛЯ ОБРАТНОЙ СОВМЕСТИМОСТИ (scrollCarousel) ----------
 function scrollCarousel(direction) {
     const track = document.getElementById('carouselTrack');
     if (!track) return;
@@ -933,6 +1023,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
+// ---------- МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ----------
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -974,7 +1065,7 @@ function openTempleModal(tab, templeId) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
                     content += `<div class="clergy-card" data-id="${c.id}">
-                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo-modal">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 150px; height: 150px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
                         <div class="clergy-name">${escapeHtml(c.name)}</div>
                         <div class="clergy-rank">${escapeHtml(c.rank)}</div>
                     </div>`;
@@ -1070,11 +1161,12 @@ function renderTempleDetail(container, id) {
     });
 }
 
+// ========== ДУХОВЕНСТВО (ПРЯМОУГОЛЬНЫЕ ФОТО) ==========
 function renderClergyList(container) {
     let html = `<h2>${t('clergy-title')}</h2><div class="grid" id="clergyList">`;
     data.clergy.forEach(c => {
         html += `<div class="grid-item" data-id="${c.id}" data-type="clergy">
-            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" class="clergy-photo">
+            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" loading="lazy" onerror="this.style.display='none'" style="border-radius:20px; height:400px; object-fit:cover; object-position: top center;">
             <div class="info"><h3>${escapeHtml(c.name)}</h3><div class="status">${escapeHtml(c.rank)}</div><div style="font-size:0.8rem;color:#999;">${getTempleNames(c.templeIds)}</div></div>
         </div>`;
     });
@@ -1082,6 +1174,8 @@ function renderClergyList(container) {
     container.innerHTML = html;
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
+
+// ========== ДЕТАЛЬНАЯ СТРАНИЦА СВЯЩЕННИКА ==========
 function renderClergyDetail(id) {
     if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
@@ -1089,13 +1183,14 @@ function renderClergyDetail(id) {
     const container = document.getElementById('mainContent');
     container.innerHTML = `<div class="detail-back" onclick="window.location.href='clergy.html'">${t('back')}</div>
     <div class="detail-content">
-        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" class="clergy-photo-detail">
+        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="border-radius:20px; width:100%; max-width:400px; height:auto; object-fit:cover; object-position: top center; margin:0 auto 1rem; display:block;">
         <h2>${escapeHtml(c.name)}</h2>
         <p><strong>${t('clergy-rank')}:</strong> ${escapeHtml(c.rank)}</p>
         <p><strong>${t('temple')}:</strong> ${getTempleNames(c.templeIds)}</p>
         <p><strong>${t('clergy-desc')}:</strong> ${escapeHtml(c.description) || 'Описание отсутствует.'}</p>
     </div>`;
 }
+
 // ---------- РАСПИСАНИЕ ----------
 function getScheduleHTML() {
     let html = `<h2>${t('schedule-title')}</h2><div class="card"><h3>${t('select-temple')}</h3><select id="scheduleTempleSelect" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border);"><option value="">${t('choose-temple')}</option>`;
@@ -1179,8 +1274,14 @@ function renderSundaySchoolDetail(id) {
     const container = document.getElementById('mainContent');
     const temple = data.temples.find(t => t.id === school.templeId);
     let teachers = data.teachers.filter(t => t.schoolId === id);
+    // Сортировка: сначала директор (Богатко), потом остальные по роли
     const roleOrder = { 'Директор': 1, 'Преподаватель': 2, 'Воспитатель': 3 };
-    teachers.sort((a,b) => (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99));
+    teachers.sort((a,b) => {
+        // Сначала идёт Богатко (id=3) всегда первой
+        if (a.id === 3 && b.id !== 3) return -1;
+        if (b.id === 3 && a.id !== 3) return 1;
+        return (roleOrder[a.role] || 99) - (roleOrder[b.role] || 99);
+    });
 
     let teachersHtml = '';
     if (teachers.length) {
@@ -1249,7 +1350,7 @@ function renderAboutPage(container) {
     container.innerHTML = html;
 }
 
-// ---------- БОГОСЛУЖЕНИЯ ----------
+// ---------- БОГОСЛУЖЕНИЯ (ИСПРАВЛЕНЫ) ----------
 function renderWorshipPage(container) {
     const tabs = [
         { id: 'schedule', label: 'Расписание' },
@@ -1421,7 +1522,7 @@ function renderFaqPage(container) {
     document.getElementById('askAIBtn')?.addEventListener('click', askAI);
 }
 
-// ---------- ИИ ----------
+// ---------- ИИ (заглушка) ----------
 async function askAI() {
     const questionInput = document.getElementById('aiQuestion');
     if (!questionInput) return;
@@ -1486,119 +1587,11 @@ function renderOpecheniePage(container) {
     container.innerHTML = html;
 }
 
-// ========== АДМИН-ПАНЕЛЬ ==========
-let adminModal = null, adminModalContent = null;
-function ensureAdminModal() {
-    if (!document.getElementById('adminModal')) {
-        const modalDiv = document.createElement('div');
-        modalDiv.id = 'adminModal';
-        modalDiv.className = 'admin-modal';
-        modalDiv.innerHTML = `<div class="admin-panel"><div class="admin-header"><h3 data-i18n="admin-title">🛠 Администрирование</h3><button id="closeAdminBtn" class="btn btn-sm" data-i18n="admin-close">Закрыть</button></div><div id="adminContent"></div></div>`;
-        document.body.appendChild(modalDiv);
-        document.getElementById('closeAdminBtn').addEventListener('click', closeAdminModal);
-        modalDiv.addEventListener('click', function(e) { if (e.target === this) closeAdminModal(); });
-    }
-    adminModal = document.getElementById('adminModal');
-    adminModalContent = document.getElementById('adminContent');
-}
-function openAdminModal() { ensureAdminModal(); adminModal.classList.add('visible'); if (!currentUser) renderAdminLogin(); else renderAdminDashboard(); }
-function closeAdminModal() { if (adminModal) adminModal.classList.remove('visible'); }
+// =============================================================
+// ========== АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (ПОЛНЫЙ НАБОР) ==========
+// =============================================================
 
-function renderAdminLogin() {
-    adminModalContent.innerHTML = `<div class="login-form"><h3>${t('login-title')}</h3>
-        <input type="text" id="adminLogin" placeholder="${t('username')}">
-        <input type="password" id="adminPass" placeholder="${t('login-password')}">
-        <button id="doLogin" class="btn">${t('login-btn')}</button></div>`;
-    document.getElementById('doLogin').addEventListener('click', async function() {
-        const login = document.getElementById('adminLogin').value.trim();
-        const pass = document.getElementById('adminPass').value.trim();
-        if (!login || !pass) { alert('Введите логин и пароль'); return; }
-        const user = data.users.find(u => u.username === login);
-        if (!user) { alert(t('wrong-password')); return; }
-        let storedPassword = user.password || '';
-        if (isHash(storedPassword)) {
-            const inputHash = await hashPassword(pass);
-            if (inputHash === storedPassword) { currentUser = user; renderAdminDashboard(); }
-            else alert(t('wrong-password'));
-        } else {
-            if (storedPassword === pass) {
-                user.password = await hashPassword(pass);
-                saveData();
-                currentUser = user;
-                renderAdminDashboard();
-            } else alert(t('wrong-password'));
-        }
-    });
-}
-
-function renderAdminDashboard() {
-    const hasUsersPerm = hasPermission(currentUser, 'manage_users');
-    const hasLogsPerm = hasPermission(currentUser, 'view_logs');
-    const hasTemplesPerm = hasPermission(currentUser, 'manage_temples');
-    const hasClergyPerm = hasPermission(currentUser, 'manage_clergy');
-    const hasSchedulePerm = hasPermission(currentUser, 'manage_schedule');
-    const hasNewsPerm = hasPermission(currentUser, 'manage_news');
-    const hasAnnouncementsPerm = hasPermission(currentUser, 'manage_announcements');
-    const hasSundaySchoolsPerm = hasPermission(currentUser, 'manage_sunday_schools');
-    const hasAboutPerm = hasPermission(currentUser, 'manage_about');
-    const hasWorshipPerm = hasPermission(currentUser, 'manage_worship');
-    const hasAIPerm = hasPermission(currentUser, 'manage_ai');
-    const hasOpecheniePerm = hasPermission(currentUser, 'manage_opechenie');
-    let menuButtons = '';
-    if (hasSchedulePerm) menuButtons += `<button class="admin-menu-btn" data-section="schedule">📅 Расписание</button>`;
-    if (hasTemplesPerm) menuButtons += `<button class="admin-menu-btn" data-section="temples">⛪ Храмы</button>`;
-    if (hasClergyPerm) menuButtons += `<button class="admin-menu-btn" data-section="clergy">👤 Духовенство</button>`;
-    if (hasNewsPerm) menuButtons += `<button class="admin-menu-btn" data-section="news">📰 Новости</button>`;
-    if (hasAnnouncementsPerm) menuButtons += `<button class="admin-menu-btn" data-section="announcements">📢 Объявления</button>`;
-    if (hasSundaySchoolsPerm) menuButtons += `<button class="admin-menu-btn" data-section="sunday-school">🏫 Воскресные школы</button>`;
-    if (hasAboutPerm) menuButtons += `<button class="admin-menu-btn" data-section="about">ℹ️ О благочинии</button>`;
-    if (hasWorshipPerm) menuButtons += `<button class="admin-menu-btn" data-section="worship">✝️ Богослужения</button>`;
-    if (hasAIPerm) menuButtons += `<button class="admin-menu-btn" data-section="ai">🤖 ИИ-помощник</button>`;
-    if (hasOpecheniePerm) menuButtons += `<button class="admin-menu-btn" data-section="opechenie">📋 Окормление</button>`;
-    if (hasUsersPerm) menuButtons += `<button class="admin-menu-btn" data-section="users">👥 Пользователи</button>`;
-    if (hasLogsPerm) menuButtons += `<button class="admin-menu-btn" data-section="logs">📜 Логи</button>`;
-    adminModalContent.innerHTML = `<div class="admin-panel">
-        <div class="admin-header"><h3>${t('admin-title')}</h3><div><span style="margin-right:1rem;">👤 ${escapeHtml(currentUser.username)} (${t('role-'+currentUser.role)||currentUser.role})</span>
-        <button id="logoutAdmin" class="btn btn-sm">${t('logout')}</button>
-        <button id="closeAdminBtn2" class="btn btn-sm">${t('admin-close')}</button></div></div>
-        <div class="admin-menu" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem;">${menuButtons}</div>
-        <div id="adminSectionContent" data-current-section=""><p>Выберите раздел для управления.</p></div>
-    </div>`;
-    document.getElementById('closeAdminBtn2').addEventListener('click', closeAdminModal);
-    document.getElementById('logoutAdmin').addEventListener('click', function() { currentUser = null; renderAdminLogin(); });
-    document.querySelectorAll('.admin-menu-btn').forEach(btn => btn.addEventListener('click', function() { renderAdminSection(this.dataset.section); }));
-}
-
-function renderAdminSection(section) {
-    const content = document.getElementById('adminSectionContent');
-    if (!content) return;
-    content.dataset.currentSection = section;
-    const permMap = {
-        'schedule':'manage_schedule','temples':'manage_temples','clergy':'manage_clergy',
-        'news':'manage_news','announcements':'manage_announcements',
-        'sunday-school':'manage_sunday_schools','about':'manage_about',
-        'worship':'manage_worship','ai':'manage_ai','users':'manage_users',
-        'opechenie':'manage_opechenie','logs':'view_logs'
-    };
-    if (permMap[section] && !hasPermission(currentUser, permMap[section])) { content.innerHTML = '<p>Доступ запрещён.</p>'; return; }
-    switch (section) {
-        case 'schedule': renderAdminSchedule(content); break;
-        case 'temples': renderAdminTemples(content); break;
-        case 'clergy': renderAdminClergy(content); break;
-        case 'news': renderAdminNews(content); break;
-        case 'announcements': renderAdminAnnouncements(content); break;
-        case 'sunday-school': renderAdminSundaySchools(content); break;
-        case 'about': renderAdminAbout(content); break;
-        case 'worship': renderAdminWorship(content); break;
-        case 'ai': renderAdminAI(content); break;
-        case 'users': renderAdminUsers(content); break;
-        case 'opechenie': renderAdminOpechenie(content); break;
-        case 'logs': renderAdminLogs(content); break;
-        default: content.innerHTML = '<p>Неизвестный раздел.</p>';
-    }
-}
-
-// ---------- АДМИНИСТРАТИВНЫЕ ФУНКЦИИ (полный набор) ----------
+// ---------- УПРАВЛЕНИЕ РАСПИСАНИЕМ ----------
 function renderAdminSchedule(container) {
     let html = `<h3>${t('admin-schedule')}</h3>
         <div style="display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
@@ -1657,6 +1650,7 @@ function renderScheduleTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ХРАМАМИ ----------
 function renderAdminTemples(container) {
     let html = `<h3>Управление храмами</h3>
         <button id="adminTempleAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить храм</button>
@@ -1747,6 +1741,7 @@ function renderTemplesTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ДУХОВЕНСТВОМ ----------
 function renderAdminClergy(container) {
     let html = `<h3>Управление духовенством</h3>
         <button id="adminClergyAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить священнослужителя</button>
@@ -1828,6 +1823,7 @@ function renderClergyTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ ----------
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1908,6 +1904,7 @@ function renderNewsTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ ----------
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1980,6 +1977,7 @@ function renderAnnounceTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ВОСКРЕСНЫМИ ШКОЛАМИ ----------
 function renderAdminSundaySchools(container) {
     let html = `<h3>Управление воскресными школами</h3>
         <button id="adminSSAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить школу</button>
@@ -2138,6 +2136,7 @@ function renderTeacherTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ СТРАНИЦЕЙ "О БЛАГОЧИНИИ" ----------
 function renderAdminAbout(container) {
     let html = `<h3>Редактирование страницы "О благочинии"</h3>
         <div class="form-group"><label>Текст (поддерживается перенос строк)</label>
@@ -2153,6 +2152,7 @@ function renderAdminAbout(container) {
     });
 }
 
+// ---------- УПРАВЛЕНИЕ БОГОСЛУЖЕНИЯМИ ----------
 function renderAdminWorship(container) {
     let html = `<h3>Управление богослужениями</h3>
         <div class="card"><h4>Молитвослов</h4>
@@ -2280,6 +2280,7 @@ function renderSacramentsTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ОКОРМЛЕНИЕМ ----------
 function renderAdminOpechenie(container) {
     let html = `<h3>Управление окормлением</h3>
         <button id="adminOpechenieAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объект</button>
@@ -2358,6 +2359,7 @@ function renderOpechenieTable() {
     return table;
 }
 
+// ---------- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ ----------
 function renderAdminUsers(container) {
     let html = `<h3>${t('admin-users')}</h3>
         <button id="adminAddUserBtn" class="btn" style="margin-bottom:1rem;">➕ ${t('add-user')}</button>
@@ -2482,6 +2484,7 @@ function renderUserTable() {
     return table;
 }
 
+// ---------- ЛОГИ ----------
 function renderAdminLogs(container) {
     let logs = data.logs || [];
     logs = logs.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -2504,21 +2507,223 @@ function renderAdminLogs(container) {
     container.innerHTML = html;
 }
 
-// ========== ПРИМЕНЕНИЕ ПЕРЕВОДОВ, РЕЖИМ СЛАБОВИДЯЩИХ ==========
-function applyTranslations() { document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.dataset.i18n; el.textContent = t(key); }); }
-function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
-function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
-function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
+// ---------- OCR (РАСПОЗНАВАНИЕ ТЕКСТА) ----------
+function renderAdminOCR(container) {
+    container.innerHTML = `
+        <h3>📄 Распознавание текста с фото</h3>
+        <div class="card">
+            <p>Загрузите изображение (JPG, PNG) для распознавания текста. Текст будет разбит по строкам.</p>
+            <input type="file" id="ocrFileInput" accept="image/*" style="margin: 1rem 0;">
+            <button id="ocrRecognizeBtn" class="btn">Распознать</button>
+            <div id="ocrProgress" style="margin-top: 0.5rem; color: #999;"></div>
+            <div id="ocrResult" style="margin-top: 1rem; display: none;">
+                <h4>Распознанный текст (по строкам)</h4>
+                <textarea id="ocrText" rows="10" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); background:var(--bg);"></textarea>
+                <div style="margin-top: 0.5rem;">
+                    <label>Выберите храм для добавления в расписание:</label>
+                    <select id="ocrTempleSelect" style="width:100%; padding:0.4rem; border-radius:16px; border:1px solid var(--border);">
+                        <option value="">-- выберите --</option>
+                        ${data.temples.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')}
+                    </select>
+                    <button id="ocrAddToScheduleBtn" class="btn" style="margin-top: 0.5rem;">➕ Добавить строки в расписание</button>
+                    <div id="ocrScheduleResult" style="margin-top: 0.5rem;"></div>
+                </div>
+            </div>
+        </div>
+    `;
 
-// ========== ТРИГГЕРЫ ==========
+    document.getElementById('ocrRecognizeBtn').addEventListener('click', async function() {
+        const fileInput = document.getElementById('ocrFileInput');
+        const file = fileInput.files[0];
+        if (!file) { alert('Выберите изображение'); return; }
+        const progress = document.getElementById('ocrProgress');
+        const resultDiv = document.getElementById('ocrResult');
+        const textarea = document.getElementById('ocrText');
+
+        progress.textContent = '⏳ Распознавание...';
+        try {
+            if (typeof Tesseract === 'undefined') {
+                throw new Error('Библиотека Tesseract.js не загружена. Подключите её на странице.');
+            }
+            const imageUrl = URL.createObjectURL(file);
+            const { data: { text } } = await Tesseract.recognize(imageUrl, 'rus+eng', {
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        progress.textContent = `⏳ Распознавание: ${Math.round(m.progress * 100)}%`;
+                    }
+                }
+            });
+            URL.revokeObjectURL(imageUrl);
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            textarea.value = lines.join('\n');
+            resultDiv.style.display = 'block';
+            progress.textContent = '✅ Распознано!';
+        } catch (error) {
+            progress.textContent = '❌ Ошибка: ' + error.message;
+            console.error(error);
+        }
+    });
+
+    document.getElementById('ocrAddToScheduleBtn').addEventListener('click', function() {
+        const templeId = parseInt(document.getElementById('ocrTempleSelect').value);
+        const text = document.getElementById('ocrText').value;
+        const resultDiv = document.getElementById('ocrScheduleResult');
+        if (!templeId) { resultDiv.innerHTML = '❌ Выберите храм.'; return; }
+        if (!text.trim()) { resultDiv.innerHTML = '❌ Нет текста для добавления.'; return; }
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        if (!lines.length) { resultDiv.innerHTML = '❌ Нет строк для добавления.'; return; }
+        const today = new Date().toISOString().slice(0,10);
+        let added = 0;
+        lines.forEach(line => {
+            data.schedules.push({
+                id: nextId.schedule++,
+                templeId: templeId,
+                date: today,
+                event: line.trim()
+            });
+            added++;
+        });
+        saveData();
+        resultDiv.innerHTML = `✅ Добавлено ${added} записей в расписание храма "${getTempleName(templeId)}" на ${today}.`;
+        document.getElementById('ocrText').value = '';
+        document.getElementById('ocrResult').style.display = 'none';
+    });
+}
+
+// ======================================================================
+//  ОТКРЫТИЕ / ЗАКРЫТИЕ АДМИН-ПАНЕЛИ (С УЧЁТОМ OCR)
+// ======================================================================
+
+function openAdminModal() {
+    let modal = document.getElementById('adminModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'adminModal';
+        modal.className = 'admin-modal';
+        modal.innerHTML = `
+            <div class="admin-panel" id="adminPanel">
+                <div class="admin-header">
+                    <h2>${t('admin-title')}</h2>
+                    <div>
+                        <button id="adminLogoutBtn" class="btn btn-sm" style="background:#b68b6a;">${t('logout')}</button>
+                        <button id="adminCloseBtn" class="btn btn-sm">${t('admin-close')}</button>
+                    </div>
+                </div>
+                <div id="adminLoginSection">
+                    <h3>${t('login-title')}</h3>
+                    <input type="password" id="adminPassword" placeholder="${t('login-password')}" style="width:100%; padding:0.6rem; border-radius:16px; border:1px solid var(--border); margin-bottom:0.5rem;">
+                    <button id="adminLoginBtn" class="btn">${t('login-btn')}</button>
+                    <div id="adminLoginMessage"></div>
+                </div>
+                <div id="adminContent" style="display:none;">
+                    <div class="admin-menu" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+                        <button class="admin-menu-btn" data-section="schedule">${t('admin-schedule')}</button>
+                        <button class="admin-menu-btn" data-section="temples">${t('manage-temples')}</button>
+                        <button class="admin-menu-btn" data-section="clergy">${t('manage-clergy')}</button>
+                        <button class="admin-menu-btn" data-section="news">${t('manage-news')}</button>
+                        <button class="admin-menu-btn" data-section="announcements">${t('manage-announcements')}</button>
+                        <button class="admin-menu-btn" data-section="sunday-schools">${t('manage-sunday-schools')}</button>
+                        <button class="admin-menu-btn" data-section="about">${t('manage-about')}</button>
+                        <button class="admin-menu-btn" data-section="worship">${t('manage-worship')}</button>
+                        <button class="admin-menu-btn" data-section="opechenie">${t('manage-opechenie')}</button>
+                        <button class="admin-menu-btn" data-section="users">${t('admin-users')}</button>
+                        <button class="admin-menu-btn" data-section="logs">${t('admin-logs')}</button>
+                        <button class="admin-menu-btn" data-section="ai">${t('manage-ai')}</button>
+                        <button class="admin-menu-btn" data-section="ocr">📄 Распознать текст</button>
+                    </div>
+                    <div id="adminSectionContent"></div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        document.getElementById('adminCloseBtn').addEventListener('click', closeAdminModal);
+        document.getElementById('adminLogoutBtn').addEventListener('click', function() {
+            currentUser = null;
+            document.getElementById('adminLoginSection').style.display = 'block';
+            document.getElementById('adminContent').style.display = 'none';
+            addLog('Выход из админки', '');
+            closeAdminModal();
+        });
+        modal.addEventListener('click', function(e) { if (e.target === this) closeAdminModal(); });
+
+        // Логин
+        document.getElementById('adminLoginBtn').addEventListener('click', async function() {
+            const password = document.getElementById('adminPassword').value;
+            if (!password) { document.getElementById('adminLoginMessage').textContent = 'Введите пароль'; return; }
+            const hashed = await hashPassword(password);
+            const user = data.users.find(u => u.password === hashed);
+            if (user) {
+                currentUser = user;
+                document.getElementById('adminLoginSection').style.display = 'none';
+                document.getElementById('adminContent').style.display = 'block';
+                document.getElementById('adminLoginMessage').textContent = '';
+                document.getElementById('adminPassword').value = '';
+                addLog('Вход в админку', `Пользователь ${user.username}`);
+                // Загружаем первую секцию
+                const firstBtn = document.querySelector('.admin-menu-btn');
+                if (firstBtn) firstBtn.click();
+            } else {
+                document.getElementById('adminLoginMessage').textContent = t('wrong-password');
+            }
+        });
+
+        // Меню
+        document.querySelectorAll('.admin-menu-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const section = this.dataset.section;
+                const content = document.getElementById('adminSectionContent');
+                content.dataset.currentSection = section;
+                switch (section) {
+                    case 'schedule': renderAdminSchedule(content); break;
+                    case 'temples': renderAdminTemples(content); break;
+                    case 'clergy': renderAdminClergy(content); break;
+                    case 'news': renderAdminNews(content); break;
+                    case 'announcements': renderAdminAnnouncements(content); break;
+                    case 'sunday-schools': renderAdminSundaySchools(content); break;
+                    case 'about': renderAdminAbout(content); break;
+                    case 'worship': renderAdminWorship(content); break;
+                    case 'opechenie': renderAdminOpechenie(content); break;
+                    case 'users': renderAdminUsers(content); break;
+                    case 'logs': renderAdminLogs(content); break;
+                    case 'ai': renderAdminAI(content); break;
+                    case 'ocr': renderAdminOCR(content); break;
+                    default: content.innerHTML = '<p>Раздел в разработке</p>';
+                }
+            });
+        });
+    }
+
+    modal.classList.add('visible');
+    document.getElementById('adminLoginSection').style.display = 'block';
+    document.getElementById('adminContent').style.display = 'none';
+    if (currentUser) {
+        document.getElementById('adminLoginSection').style.display = 'none';
+        document.getElementById('adminContent').style.display = 'block';
+        const firstBtn = document.querySelector('.admin-menu-btn');
+        if (firstBtn) firstBtn.click();
+    }
+}
+
+function closeAdminModal() {
+    const modal = document.getElementById('adminModal');
+    if (modal) modal.classList.remove('visible');
+}
+
+// ======================================================================
+//  ОСТАЛЬНЫЕ ТРИГГЕРЫ И ЗАПУСК
+// ======================================================================
+
 let clickCount = 0, clickTimer = null;
 function initAdminTrigger() { document.getElementById('secretAdminTrigger')?.addEventListener('click', function(e) { e.preventDefault(); clickCount++; clearTimeout(clickTimer); clickTimer = setTimeout(() => clickCount = 0, 2000); if (clickCount >= 5) { clickCount = 0; clearTimeout(clickTimer); openAdminModal(); } }); }
 function initVisionToggle() { document.getElementById('visionToggle')?.addEventListener('click', toggleVisionMode); }
 function initBackToTop() { const btn = document.getElementById('backToTop'); if (btn) { window.addEventListener('scroll', () => btn.classList.toggle('visible', window.scrollY > 300)); btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' })); } }
 
-// ========== ЗАПУСК ==========
+function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vision_mode', visionMode ? 'on' : 'off'); updateVisionUI(); }
+function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
+function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная рабочая версия');
+    console.log('DOMContentLoaded – финальная версия с исправлениями');
     loadData();
     initAdminTrigger();
     initVisionToggle();
@@ -2526,7 +2731,6 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreVisionMode();
 });
 
-// ========== ЭКСПОРТ ==========
 window.renderTempleDetail = renderTempleDetail;
 window.renderClergyDetail = renderClergyDetail;
 window.renderSundaySchoolDetail = renderSundaySchoolDetail;
