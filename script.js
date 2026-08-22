@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (круглые фото 200x200)
+//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (объявления с фото, круглые 300x300)
 // ============================================================
 
-console.log('script.js загружен (финальная версия с кругами 200x200)');
+console.log('script.js загружен (финальная версия с фото в объявлениях)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -327,6 +327,11 @@ function migrateData() {
     if (!data.worship.interpretations) data.worship.interpretations = [];
     if (!data.worship.sacraments) data.worship.sacraments = [];
 
+    // Добавляем поле image для объявлений
+    data.announcements.forEach(a => {
+        if (a.image === undefined) a.image = '';
+    });
+
     data.users.forEach(u => { 
         if (!u.permissions) u.permissions = rolePermissions[u.role] || rolePermissions.junior; 
         if (u.extraQuestion === undefined) u.extraQuestion = '';
@@ -350,23 +355,26 @@ function migrateData() {
     }
     setDefaultPhotos();
 
-    // Добавляем объявления о центре "Анастасис", если их ещё нет
+    // Добавляем объявления о центре "Анастасис", если их ещё нет (с фото)
     const existingAnnounce = data.announcements.some(a => a.text && a.text.includes('Анастасис'));
     if (!existingAnnounce) {
         const announcements = [
             {
                 id: nextId.announcement++,
-                text: 'УСЛОВИЯ ПРИЕМА НА РЕАБИЛИТАЦИЮ\n\nВ центр принимаются мужчины и женщины в возрасте 18-60 лет, изъявившие желание жить трезво.\n\nПри себе необходимо иметь:\n• паспорт\n• флюорографию\n\nС поступающим проводится предварительное собеседование по телефону и непосредственно при поступлении.\n\nРеабилитанты обеспечиваются трехразовым питанием, постельными принадлежностями, комплектом материалов, необходимых для прохождения Программы.\n\nНАШИ КОНТАКТЫ:\n230514 Республика Беларусь, Гродненская область, Слонимский район, д. Сосновка, ул. Школьная, 2\n+375(1562) 4 77 46, +375(1562) 4 76 04, +375(29) 784 18 20\nСАЙТ: www.anastasis.by\n\nБАНКОВСКИЕ РЕКВИЗИТЫ:\nр/с № BY36AKBB30150432732234100000\nОАО «АСБ Беларусбанк» г. Минск\nБИК AKBBBY2X\nУНП 590318569\n\nУЧРЕЖДЕНИЕ "ЦЕНТР РЕАБИЛИТАЦИИ ЗАВИСИМЫХ ОТ АЛКОГОЛЯ И НАРКОТИКОВ"',
+                text: 'Условия приема на реабилитацию',
+                image: 'anastasis1.jpg',
                 date: new Date().toISOString().slice(0,10)
             },
             {
                 id: nextId.announcement++,
-                text: '# АНАСТАСИС\n## СООБЩЕСТВО\n\nУЧРЕЖДЕНИЕ "ЦЕНТР РЕАБИЛИТАЦИИ ЗАВИСИМЫХ ОТ АЛКОГОЛЯ И НАРКОТИКОВ "АНАСТАСИС СОСНОВКА"\n\nРЕАБИЛИТАЦИЯ РЕАЛИЗУЕТСЯ В СООТВЕТСТВИИ С ТРАДИЦИЯМИ ПРАВОСЛАВНОГО ВЕРОУЧЕНИЯ:\n- регулярное участие в богослужениях и церковных таинствах,\n- изучение святоотеческой литературы,\n- развитие духовных потребностей,\n- изменение морально-нравственных ориентиров с использованием нравственного богословия.\n\nВСЮ ИНФОРМАЦИЮ МОЖНО УЗНАТЬ ПО ТЕЛЕФОНАМ:\n+375 (1562) 4 77 46\n+375 (1562) 4 76 04\n+375 (29) 784 18 20\n+375 (29) 557 86 41\n\nНАШ САЙТ: WWW.ANASTASIS.BY\n\nГродненская область, Слонимский район, д. Сосновка, ул. Школьная, 2\n\nдуховная, психологическая и социальная помощь в избавлении от наркотической, алкогольной, игровой и прочих зависимостей; помощь семьям зависимых.\n\nВ ЦЕНТР ПРИНИМАЮТСЯ МУЖЧИНЫ И ЖЕНЩИНЫ В ВОЗРАСТЕ 18-60 ЛЕТ, ИЗЪЯВИВШИЕ ЖЕЛАНИЕ ЖИТЬ ТРЕЗВО.\n\n- необходимо иметь с собой паспорт, флюорографию\n- с поступающим проводится предварительное собеседование по телефону и непосредственно при поступлении\n- реабилитанты обеспечиваются:\n  - трехразовым питанием,\n  - постельными принадлежностями,\n  - комплектом, необходимым для реабилитации.',
+                text: 'Анастасис – сообщество',
+                image: 'anastasis2.jpg',
                 date: new Date().toISOString().slice(0,10)
             },
             {
                 id: nextId.announcement++,
-                text: 'ЦЕЛИ ПРОГРАММЫ ПРАВОСЛАВНОГО ЦЕНТРА РЕАБИЛИТАЦИИ "АНАСТАСИС СОСНОВКА"\n\nоказание духовной, психологической и социальной помощи людям в избавлении от наркотической, алкогольной, игровой и прочих зависимостей, а также их семьям.\n\nЗАДАЧИ НАСТОЯЩЕЙ ПРОГРАММЫ:\n- информационное сопровождение процесса реабилитации, раскрывающее проблемы зависимости и созависимости, их причины и последствия,\n- устранение психической зависимости от наркотиков путем решения глубино-личностных, духовных, мировоззренческих и нравственных проблем,\n- содействие в формировании социальной компетентности,\n- социальная реабилитация,\n- содействие ресоциализации и реадаптации,\n- работа с близкими реабилитантов.\n\nОсновной целью реабилитации является создание личности зависимого человека, обучение его навыкам полноценной, трезвой жизни в социуме.\n\nВ основу программы помощи заложен комплексный подход к используемым методикам на основе христианского мировоззрения и христианской антропологии.\n\nОрганизация жизни реабилитационного центра, построенная в соответствии с православным вероучением, позволяет организовать процесс реабилитации поэтапно и последовательно, даже при минимальном уровне мотивации на начальном этапе.\n\nВ центре на постоянной основе трудится команда сотрудников:\n- психотерапевт-нарколог\n- психолог\n- православный священник\n- волонтеры, прошедшие реабилитацию.\n\nВ работе используются различные психологические и психотерапевтические методики с учетом опыта других центров, в частности, координационного центра по противодействию наркомании отдела по церковной благотворительности и социального служения Русской Православной Церкви.',
+                text: 'Цели программы центра "Анастасис"',
+                image: 'anastasis3.jpg',
                 date: new Date().toISOString().slice(0,10)
             }
         ];
@@ -450,6 +458,12 @@ function initDefaultData() {
     };
     nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:1, opechenie:23, teacher:4 };
     setDefaultPhotos();
+    // Добавляем начальные объявления с фото
+    data.announcements = [
+        { id: nextId.announcement++, text: 'Условия приема на реабилитацию', image: 'anastasis1.jpg', date: new Date().toISOString().slice(0,10) },
+        { id: nextId.announcement++, text: 'Анастасис – сообщество', image: 'anastasis2.jpg', date: new Date().toISOString().slice(0,10) },
+        { id: nextId.announcement++, text: 'Цели программы центра "Анастасис"', image: 'anastasis3.jpg', date: new Date().toISOString().slice(0,10) }
+    ];
     saveData();
     savedScrollY = 0;
     renderCurrentPage();
@@ -776,7 +790,7 @@ function toggleVisionMode() { visionMode = !visionMode; localStorage.setItem('vi
 function restoreVisionMode() { visionMode = localStorage.getItem('vision_mode') === 'on'; updateVisionUI(); }
 function updateVisionUI() { document.body.classList.toggle('vision', visionMode); const btn = document.getElementById('visionToggle'); if (btn) btn.textContent = visionMode ? t('vision-toggle-off') : t('vision-toggle'); }
 
-// ========== ГЛАВНАЯ (С КАРУСЕЛЬЮ И КАНАЛАМИ) ==========
+// ========== ГЛАВНАЯ ==========
 function renderMainPage() {
     const container = document.getElementById('mainContent');
     if (!container) return;
@@ -811,7 +825,9 @@ function renderMainPage() {
     const ann = [...data.announcements].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3);
     if (!ann.length) html += `<p>${t('no-announcements')}</p>`;
     else {
-        ann.forEach(a => html += `<div><p>${escapeHtml(a.text)}</p><span style="font-size:0.85rem;color:#999;">${escapeHtml(a.date)}</span></div>`);
+        ann.forEach(a => {
+            html += `<div>${a.image ? `<img src="${escapeHtml(a.image)}" style="max-width:100%;max-height:200px;border-radius:8px;margin:0.5rem 0;">` : ''}<p style="font-size:0.85rem;color:#999;">${escapeHtml(a.date)}</p></div>`;
+        });
         html += `<a href="announcements.html" style="color:var(--gold);">${t('all-announcements')}</a>`;
     }
     html += `</div>`;
@@ -1030,7 +1046,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (КРУГЛЫЕ ФОТО 200x200) ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (КРУГЛЫЕ ФОТО 300x300) ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -1072,7 +1088,7 @@ function openTempleModal(tab, templeId) {
                 content += `<div class="clergy-list">`;
                 clergy.forEach(c => {
                     content += `<div class="clergy-card" data-id="${c.id}">
-                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 200px; height: 200px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
+                        <img src="${escapeHtml(c.photo || 'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="width: 300px; height: 300px; border-radius: 50%; object-fit: cover; margin: 0 auto 0.5rem; display: block;">
                         <div class="clergy-name">${escapeHtml(c.name)}</div>
                         <div class="clergy-rank">${escapeHtml(c.rank)}</div>
                     </div>`;
@@ -1221,7 +1237,7 @@ function initScheduleSelect(container) {
     });
 }
 
-// ========== НОВОСТИ ==========
+// ========== НОВОСТИ (С ФОТО) ==========
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2><div style="margin-bottom: 1rem;"><a href="https://t.me/dzrzh_blag" target="_blank" class="btn-telegram" style="background: #0088cc; color: white; padding: 0.5rem 1.2rem; border-radius: 40px; text-decoration: none; display: inline-block; font-weight: bold;">📢 Подписаться на Telegram-канал</a></div>`;
     const news = data.news||[];
@@ -1240,14 +1256,22 @@ function renderNewsList(container) {
     container.innerHTML = html;
 }
 
-// ========== ОБЪЯВЛЕНИЯ ==========
+// ========== ОБЪЯВЛЕНИЯ (ТОЛЬКО ФОТО) ==========
 function renderAnnouncementsList(container) {
     let html = `<h2>${t('announcements-title')}</h2>`;
     const ann = data.announcements||[];
     if (!ann.length) html += `<p>${t('no-announcements')}</p>`;
     else {
         const sorted = [...ann].sort((a,b)=>new Date(b.date)-new Date(a.date));
-        sorted.forEach(a => html += `<div class="card"><p>${escapeHtml(a.text)}</p><p style="font-size:0.85rem;color:#999;">${escapeHtml(a.date)}</p></div>`);
+        html += `<div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">`;
+        sorted.forEach(a => {
+            const imgHtml = a.image ? `<img src="${escapeHtml(a.image)}" alt="Объявление" style="width:100%; height:200px; object-fit:cover; border-radius:16px;">` : '<div style="padding:1rem; text-align:center; color:#999;">Нет фото</div>';
+            html += `<div class="card" style="padding:0.5rem; overflow:hidden;">
+                ${imgHtml}
+                <p style="font-size:0.85rem; color:#999; margin-top:0.3rem; text-align:center;">${escapeHtml(a.date)}</p>
+            </div>`;
+        });
+        html += `</div>`;
     }
     container.innerHTML = html;
 }
@@ -1828,7 +1852,7 @@ function renderClergyTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ ----------
+// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ (С ФОТО) ----------
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1839,7 +1863,7 @@ function renderAdminNews(container) {
             <div class="form-group"><label>Заголовок</label><input type="text" id="newsFormTitleInput" style="width:100%; padding:0.4rem;"></div>
             <div class="form-group"><label>Текст</label><textarea id="newsFormText" rows="4" style="width:100%; padding:0.4rem;"></textarea></div>
             <div class="form-group"><label>Дата</label><input type="date" id="newsFormDate" style="width:100%; padding:0.4rem;"></div>
-            <div class="form-group"><label>Медиа (URL)</label><input type="text" id="newsFormMedia" style="width:100%; padding:0.4rem;"></div>
+            <div class="form-group"><label>Медиа (URL фото или видео)</label><input type="text" id="newsFormMedia" style="width:100%; padding:0.4rem;" placeholder="https://example.com/photo.jpg"></div>
             <button id="newsFormSaveBtn" class="btn">Сохранить</button>
             <button id="newsFormCancelBtn" class="btn btn-sm">Отмена</button>
         </div>`;
@@ -1899,9 +1923,10 @@ function renderAdminNews(container) {
 }
 function renderNewsTable() {
     if (!data.news.length) return '<p>Нет новостей</p>';
-    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Заголовок</th><th>Фото</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
     data.news.forEach(n => {
-        table += `<tr><td>${escapeHtml(n.title)}</td><td>${escapeHtml(n.date||'')}</td>
+        const imgHtml = n.media && n.media.match(/\.(jpe?g|png|gif|webp)$/i) ? `<img src="${escapeHtml(n.media)}" style="max-width:100px; max-height:60px; object-fit:cover; border-radius:8px;">` : 'Нет фото';
+        table += `<tr><td>${escapeHtml(n.title)}</td><td>${imgHtml}</td><td>${escapeHtml(n.date||'')}</td>
             <td><button class="btn btn-sm admin-news-edit" data-id="${n.id}">✏️</button>
             <button class="btn btn-sm btn-danger admin-news-delete" data-id="${n.id}">🗑️</button></td></tr>`;
     });
@@ -1909,7 +1934,7 @@ function renderNewsTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ ----------
+// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ (С ФОТО) ----------
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1917,7 +1942,8 @@ function renderAdminAnnouncements(container) {
         <div id="adminAnnounceForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
             <h4 id="announceFormTitle">Добавить объявление</h4>
             <input type="hidden" id="announceFormId">
-            <div class="form-group"><label>Текст</label><textarea id="announceFormText" rows="3" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Текст (для служебных целей, не отображается)</label><textarea id="announceFormText" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Ссылка на фото (URL или имя файла)</label><input type="text" id="announceFormImage" style="width:100%; padding:0.4rem;" placeholder="anastasis1.jpg"></div>
             <div class="form-group"><label>Дата</label><input type="date" id="announceFormDate" style="width:100%; padding:0.4rem;"></div>
             <button id="announceFormSaveBtn" class="btn">Сохранить</button>
             <button id="announceFormCancelBtn" class="btn btn-sm">Отмена</button>
@@ -1929,6 +1955,7 @@ function renderAdminAnnouncements(container) {
             document.getElementById('announceFormTitle').textContent = 'Добавить объявление';
             document.getElementById('announceFormId').value = '';
             document.getElementById('announceFormText').value = '';
+            document.getElementById('announceFormImage').value = '';
             document.getElementById('announceFormDate').value = new Date().toISOString().slice(0,10);
             document.getElementById('adminAnnounceForm').style.display = 'block';
         }
@@ -1937,9 +1964,10 @@ function renderAdminAnnouncements(container) {
             const id = document.getElementById('announceFormId').value;
             const announce = {
                 text: document.getElementById('announceFormText').value.trim(),
+                image: document.getElementById('announceFormImage').value.trim(),
                 date: document.getElementById('announceFormDate').value
             };
-            if (!announce.text) { alert('Текст обязателен'); return; }
+            if (!announce.text && !announce.image) { alert('Заполните хотя бы текст или фото'); return; }
             if (id) {
                 const exist = data.announcements.find(a => a.id == id);
                 if (exist) Object.assign(exist, announce);
@@ -1964,7 +1992,8 @@ function renderAdminAnnouncements(container) {
             if (!a) return;
             document.getElementById('announceFormTitle').textContent = 'Редактировать';
             document.getElementById('announceFormId').value = id;
-            document.getElementById('announceFormText').value = a.text;
+            document.getElementById('announceFormText').value = a.text||'';
+            document.getElementById('announceFormImage').value = a.image||'';
             document.getElementById('announceFormDate').value = a.date||'';
             document.getElementById('adminAnnounceForm').style.display = 'block';
         }
@@ -1972,9 +2001,10 @@ function renderAdminAnnouncements(container) {
 }
 function renderAnnounceTable() {
     if (!data.announcements.length) return '<p>Нет объявлений</p>';
-    let table = `<table class="schedule-table"><thead><tr><th>Текст</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
+    let table = `<table class="schedule-table"><thead><tr><th>Фото</th><th>Дата</th><th>Действия</th></tr></thead><tbody>`;
     data.announcements.forEach(a => {
-        table += `<tr><td>${escapeHtml(a.text)}</td><td>${escapeHtml(a.date||'')}</td>
+        const imgHtml = a.image ? `<img src="${escapeHtml(a.image)}" style="max-width:100px; max-height:60px; object-fit:cover; border-radius:8px;">` : 'Нет фото';
+        table += `<tr><td>${imgHtml}</td><td>${escapeHtml(a.date||'')}</td>
             <td><button class="btn btn-sm admin-announce-edit" data-id="${a.id}">✏️</button>
             <button class="btn btn-sm btn-danger admin-announce-delete" data-id="${a.id}">🗑️</button></td></tr>`;
     });
@@ -2751,7 +2781,7 @@ function initBackToTop() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия с кругами 200x200 в модалках');
+    console.log('DOMContentLoaded – финальная версия с фото в объявлениях и новостях');
     loadData();
     initAdminTrigger();
     initVisionToggle();
