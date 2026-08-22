@@ -1,8 +1,8 @@
 // ============================================================
-//  script.js – ФИНАЛЬНАЯ ВЕРСИЯ (объявления с фото, круглые 300x300)
+//  script.js – ИСПРАВЛЕННАЯ ВЕРСИЯ (меню без перезагрузки, кнопка "Назад" везде)
 // ============================================================
 
-console.log('script.js загружен (финальная версия с фото в объявлениях)');
+console.log('script.js загружен (исправленная версия с меню)');
 
 // ========== ПОДКЛЮЧЕНИЕ FIREBASE ==========
 const firebaseConfig = {
@@ -73,7 +73,7 @@ async function hashPassword(password) {
 }
 function isHash(str) { return /^[a-f0-9]{64}$/.test(str); }
 
-// ========== ПЕРЕВОДЫ (ВСЕ ТЕКСТЫ НА РУССКОМ) ==========
+// ========== ПЕРЕВОДЫ ==========
 const translations = {
     ru: {
         'nav-main': 'Главная',
@@ -327,7 +327,6 @@ function migrateData() {
     if (!data.worship.interpretations) data.worship.interpretations = [];
     if (!data.worship.sacraments) data.worship.sacraments = [];
 
-    // Добавляем поле image для объявлений
     data.announcements.forEach(a => {
         if (a.image === undefined) a.image = '';
     });
@@ -344,7 +343,6 @@ function migrateData() {
         });
     }
 
-    // Упорядочиваем преподавателей (Богатко на первом месте)
     if (data.teachers && data.teachers.length) {
         data.teachers.sort((a,b) => {
             if (a.id === 3) return -1;
@@ -355,7 +353,6 @@ function migrateData() {
     }
     setDefaultPhotos();
 
-    // Добавляем объявления о центре "Анастасис", если их ещё нет (с фото)
     const existingAnnounce = data.announcements.some(a => a.text && a.text.includes('Анастасис'));
     if (!existingAnnounce) {
         const announcements = [
@@ -458,7 +455,6 @@ function initDefaultData() {
     };
     nextId = { temple:9, clergy:9, schedule:1, news:1, announcement:1, sundaySchool:3, faq:1, user:1, opechenie:23, teacher:4 };
     setDefaultPhotos();
-    // Добавляем начальные объявления с фото
     data.announcements = [
         { id: nextId.announcement++, text: 'Условия приема на реабилитацию', image: 'anastasis1.jpg', date: new Date().toISOString().slice(0,10) },
         { id: nextId.announcement++, text: 'Анастасис – сообщество', image: 'anastasis2.jpg', date: new Date().toISOString().slice(0,10) },
@@ -488,11 +484,12 @@ function fillTempleDropdown() {
     });
 }
 
-// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) ==========
+// ========== ПОСТРОЕНИЕ НАВИГАЦИИ (МОДАЛЬНОЕ МЕНЮ) – ИСПРАВЛЕНО ==========
 function rebuildNav() {
     const topBar = document.querySelector('.top-bar');
     if (!topBar) return;
 
+    // Удаляем старое меню, чтобы избежать дублирования
     const oldNav = topBar.querySelector('nav');
     if (oldNav) oldNav.remove();
     const oldModal = document.getElementById('menuModal');
@@ -501,6 +498,7 @@ function rebuildNav() {
     const tools = topBar.querySelector('.tools');
     if (!tools) return;
 
+    // Создаём новое nav
     const nav = document.createElement('nav');
     nav.id = 'mainNav';
 
@@ -525,6 +523,7 @@ function rebuildNav() {
         nav.appendChild(a);
     });
 
+    // Кнопка для мобильного меню
     const menuToggle = document.createElement('button');
     menuToggle.className = 'menu-toggle';
     menuToggle.id = 'menuToggle';
@@ -534,6 +533,7 @@ function rebuildNav() {
 
     topBar.insertBefore(nav, tools);
 
+    // Создаём модальное окно
     const modal = document.createElement('div');
     modal.className = 'menu-modal';
     modal.id = 'menuModal';
@@ -636,18 +636,28 @@ function rebuildNav() {
             a.style.background = 'var(--bg, #f9f6ef)';
             a.style.color = 'var(--text, #2c2a24)';
         });
+
+        // ИСПРАВЛЕННЫЙ ОБРАБОТЧИК – гарантированно предотвращает перезагрузку
         a.addEventListener('click', function(e) {
             e.preventDefault();
-            closeModal();
+            e.stopPropagation();
+
             const page = this.dataset.page;
-            const url = page === 'main' ? 'index.html' : page + '.html';
-            window.history.pushState({ page: page }, '', url);
-            document.body.dataset.page = page;
-            renderCurrentPage();
-            applyTranslations();
-            fillTempleDropdown();
-            updateNavActive(page);
+            // Закрываем модалку с задержкой, чтобы анимация завершилась
+            closeModal();
+
+            // После закрытия переходим на новую страницу
+            setTimeout(() => {
+                const url = page === 'main' ? 'index.html' : page + '.html';
+                window.history.pushState({ page: page }, '', url);
+                document.body.dataset.page = page;
+                renderCurrentPage();
+                applyTranslations();
+                fillTempleDropdown();
+                updateNavActive(page);
+            }, 350); // чуть больше длительности анимации (0.3s)
         });
+
         linksList.appendChild(a);
     });
     modalContent.appendChild(linksList);
@@ -655,6 +665,7 @@ function rebuildNav() {
     modal.appendChild(modalContent);
     document.body.appendChild(modal);
 
+    // Функции открытия/закрытия модалки
     function openModal(e) {
         e.preventDefault();
         modal.style.display = 'flex';
@@ -699,11 +710,13 @@ function rebuildNav() {
         }
     });
 
+    // Обновляем активный пункт
     const currentPage = document.body.dataset.page || 'main';
     nav.querySelectorAll('a[data-page]').forEach(a => {
         if (a.dataset.page === currentPage) a.classList.add('active');
     });
 
+    // Адаптация под мобильные
     function updateNavVisibility() {
         const width = window.innerWidth;
         const isMobile = width <= 768;
@@ -727,6 +740,7 @@ function renderCurrentPage() {
     if (!container) return;
     savedScrollY = window.scrollY;
 
+    // Детальная страница храма (определяется по window.templeId)
     if (typeof window.templeId !== 'undefined' && window.templeId !== null) {
         renderTempleDetail(container, window.templeId);
         updateNavActive('temples');
@@ -1046,7 +1060,7 @@ function renderTemplesList(container) {
     container.querySelectorAll('.grid-item[data-type="temple"]').forEach(el => el.addEventListener('click', function() { window.location.href = `temple-${this.dataset.id}.html`; }));
 }
 
-// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА (КРУГЛЫЕ ФОТО 300x300) ==========
+// ========== МОДАЛЬНОЕ ОКНО ДЛЯ ХРАМА ==========
 function openTempleModal(tab, templeId) {
     let modal = document.getElementById('templeModal');
     if (!modal) {
@@ -1114,7 +1128,7 @@ function openTempleModal(tab, templeId) {
 }
 function closeTempleModal() { const modal = document.getElementById('templeModal'); if (modal) modal.classList.remove('visible'); }
 
-// ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА ==========
+// ========== ДЕТАЛЬНАЯ СТРАНИЦА ХРАМА (С КНОПКОЙ "НАЗАД") ==========
 function renderTempleDetail(container, id) {
     if (!data.temples || data.temples.length === 0) {
         setTimeout(() => renderTempleDetail(container, id), 300);
@@ -1130,7 +1144,7 @@ function renderTempleDetail(container, id) {
     const address = temple.address ? temple.address.replace(/ул\. /g, 'ул.\u00A0').replace(/г\. /g, 'г.\u00A0').replace(/д\. /g, 'д.\u00A0').replace(/п\. /g, 'п.\u00A0').replace(/аг\. /g, 'аг.\u00A0') : '';
 
     let html = `
-        <div class="detail-back" onclick="history.back()">${t('back')}</div>
+        <div class="detail-back" onclick="history.back()" style="display: inline-block; margin-bottom: 1rem; color: var(--gold); cursor: pointer; font-weight: 500; font-size: 1.1rem;">${t('back')}</div>
         <div class="temple-detail-hero" style="background-image: url('${escapeHtml(photoSrc)}'); min-height: 70vh; height: 500px; background-size: cover; background-position: center; border-radius: 24px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; position: relative;">
             <div class="overlay" style="position:absolute; inset:0; background:rgba(0,0,0,0.4); border-radius:24px;"></div>
             <div class="content" style="position:relative; z-index:2; color:white; text-align:center; padding:2rem; text-shadow: 0 2px 8px rgba(0,0,0,0.6);">
@@ -1198,20 +1212,22 @@ function renderClergyList(container) {
     container.querySelectorAll('.grid-item[data-type="clergy"]').forEach(el => el.addEventListener('click', function() { window.location.href = `clergy-detail.html?id=${this.dataset.id}`; }));
 }
 
-// ========== ДЕТАЛЬНАЯ СТРАНИЦА СВЯЩЕННИКА ==========
+// ========== ДЕТАЛЬНАЯ СТРАНИЦА СВЯЩЕННИКА (С КНОПКОЙ "НАЗАД") ==========
 function renderClergyDetail(id) {
     if (!data.clergy || data.clergy.length === 0) { setTimeout(() => renderClergyDetail(id), 300); return; }
     const c = data.clergy.find(c => c.id === id);
     if (!c) { document.getElementById('mainContent').innerHTML = '<p>Священнослужитель не найден</p>'; return; }
     const container = document.getElementById('mainContent');
-    container.innerHTML = `<div class="detail-back" onclick="window.location.href='clergy.html'">${t('back')}</div>
-    <div class="detail-content">
-        <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="border-radius:20px; width:100%; max-width:400px; height:auto; object-fit:cover; object-position: top center; margin:0 auto 1rem; display:block;">
-        <h2>${escapeHtml(c.name)}</h2>
-        <p><strong>${t('clergy-rank')}:</strong> ${escapeHtml(c.rank)}</p>
-        <p><strong>${t('temple')}:</strong> ${getTempleNames(c.templeIds)}</p>
-        <p><strong>${t('clergy-desc')}:</strong> ${escapeHtml(c.description) || 'Описание отсутствует.'}</p>
-    </div>`;
+    container.innerHTML = `
+        <div class="detail-back" onclick="window.location.href='clergy.html'" style="display: inline-block; margin-bottom: 1rem; color: var(--gold); cursor: pointer; font-weight: 500; font-size: 1.1rem;">${t('back')}</div>
+        <div class="detail-content">
+            <img src="${escapeHtml(c.photo||'placeholder.jpg')}" alt="${escapeHtml(c.name)}" style="border-radius:20px; width:100%; max-width:400px; height:auto; object-fit:cover; object-position: top center; margin:0 auto 1rem; display:block;">
+            <h2>${escapeHtml(c.name)}</h2>
+            <p><strong>${t('clergy-rank')}:</strong> ${escapeHtml(c.rank)}</p>
+            <p><strong>${t('temple')}:</strong> ${getTempleNames(c.templeIds)}</p>
+            <p><strong>${t('clergy-desc')}:</strong> ${escapeHtml(c.description) || 'Описание отсутствует.'}</p>
+        </div>
+    `;
 }
 
 // ========== РАСПИСАНИЕ ==========
@@ -1237,7 +1253,7 @@ function initScheduleSelect(container) {
     });
 }
 
-// ========== НОВОСТИ (С ФОТО) ==========
+// ========== НОВОСТИ ==========
 function renderNewsList(container) {
     let html = `<h2>${t('news-title')}</h2><div style="margin-bottom: 1rem;"><a href="https://t.me/dzrzh_blag" target="_blank" class="btn-telegram" style="background: #0088cc; color: white; padding: 0.5rem 1.2rem; border-radius: 40px; text-decoration: none; display: inline-block; font-weight: bold;">📢 Подписаться на Telegram-канал</a></div>`;
     const news = data.news||[];
@@ -1330,7 +1346,7 @@ function renderSundaySchoolDetail(id) {
     }
 
     container.innerHTML = `
-        <div class="detail-back" onclick="window.location.href='sunday-school.html'">${t('back')}</div>
+        <div class="detail-back" onclick="window.location.href='sunday-school.html'" style="display: inline-block; margin-bottom: 1rem; color: var(--gold); cursor: pointer; font-weight: 500; font-size: 1.1rem;">${t('back')}</div>
         <div class="detail-content">
             <img src="${escapeHtml(school.photo||'placeholder.jpg')}" alt="${escapeHtml(school.name)}" style="max-width: 100%; border-radius: 16px; margin-bottom: 1rem;">
             <h2>${escapeHtml(school.name)}</h2>
@@ -1852,7 +1868,7 @@ function renderClergyTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ (С ФОТО) ----------
+// ---------- УПРАВЛЕНИЕ НОВОСТЯМИ ----------
 function renderAdminNews(container) {
     let html = `<h3>Управление новостями</h3>
         <button id="adminNewsAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить новость</button>
@@ -1934,7 +1950,7 @@ function renderNewsTable() {
     return table;
 }
 
-// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ (С ФОТО) ----------
+// ---------- УПРАВЛЕНИЕ ОБЪЯВЛЕНИЯМИ ----------
 function renderAdminAnnouncements(container) {
     let html = `<h3>Управление объявлениями</h3>
         <button id="adminAnnounceAddBtn" class="btn" style="margin-bottom:1rem;">➕ Добавить объявление</button>
@@ -1942,8 +1958,8 @@ function renderAdminAnnouncements(container) {
         <div id="adminAnnounceForm" style="display:none; margin-top:1rem; background:var(--bg); padding:1rem; border-radius:16px;">
             <h4 id="announceFormTitle">Добавить объявление</h4>
             <input type="hidden" id="announceFormId">
-            <div class="form-group"><label>Текст (для служебных целей, не отображается)</label><textarea id="announceFormText" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
-            <div class="form-group"><label>Ссылка на фото (URL или имя файла)</label><input type="text" id="announceFormImage" style="width:100%; padding:0.4rem;" placeholder="anastasis1.jpg"></div>
+            <div class="form-group"><label>Текст (для служебных целей)</label><textarea id="announceFormText" rows="2" style="width:100%; padding:0.4rem;"></textarea></div>
+            <div class="form-group"><label>Ссылка на фото</label><input type="text" id="announceFormImage" style="width:100%; padding:0.4rem;" placeholder="anastasis1.jpg"></div>
             <div class="form-group"><label>Дата</label><input type="date" id="announceFormDate" style="width:100%; padding:0.4rem;"></div>
             <button id="announceFormSaveBtn" class="btn">Сохранить</button>
             <button id="announceFormCancelBtn" class="btn btn-sm">Отмена</button>
@@ -2781,7 +2797,7 @@ function initBackToTop() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded – финальная версия с фото в объявлениях и новостях');
+    console.log('DOMContentLoaded – финальная версия с исправленным меню и кнопкой "Назад"');
     loadData();
     initAdminTrigger();
     initVisionToggle();
